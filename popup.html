@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>숲 스트리머 알림</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 380px;
+      height: 520px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+      color: #ffffff;
+      overflow: hidden;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .header {
+      background: linear-gradient(90deg, #0f3460 0%, #533483 100%);
+      padding: 12px 16px;
+      text-align: center;
+      border-bottom: 2px solid #e94560;
+    }
+
+    .header h1 {
+      font-size: 16px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .header h1 .icon {
+      font-size: 20px;
+    }
+
+    .controls {
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .monitoring-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 50px;
+      height: 26px;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #4a4a6a;
+      transition: 0.3s;
+      border-radius: 26px;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+
+    input:checked + .toggle-slider {
+      background-color: #e94560;
+    }
+
+    input:checked + .toggle-slider:before {
+      transform: translateX(24px);
+    }
+
+    .status-text {
+      font-size: 13px;
+      color: #a0a0c0;
+    }
+
+    .status-text.active {
+      color: #00ff88;
+    }
+
+    .monitoring-count {
+      font-size: 12px;
+      color: #a0a0c0;
+      padding: 4px 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+    }
+
+    .notification-settings {
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .notification-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 0;
+    }
+
+    .notification-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+    }
+
+    .notification-icon {
+      font-size: 16px;
+    }
+
+    .toggle-switch.small {
+      width: 40px;
+      height: 22px;
+    }
+
+    .toggle-switch.small .toggle-slider:before {
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+    }
+
+    .toggle-switch.small input:checked + .toggle-slider:before {
+      transform: translateX(18px);
+    }
+
+    .duration-row {
+      padding-left: 28px;
+      background: rgba(255, 255, 255, 0.02);
+      border-left: 2px solid rgba(255, 255, 255, 0.1);
+      margin-left: 10px;
+    }
+
+    .duration-label {
+      font-size: 12px;
+      color: #808090;
+    }
+
+    .duration-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #a0a0c0;
+    }
+
+    .duration-control input {
+      width: 50px;
+      padding: 4px 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      color: white;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .duration-control input:focus {
+      outline: none;
+      border-color: #e94560;
+    }
+
+    .notification-hint {
+      font-size: 10px;
+      color: #606080;
+      margin-top: 4px;
+      padding-left: 24px;
+    }
+
+    .section {
+      padding: 10px 16px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #a0a0c0;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .refresh-btn {
+      background: none;
+      border: none;
+      color: #e94560;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+
+    .refresh-btn:hover {
+      background: rgba(233, 69, 96, 0.2);
+    }
+
+    .streamer-list {
+      flex: 1;
+      overflow-y: auto;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      min-height: 0;
+    }
+
+    .streamer-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .streamer-list::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 3px;
+    }
+
+    .streamer-list::-webkit-scrollbar-thumb {
+      background: #e94560;
+      border-radius: 3px;
+    }
+
+    .streamer-item {
+      display: flex;
+      align-items: center;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      transition: background 0.2s;
+    }
+
+    .streamer-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .streamer-item:last-child {
+      border-bottom: none;
+    }
+
+    .streamer-checkbox {
+      width: 16px;
+      height: 16px;
+      margin-right: 10px;
+      accent-color: #e94560;
+      cursor: pointer;
+    }
+
+    .streamer-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .streamer-name {
+      font-size: 14px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .streamer-id {
+      font-size: 11px;
+      color: #808090;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .mode-badge {
+      font-size: 9px;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-weight: 500;
+    }
+
+    .mode-badge.mode-auto {
+      background: rgba(0, 255, 136, 0.2);
+      color: #00ff88;
+    }
+
+    .mode-badge.mode-notify {
+      background: rgba(255, 193, 7, 0.2);
+      color: #ffc107;
+    }
+
+    .mode-badge.mode-running {
+      background: rgba(0, 200, 255, 0.2);
+      color: #00c8ff;
+    }
+
+    .mode-badge.mode-not-running {
+      background: rgba(128, 128, 128, 0.2);
+      color: #666;
+    }
+
+    .streamer-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 12px;
+    }
+
+    .streamer-status.live {
+      background: rgba(0, 255, 136, 0.2);
+      color: #00ff88;
+    }
+
+    .streamer-status.offline {
+      background: rgba(255, 255, 255, 0.1);
+      color: #808090;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .status-dot.live {
+      background: #00ff88;
+      animation: pulse 1.5s infinite;
+    }
+
+    .status-dot.offline {
+      background: #808090;
+    }
+
+    .delete-btn {
+      background: none;
+      border: none;
+      color: #ff6b6b;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      opacity: 0.6;
+      transition: all 0.2s;
+      margin-left: 8px;
+    }
+
+    .delete-btn:hover {
+      opacity: 1;
+      background: rgba(255, 107, 107, 0.2);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .empty-message {
+      text-align: center;
+      padding: 30px 20px;
+      color: #808090;
+    }
+
+    .empty-message .icon {
+      font-size: 40px;
+      margin-bottom: 10px;
+    }
+
+    .empty-message p {
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .footer {
+      padding: 8px 16px;
+      background: rgba(0, 0, 0, 0.2);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 10px;
+      color: #606080;
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    .footer a,
+    .footer-link {
+      color: #8080a0;
+      text-decoration: none;
+    }
+
+    .footer a:hover,
+    .footer-link:hover {
+      color: #e94560;
+      text-decoration: underline;
+    }
+
+    .manual-add {
+      padding: 10px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .manual-add-form {
+      display: flex;
+      gap: 8px;
+    }
+
+    .manual-add-input {
+      flex: 1;
+      padding: 7px 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      color: white;
+      font-size: 12px;
+    }
+
+    .manual-add-input::placeholder {
+      color: #606080;
+    }
+
+    .manual-add-input:focus {
+      outline: none;
+      border-color: #e94560;
+    }
+
+    .manual-add-btn {
+      padding: 7px 14px;
+      background: #e94560;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .manual-add-btn:hover {
+      background: #d63850;
+    }
+
+    .manual-add-btn:disabled {
+      background: #4a4a6a;
+      cursor: not-allowed;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      background: rgba(0, 0, 0, 0.9);
+      color: white;
+      border-radius: 8px;
+      font-size: 13px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 1000;
+    }
+
+    .toast.show {
+      opacity: 1;
+    }
+
+    .toast.error {
+      background: rgba(233, 69, 96, 0.9);
+    }
+
+    .toast.success {
+      background: rgba(0, 200, 100, 0.9);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+  <div class="header">
+    <h1>
+      <span class="icon">📺</span>
+      숲(SOOP) 스트리머 알림
+    </h1>
+  </div>
+
+  <div class="controls">
+    <div class="monitoring-toggle">
+      <label class="toggle-switch">
+        <input type="checkbox" id="monitoringToggle">
+        <span class="toggle-slider"></span>
+      </label>
+      <span class="status-text" id="statusText">모니터링 OFF</span>
+    </div>
+    <span class="monitoring-count" id="monitoringCount">0/4명 선택</span>
+  </div>
+
+  <div class="notification-settings">
+    <div class="notification-row">
+      <div class="notification-label">
+        <span class="notification-icon">🔔</span>
+        <span>스트리머 방송 알림</span>
+      </div>
+      <label class="toggle-switch small">
+        <input type="checkbox" id="notificationToggle">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="notification-row">
+      <div class="notification-label">
+        <span class="notification-icon">⚫</span>
+        <span>방송 종료 알림</span>
+      </div>
+      <label class="toggle-switch small">
+        <input type="checkbox" id="endNotificationToggle">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <div class="notification-row duration-row" id="durationRow">
+      <span class="duration-label">└ 알림 표시 시간</span>
+      <div class="duration-control">
+        <input type="number" id="notificationDuration" min="3" max="60" value="10">
+        <span>초</span>
+      </div>
+    </div>
+    <div class="notification-row">
+      <div class="notification-label">
+        <span class="notification-icon">🚫</span>
+        <span>오프라인 탭 자동 종료</span>
+      </div>
+      <label class="toggle-switch small">
+        <input type="checkbox" id="autoCloseToggle" checked>
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">
+      <span>등록된 스트리머</span>
+      <button class="refresh-btn" id="refreshBtn" title="방송 상태 새로고침">🔄</button>
+    </div>
+    <div class="streamer-list" id="streamerList">
+      <div class="empty-message">
+        <div class="icon">📋</div>
+        <p>즐겨찾기 스트리머가 없습니다.<br>아래에서 스트리머 ID를 직접 추가하세요.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="manual-add">
+    <div class="manual-add-form">
+      <input type="text" 
+             class="manual-add-input" 
+             id="manualAddInput" 
+             placeholder="스트리머 ID 입력 (예: streamer123)">
+      <button class="manual-add-btn" id="manualAddBtn">추가</button>
+    </div>
+  </div>
+
+  <div class="footer">
+    최대 4명까지 동시 모니터링 가능 | 수동 등록 방식<br>
+    <a href="https://www.sooplive.co.kr/station/teamilh" target="_blank" class="footer-link">기능개선 및 문의</a>
+  </div>
+  </div><!-- container 끝 -->
+
+  <div class="toast" id="toast"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
