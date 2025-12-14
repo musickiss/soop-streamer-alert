@@ -52,6 +52,8 @@
 ├─────────────────────────────────────┤
 │  [스트리머 ID 입력        ] [추가]  │
 └─────────────────────────────────────┘
+<img width="376" height="514" alt="image" src="https://github.com/user-attachments/assets/be58ecb9-de7f-4c1e-8488-b2fab565c7bd" />
+
 ```
 
 ### 뱃지 설명
