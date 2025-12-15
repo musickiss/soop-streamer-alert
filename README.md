@@ -6,6 +6,20 @@
 
 ---
 
+## 📥 설치 방법
+
+1. 이 확장 프로그램 파일을 [다운로드](https://github.com/musickiss/soop-streamer-alert/archive/refs/heads/master.zip)하고 압축을 풉니다.
+2. 브라우저 주소창에 확장 프로그램 주소를 입력하고 이동합니다.
+   - Chrome: `chrome://extensions/`
+   - Edge: `edge://extensions/`
+   - Brave: `brave://extensions/`
+3. 우측 상단의 **"개발자 모드"**를 활성화합니다.
+4. **"압축해제된 확장 프로그램을 로드합니다"** 버튼을 클릭합니다.
+5. 압축 해제한 `soop-extension` 폴더를 선택합니다.
+6. 브라우저 우측 상단에 📺 아이콘이 나타나면 설치 완료!
+
+---
+
 ## ✨ 주요 기능
 
 | 기능 | 설명 |
@@ -140,20 +154,6 @@ SOOP은 하나의 브라우저에서 **최대 4개까지만** 동시 스트리�
 | **Android** | 모바일 브라우저는 Chrome 확장 프로그램 미지원 |
 
 > 📱 **모바일 사용자**는 SOOP 공식 앱을 이용해 주세요.
-
----
-
-## 📥 설치 방법
-
-1. 이 확장 프로그램 파일을 [다운로드](https://github.com/musickiss/soop-streamer-alert/archive/refs/heads/master.zip)하고 압축을 풉니다.
-2. 브라우저 주소창에 확장 프로그램 주소를 입력하고 이동합니다.
-   - Chrome: `chrome://extensions/`
-   - Edge: `edge://extensions/`
-   - Brave: `brave://extensions/`
-3. 우측 상단의 **"개발자 모드"**를 활성화합니다.
-4. **"압축해제된 확장 프로그램을 로드합니다"** 버튼을 클릭합니다.
-5. 압축 해제한 `soop-extension` 폴더를 선택합니다.
-6. 브라우저 우측 상단에 📺 아이콘이 나타나면 설치 완료!
 
 ---
 
