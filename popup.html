@@ -67,21 +67,15 @@
       z-index: 1;
     }
 
-    .header .brand-row {
-      display: flex;
-      align-items: baseline;
-      justify-content: center;
-      gap: 8px;
-    }
-
     .header .brand-text {
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 900;
       background: linear-gradient(135deg, #ffffff 0%, #90caf9 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      letter-spacing: 2px;
+      letter-spacing: 3px;
+      text-align: center;
     }
 
     .header .creepy-text {
@@ -91,19 +85,13 @@
       font-style: italic;
       text-shadow: 0 0 10px rgba(255, 82, 82, 0.6);
       animation: creepy-pulse 2.5s ease-in-out infinite;
+      text-align: center;
+      margin-top: 6px;
     }
 
     @keyframes creepy-pulse {
       0%, 100% { opacity: 0.8; }
       50% { opacity: 1; }
-    }
-
-    .header .brand-subtitle {
-      font-size: 11px;
-      font-weight: 500;
-      color: rgba(255, 255, 255, 0.6);
-      letter-spacing: 2px;
-      margin-top: 4px;
     }
 
     .controls {
@@ -570,11 +558,8 @@
   <div class="container">
   <div class="header">
     <h1>
-      <span class="brand-row">
-        <span class="brand-text">숲토킹</span>
-        <span class="creepy-text">내가 늘 지켜보고 있어..</span>
-      </span>
-      <span class="brand-subtitle">SOOP 스트리머 방송 알림</span>
+      <span class="brand-text">숲토킹</span>
+      <span class="creepy-text">내가 늘 지켜보고 있어..</span>
     </h1>
   </div>
 
