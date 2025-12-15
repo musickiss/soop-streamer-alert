@@ -145,7 +145,7 @@ SOOP은 하나의 브라우저에서 **최대 4개까지만** 동시 스트리�
 
 ## 📥 설치 방법
 
-1. 이 확장 프로그램 파일을 다운로드하고 압축을 풉니다.
+1. 이 확장 프로그램 파일을 [다운로드](https://github.com/musickiss/soop-streamer-alert/archive/refs/heads/master.zip)하고 압축을 풉니다.
 2. Chrome 브라우저에서 `chrome://extensions/` 주소로 이동합니다.
 3. 우측 상단의 **"개발자 모드"**를 활성화합니다.
 4. **"압축해제된 확장 프로그램을 로드합니다"** 버튼을 클릭합니다.
