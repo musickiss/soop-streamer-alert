@@ -79,14 +79,21 @@
     }
 
     .header .brand-icon {
-      font-size: 22px;
+      font-size: 26px;
       filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.8)) drop-shadow(0 0 12px rgba(139, 0, 0, 0.6));
       animation: blood-drip 2s ease-in-out infinite;
+      transform: rotate(-15deg);
     }
 
     @keyframes blood-drip {
-      0%, 100% { filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.8)) drop-shadow(0 0 12px rgba(139, 0, 0, 0.6)); }
-      50% { filter: drop-shadow(0 0 10px rgba(255, 0, 0, 1)) drop-shadow(0 0 20px rgba(139, 0, 0, 0.8)); }
+      0%, 100% {
+        filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.8)) drop-shadow(0 0 12px rgba(139, 0, 0, 0.6));
+        transform: rotate(-15deg);
+      }
+      50% {
+        filter: drop-shadow(0 0 10px rgba(255, 0, 0, 1)) drop-shadow(0 0 20px rgba(139, 0, 0, 0.8));
+        transform: rotate(-20deg);
+      }
     }
 
     .header .brand-text {
@@ -98,7 +105,7 @@
 
     .header .creepy-text {
       font-size: 11px;
-      font-weight: 400;
+      font-weight: 700;
       color: #ff4444;
       font-style: italic;
       text-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
