@@ -1,4 +1,4 @@
-// ===== 숲(SOOP) 스트리머 자동 알림 확장 프로그램 =====
+// ===== 숲토킹 - SOOP 스트리머 방송 알림 확장 프로그램 =====
 // background.js - 백그라운드 서비스 워커
 // v1.5.0 - SOOP 동시 시청 4개 제한 대응
 
@@ -35,13 +35,13 @@ let stateLoaded = false;
 
 // ===== 초기화 =====
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[SOOP 알림] 확장 프로그램이 설치되었습니다.');
+  console.log('[숲토킹] 확장 프로그램이 설치되었습니다.');
   await loadState();
 });
 
 // 서비스 워커 시작 시 상태 복원
 chrome.runtime.onStartup.addListener(async () => {
-  console.log('[SOOP 알림] 브라우저가 시작되었습니다.');
+  console.log('[숲토킹] 브라우저가 시작되었습니다.');
   await loadState();
   if (state.isMonitoring) {
     startMonitoring();
@@ -50,7 +50,7 @@ chrome.runtime.onStartup.addListener(async () => {
 
 // ★ 중요: Service Worker가 깨어날 때마다 상태 로드
 (async () => {
-  console.log('[SOOP 알림] 서비스 워커가 활성화되었습니다.');
+  console.log('[숲토킹] 서비스 워커가 활성화되었습니다.');
   await loadState();
   if (state.isMonitoring) {
     startMonitoring();
@@ -71,7 +71,7 @@ async function saveState() {
       broadcastStatus: state.broadcastStatus
     });
   } catch (error) {
-    console.error('[SOOP 알림] 상태 저장 오류:', error);
+    console.error('[숲토킹] 상태 저장 오류:', error);
   }
 }
 
@@ -98,14 +98,14 @@ async function loadState() {
     state.broadcastStatus = data.broadcastStatus || {};
     stateLoaded = true;
     
-    console.log('[SOOP 알림] 상태 불러오기 완료:', {
+    console.log('[숲토킹] 상태 불러오기 완료:', {
       favorites: state.favoriteStreamers.length,
       monitoring: state.monitoringStreamers.length,
       isMonitoring: state.isMonitoring,
       savedStatuses: Object.keys(state.broadcastStatus).length
     });
   } catch (error) {
-    console.error('[SOOP 알림] 상태 불러오기 오류:', error);
+    console.error('[숲토킹] 상태 불러오기 오류:', error);
     stateLoaded = true;
   }
 }
@@ -135,13 +135,13 @@ async function findExistingBroadcastTab(streamerId) {
     });
     
     if (tabs.length > 0) {
-      console.log(`[SOOP 알림] ${streamerId} 방송 탭이 이미 열려있습니다. (탭 ID: ${tabs[0].id})`);
+      console.log(`[숲토킹] ${streamerId} 방송 탭이 이미 열려있습니다. (탭 ID: ${tabs[0].id})`);
       return tabs[0];
     }
     
     return null;
   } catch (error) {
-    console.error(`[SOOP 알림] 탭 검색 오류:`, error);
+    console.error(`[숲토킹] 탭 검색 오류:`, error);
     return null;
   }
 }
@@ -156,10 +156,10 @@ async function countCurrentBroadcastTabs() {
       url: 'https://play.sooplive.co.kr/*'
     });
     
-    console.log(`[SOOP 알림] 현재 열린 SOOP 방송 탭: ${tabs.length}개`);
+    console.log(`[숲토킹] 현재 열린 SOOP 방송 탭: ${tabs.length}개`);
     return tabs.length;
   } catch (error) {
-    console.error('[SOOP 알림] 방송 탭 수 확인 오류:', error);
+    console.error('[숲토킹] 방송 탭 수 확인 오류:', error);
     return 0;
   }
 }
@@ -170,7 +170,7 @@ async function countCurrentBroadcastTabs() {
 async function checkAllRunningTabs() {
   if (!state.isMonitoring) return;
   
-  console.log('[SOOP 알림] 탭 실행 상태 점검 중...');
+  console.log('[숲토킹] 탭 실행 상태 점검 중...');
   
   // 각 즐겨찾기 스트리머의 탭 실행 상태 확인
   for (const streamer of state.favoriteStreamers) {
@@ -190,7 +190,7 @@ async function checkAllRunningTabs() {
     await closeVodAutoplayTabs();
   }
   
-  console.log('[SOOP 알림] 탭 실행 상태:', state.runningTabs);
+  console.log('[숲토킹] 탭 실행 상태:', state.runningTabs);
 }
 
 // 오프라인 스트리머의 방송 탭 종료
@@ -212,7 +212,7 @@ async function closeOfflineStreamerTabs() {
         
         // 탭 종료
         for (const tab of tabs) {
-          console.log(`[SOOP 알림] 오프라인 스트리머 ${streamerId} 탭 종료 (탭 ID: ${tab.id})`);
+          console.log(`[숲토킹] 오프라인 스트리머 ${streamerId} 탭 종료 (탭 ID: ${tab.id})`);
           await chrome.tabs.remove(tab.id);
         }
         
@@ -222,7 +222,7 @@ async function closeOfflineStreamerTabs() {
           state.runningTabs[streamerId] = false;
         }
       } catch (error) {
-        console.error(`[SOOP 알림] 오프라인 탭 종료 오류 (${streamerId}):`, error);
+        console.error(`[숲토킹] 오프라인 탭 종료 오류 (${streamerId}):`, error);
       }
     }
   }
@@ -239,7 +239,7 @@ async function closeVodAutoplayTabs() {
     for (const tab of allTabs) {
       // URL에 autoplay가 포함되어 있는지 확인
       if (tab.url && tab.url.includes('autoplay')) {
-        console.log(`[SOOP 알림] VOD 자동재생 탭 종료: ${tab.url}`);
+        console.log(`[숲토킹] VOD 자동재생 탭 종료: ${tab.url}`);
         try {
           await chrome.tabs.remove(tab.id);
         } catch (e) {
@@ -248,7 +248,7 @@ async function closeVodAutoplayTabs() {
       }
     }
   } catch (error) {
-    console.error('[SOOP 알림] VOD 자동재생 탭 종료 오류:', error);
+    console.error('[숲토킹] VOD 자동재생 탭 종료 오류:', error);
   }
 }
 
@@ -267,14 +267,14 @@ function scheduleTabCheck() {
 // 방송 시작 알림 표시
 async function showBroadcastNotification(streamerId, nickname, title, broadNo) {
   if (!state.notificationEnabled) {
-    console.log(`[SOOP 알림] 알림이 비활성화되어 있어 ${streamerId} 알림을 표시하지 않습니다.`);
+    console.log(`[숲토킹] 알림이 비활성화되어 있어 ${streamerId} 알림을 표시하지 않습니다.`);
     return;
   }
 
   // ★ 이미 해당 방송 탭이 열려있으면 알림 표시하지 않음
   const existingTab = await findExistingBroadcastTab(streamerId);
   if (existingTab) {
-    console.log(`[SOOP 알림] ${streamerId} 방송을 이미 시청 중이므로 알림을 표시하지 않습니다.`);
+    console.log(`[숲토킹] ${streamerId} 방송을 이미 시청 중이므로 알림을 표시하지 않습니다.`);
     return;
   }
 
@@ -308,9 +308,9 @@ async function showBroadcastNotification(streamerId, nickname, title, broadNo) {
       }
     }, state.notificationDuration * 1000);
 
-    console.log(`[SOOP 알림] ${streamerId} 방송 시작 알림 표시`);
+    console.log(`[숲토킹] ${streamerId} 방송 시작 알림 표시`);
   } catch (error) {
-    console.error(`[SOOP 알림] 알림 생성 오류:`, error);
+    console.error(`[숲토킹] 알림 생성 오류:`, error);
   }
 }
 
@@ -341,9 +341,9 @@ async function showEndNotification(streamerId, nickname) {
       }
     }, 5000);
 
-    console.log(`[SOOP 알림] ${streamerId} 방송 종료 알림 표시`);
+    console.log(`[숲토킹] ${streamerId} 방송 종료 알림 표시`);
   } catch (error) {
-    console.error(`[SOOP 알림] 종료 알림 생성 오류:`, error);
+    console.error(`[숲토킹] 종료 알림 생성 오류:`, error);
   }
 }
 
@@ -363,7 +363,7 @@ chrome.notifications.onClicked.addListener(async (notificationId) => {
         // 기존 탭 활성화
         await chrome.tabs.update(existingTab.id, { active: true });
         await chrome.windows.update(existingTab.windowId, { focused: true });
-        console.log(`[SOOP 알림] ${streamerId} 기존 탭 활성화`);
+        console.log(`[숲토킹] ${streamerId} 기존 탭 활성화`);
       } else {
         // 새 탭으로 방송 페이지 열기
         const url = broadNo 
@@ -371,7 +371,7 @@ chrome.notifications.onClicked.addListener(async (notificationId) => {
           : `https://play.sooplive.co.kr/${streamerId}`;
         
         await chrome.tabs.create({ url, active: true });
-        console.log(`[SOOP 알림] ${streamerId} 알림 클릭 → 방송 페이지 열기`);
+        console.log(`[숲토킹] ${streamerId} 알림 클릭 → 방송 페이지 열기`);
       }
       
       // 저장된 데이터 삭제
@@ -381,7 +381,7 @@ chrome.notifications.onClicked.addListener(async (notificationId) => {
     // 알림 닫기
     await chrome.notifications.clear(notificationId);
   } catch (error) {
-    console.error('[SOOP 알림] 알림 클릭 처리 오류:', error);
+    console.error('[숲토킹] 알림 클릭 처리 오류:', error);
   }
 });
 
@@ -428,7 +428,7 @@ async function checkBroadcastStatus(streamerId) {
       streamerId
     };
   } catch (error) {
-    console.error(`[SOOP 알림] ${streamerId} 방송 상태 확인 오류:`, error);
+    console.error(`[숲토킹] ${streamerId} 방송 상태 확인 오류:`, error);
     return {
       isLive: false,
       broadNo: null,
@@ -451,9 +451,9 @@ async function openBroadcastTab(streamerId, broadNo, nickname, title) {
       await chrome.windows.update(existingTab.windowId, { focused: true });
       // openedTabs에 기록
       state.openedTabs[streamerId] = existingTab.id;
-      console.log(`[SOOP 알림] ${streamerId} 이미 열린 탭 활성화 (탭 ID: ${existingTab.id})`);
+      console.log(`[숲토킹] ${streamerId} 이미 열린 탭 활성화 (탭 ID: ${existingTab.id})`);
     } catch (e) {
-      console.error(`[SOOP 알림] 기존 탭 활성화 오류:`, e);
+      console.error(`[숲토킹] 기존 탭 활성화 오류:`, e);
     }
     return { success: true, action: 'activated' };
   }
@@ -466,7 +466,7 @@ async function openBroadcastTab(streamerId, broadNo, nickname, title) {
         // 기존 탭을 활성화
         await chrome.tabs.update(tab.id, { active: true });
         await chrome.windows.update(tab.windowId, { focused: true });
-        console.log(`[SOOP 알림] ${streamerId} 기존 탭 활성화`);
+        console.log(`[숲토킹] ${streamerId} 기존 탭 활성화`);
         return { success: true, action: 'activated' };
       }
     } catch (e) {
@@ -478,7 +478,7 @@ async function openBroadcastTab(streamerId, broadNo, nickname, title) {
   // ★ 새 탭 열기 전에 현재 열린 SOOP 방송 탭 수 확인
   const currentTabCount = await countCurrentBroadcastTabs();
   if (currentTabCount >= MAX_SOOP_TABS) {
-    console.log(`[SOOP 알림] 이미 ${currentTabCount}개 방송 시청 중 → ${streamerId} 알림만 표시`);
+    console.log(`[숲토킹] 이미 ${currentTabCount}개 방송 시청 중 → ${streamerId} 알림만 표시`);
     
     // 알림으로 대체
     await showTabLimitNotification(streamerId, nickname, title, broadNo);
@@ -497,10 +497,10 @@ async function openBroadcastTab(streamerId, broadNo, nickname, title) {
 
     state.openedTabs[streamerId] = tab.id;
     state.runningTabs[streamerId] = true;
-    console.log(`[SOOP 알림] ${streamerId} 방송 탭을 열었습니다. (탭 ID: ${tab.id})`);
+    console.log(`[숲토킹] ${streamerId} 방송 탭을 열었습니다. (탭 ID: ${tab.id})`);
     return { success: true, action: 'opened' };
   } catch (error) {
-    console.error(`[SOOP 알림] ${streamerId} 탭 열기 오류:`, error);
+    console.error(`[숲토킹] ${streamerId} 탭 열기 오류:`, error);
     return { success: false, action: 'error', reason: error.message };
   }
 }
@@ -537,9 +537,9 @@ async function showTabLimitNotification(streamerId, nickname, title, broadNo) {
       }
     }, state.notificationDuration * 1000);
 
-    console.log(`[SOOP 알림] ${streamerId} 탭 제한 알림 표시`);
+    console.log(`[숲토킹] ${streamerId} 탭 제한 알림 표시`);
   } catch (error) {
-    console.error(`[SOOP 알림] 탭 제한 알림 생성 오류:`, error);
+    console.error(`[숲토킹] 탭 제한 알림 생성 오류:`, error);
   }
 }
 
@@ -549,10 +549,10 @@ async function closeBroadcastTab(streamerId) {
 
   try {
     await chrome.tabs.remove(tabId);
-    console.log(`[SOOP 알림] ${streamerId} 방송 탭을 닫았습니다.`);
+    console.log(`[숲토킹] ${streamerId} 방송 탭을 닫았습니다.`);
   } catch (error) {
     // 탭이 이미 닫혔을 수 있음
-    console.log(`[SOOP 알림] ${streamerId} 탭이 이미 닫혀있습니다.`);
+    console.log(`[숲토킹] ${streamerId} 탭이 이미 닫혀있습니다.`);
   } finally {
     delete state.openedTabs[streamerId];
   }
@@ -563,7 +563,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   for (const [streamerId, id] of Object.entries(state.openedTabs)) {
     if (id === tabId) {
       delete state.openedTabs[streamerId];
-      console.log(`[SOOP 알림] ${streamerId} 탭이 수동으로 닫혔습니다.`);
+      console.log(`[숲토킹] ${streamerId} 탭이 수동으로 닫혔습니다.`);
       break;
     }
   }
@@ -575,7 +575,7 @@ async function checkMonitoringStreamers() {
     return;
   }
 
-  console.log(`[SOOP 알림] 자동참여 스트리머 체크 중... (${state.monitoringStreamers.length}명)`);
+  console.log(`[숲토킹] 자동참여 스트리머 체크 중... (${state.monitoringStreamers.length}명)`);
 
   for (let i = 0; i < state.monitoringStreamers.length; i++) {
     const streamerId = state.monitoringStreamers[i];
@@ -588,11 +588,11 @@ async function checkMonitoringStreamers() {
 
     if (isNowLive && !wasLive) {
       // ★ 오프라인 → 방송중: 처음 한 번만 탭 열기 (4개 제한 체크 포함)
-      console.log(`[SOOP 알림] ${streamerId} (${status.nickname}) 방송 시작! → 자동 참여 시도`);
+      console.log(`[숲토킹] ${streamerId} (${status.nickname}) 방송 시작! → 자동 참여 시도`);
       await openBroadcastTab(streamerId, status.broadNo, status.nickname, status.title);
     } else if (!isNowLive && wasLive) {
       // ★ 방송중 → 오프라인: 방송 종료
-      console.log(`[SOOP 알림] ${streamerId} 방송 종료`);
+      console.log(`[숲토킹] ${streamerId} 방송 종료`);
       
       // 방송 종료 알림 표시
       const streamer = state.favoriteStreamers.find(s => s.id === streamerId);
@@ -635,7 +635,7 @@ async function checkNotifyStreamers() {
     return;
   }
 
-  console.log(`[SOOP 알림] 알림 스트리머 체크 중... (${notifyStreamers.length}명)`);
+  console.log(`[숲토킹] 알림 스트리머 체크 중... (${notifyStreamers.length}명)`);
 
   for (let i = 0; i < notifyStreamers.length; i++) {
     const streamer = notifyStreamers[i];
@@ -650,7 +650,7 @@ async function checkNotifyStreamers() {
 
     if (isNowLive && !wasLive) {
       // ★ 오프라인 → 방송중: 알림 표시 (중복 체크는 showBroadcastNotification 내부에서)
-      console.log(`[SOOP 알림] ${streamerId} (${status.nickname}) 방송 시작! → 알림 표시`);
+      console.log(`[숲토킹] ${streamerId} (${status.nickname}) 방송 시작! → 알림 표시`);
       await showBroadcastNotification(
         streamerId,
         status.nickname || streamer.nickname,
@@ -659,7 +659,7 @@ async function checkNotifyStreamers() {
       );
     } else if (!isNowLive && wasLive) {
       // ★ 방송중 → 오프라인: 방송 종료 알림
-      console.log(`[SOOP 알림] ${streamerId} 방송 종료`);
+      console.log(`[숲토킹] ${streamerId} 방송 종료`);
       await showEndNotification(streamerId, streamer.nickname || previousStatus.nickname);
     }
 
@@ -724,7 +724,7 @@ function startMonitoring() {
   state.isMonitoring = true;
   saveState();
 
-  console.log('[SOOP 알림] 모니터링을 시작합니다.');
+  console.log('[숲토킹] 모니터링을 시작합니다.');
   console.log(`  - 자동참여 스트리머: ${MONITORING_CHECK_INTERVAL / 1000}초 간격`);
   console.log(`  - 알림 스트리머: ${NOTIFY_CHECK_INTERVAL / 1000}초 간격`);
   console.log(`  - 탭 실행 상태 점검: ${TAB_CHECK_INTERVAL / 1000}초 간격`);
@@ -764,7 +764,7 @@ function stopMonitoring() {
   state.runningTabs = {};  // 탭 상태 초기화
   saveState();
 
-  console.log('[SOOP 알림] 모니터링을 중지합니다.');
+  console.log('[숲토킹] 모니터링을 중지합니다.');
 }
 
 // ===== 메시지 핸들러 =====
@@ -894,8 +894,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.alarms.create('keepAlive', { periodInMinutes: 0.5 });
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'keepAlive' && state.isMonitoring) {
-    console.log('[SOOP 알림] 서비스 워커 유지 중...');
+    console.log('[숲토킹] 서비스 워커 유지 중...');
   }
 });
 
-console.log('[SOOP 알림] 백그라운드 서비스 워커가 로드되었습니다.');
+console.log('[숲토킹] 백그라운드 서비스 워커가 로드되었습니다.');

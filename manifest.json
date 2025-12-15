@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "숲(SOOP) 즐겨찾기 스트리머 자동 알림",
+  "name": "숲토킹 - SOOP 스트리머 방송 알림",
   "version": "1.5.0",
   "description": "즐겨찾기한 스트리머의 방송 시작을 자동 감지하여 새 탭으로 열어줍니다.",
   "permissions": [

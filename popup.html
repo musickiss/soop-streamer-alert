@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>숲 스트리머 알림</title>
+  <title>숲토킹 - SOOP 스트리머 방송 알림</title>
   <style>
     * {
       margin: 0;
@@ -37,13 +37,35 @@
       font-size: 16px;
       font-weight: 600;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 4px;
     }
 
     .header h1 .icon {
       font-size: 20px;
+    }
+
+    .header .brand-name {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 20px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ff6b9d 0%, #e94560 50%, #ff8a5b 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 2px 10px rgba(233, 69, 96, 0.3);
+      letter-spacing: -0.5px;
+    }
+
+    .header .brand-subtitle {
+      font-size: 10px;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.5);
+      letter-spacing: 0.5px;
     }
 
     .controls {
@@ -510,8 +532,11 @@
   <div class="container">
   <div class="header">
     <h1>
-      <span class="icon">📺</span>
-      숲(SOOP) 스트리머 알림
+      <span class="brand-name">
+        <span class="icon">📺</span>
+        숲토킹
+      </span>
+      <span class="brand-subtitle">SOOP 스트리머 방송 알림</span>
     </h1>
   </div>
 
