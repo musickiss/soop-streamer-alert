@@ -31,10 +31,10 @@
     }
 
     .header {
-      background: linear-gradient(135deg, #0d4f4f 0%, #1a6b5c 50%, #2d8659 100%);
+      background: linear-gradient(135deg, #0a1628 0%, #0d47a1 50%, #1565c0 100%);
       padding: 14px 16px;
       text-align: center;
-      border-bottom: 2px solid #4ecca3;
+      border-bottom: 2px solid #2196f3;
       position: relative;
       overflow: hidden;
     }
@@ -46,7 +46,7 @@
       left: -50%;
       width: 200%;
       height: 200%;
-      background: radial-gradient(circle, rgba(78, 204, 163, 0.1) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(33, 150, 243, 0.15) 0%, transparent 70%);
       animation: shimmer 3s ease-in-out infinite;
     }
 
@@ -74,20 +74,41 @@
       font-size: 22px;
       font-weight: 900;
       color: #ffffff;
-      text-shadow: 0 2px 8px rgba(78, 204, 163, 0.4);
+      text-shadow: 0 2px 8px rgba(33, 150, 243, 0.4);
       letter-spacing: 1px;
     }
 
     .header .brand-icon {
-      font-size: 24px;
-      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+      font-size: 22px;
+      filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.8)) drop-shadow(0 0 12px rgba(139, 0, 0, 0.6));
+      animation: blood-drip 2s ease-in-out infinite;
+    }
+
+    @keyframes blood-drip {
+      0%, 100% { filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.8)) drop-shadow(0 0 12px rgba(139, 0, 0, 0.6)); }
+      50% { filter: drop-shadow(0 0 10px rgba(255, 0, 0, 1)) drop-shadow(0 0 20px rgba(139, 0, 0, 0.8)); }
     }
 
     .header .brand-text {
-      background: linear-gradient(135deg, #ffffff 0%, #a8edce 50%, #4ecca3 100%);
+      background: linear-gradient(135deg, #ffffff 0%, #90caf9 50%, #64b5f6 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+    }
+
+    .header .creepy-text {
+      font-size: 11px;
+      font-weight: 400;
+      color: #ff4444;
+      font-style: italic;
+      text-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
+      animation: creepy-pulse 3s ease-in-out infinite;
+      margin-left: 4px;
+    }
+
+    @keyframes creepy-pulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
     }
 
     .header .brand-subtitle {
@@ -563,8 +584,9 @@
   <div class="header">
     <h1>
       <span class="brand-name">
-        <span class="brand-icon">🌲</span>
+        <span class="brand-icon">🔪</span>
         <span class="brand-text">숲토킹</span>
+        <span class="creepy-text">내가 늘 지켜보고 있어..</span>
       </span>
       <span class="brand-subtitle">SOOP 스트리머 방송 알림</span>
     </h1>
