@@ -87,3 +87,95 @@
 본 개인정보처리방침에 대한 문의사항이 있으시면 GitHub Issues를 통해 연락해 주세요.
 
 - GitHub: https://github.com/musickiss/soop-streamer-alert/issues
+
+---
+
+# Privacy Policy (English)
+
+**Last Updated:** December 16, 2025
+
+## Overview
+
+The "Sooptalking - SOOP Streamer Live Alert" Chrome extension (hereinafter "this extension") does not collect, store, or transmit any personal information from users.
+
+---
+
+## Information We Collect
+
+**This extension does not collect any personal information.**
+
+- No collection of user identification information (name, email, etc.)
+- No collection of login or authentication information
+- No collection of cookies or session information
+- No collection of browsing history
+- No collection of location information
+
+---
+
+## Data Storage
+
+This extension stores the following data **only in the user's local browser**:
+
+- List of streamer IDs registered by the user
+- Extension settings (notification settings, auto-join settings, etc.)
+
+This data is stored **only on the user's device** using Chrome's `chrome.storage.local` API and is not transmitted to any external servers.
+
+---
+
+## External Communication
+
+This extension communicates externally only for the following purpose:
+
+| Target | Purpose | Information Collected |
+|--------|---------|----------------------|
+| SOOP Official API (`sooplive.co.kr`) | Check streamer broadcast status | None (only queries publicly available broadcast information) |
+
+- User data is not transmitted to external servers.
+- No analytics tools are used.
+- No integration with advertising networks.
+- No data sharing with third parties.
+
+---
+
+## Purpose of Permissions
+
+Browser permissions requested by this extension and their purposes:
+
+| Permission | Purpose |
+|------------|---------|
+| `storage` | Store streamer list and settings locally |
+| `tabs` | Open new tabs when broadcasts start and check existing tabs |
+| `alarms` | Periodic broadcast status checks |
+| `notifications` | Display broadcast start/end notifications |
+| `host_permissions` (sooplive.co.kr) | Call SOOP broadcast status API |
+
+---
+
+## Data Deletion
+
+All locally stored data is automatically deleted when the extension is removed.
+
+To manually delete data:
+1. Browser Settings → Privacy and Security → Clear Browsing Data
+2. Select "Cookies and other site data" and delete
+
+---
+
+## Children's Privacy
+
+This extension is not intended for children and does not intentionally collect personal information from children under 13 years of age.
+
+---
+
+## Changes to Privacy Policy
+
+This privacy policy may be updated, and any changes will be posted on this page.
+
+---
+
+## Contact
+
+If you have any questions about this privacy policy, please contact us through GitHub Issues.
+
+- GitHub: https://github.com/musickiss/soop-streamer-alert/issues
