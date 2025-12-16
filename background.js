@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 확장 프로그램 =====
 // background.js - 백그라운드 서비스 워커
-// v1.6.3 - 자동참여 스트리머 선택 제한 제거
+// v1.6.4 - 네트워크 오류 처리 개선
 
 // 상수 정의
 const MONITORING_CHECK_INTERVAL = 5000;   // 자동참여 스트리머 체크 주기 (5초)
@@ -396,6 +396,10 @@ chrome.notifications.onClosed.addListener(async (notificationId) => {
 
 // ===== 방송 상태 확인 API =====
 async function checkBroadcastStatus(streamerId) {
+  // 10초 타임아웃 설정
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
   try {
     const response = await fetch('https://live.sooplive.co.kr/afreeca/player_live_api.php', {
       method: 'POST',
@@ -405,15 +409,18 @@ async function checkBroadcastStatus(streamerId) {
         'Origin': 'https://play.sooplive.co.kr',
         'Referer': 'https://play.sooplive.co.kr/'
       },
-      body: `bid=${encodeURIComponent(streamerId)}`
+      body: `bid=${encodeURIComponent(streamerId)}`,
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`HTTP 오류: ${response.status}`);
     }
 
     const data = await response.json();
-    
+
     // RESULT가 1이면 방송 중, 0이면 방송 중 아님
     const isLive = data.CHANNEL && data.CHANNEL.RESULT === 1;
     const broadNo = isLive ? data.CHANNEL.BNO : null;
@@ -428,7 +435,15 @@ async function checkBroadcastStatus(streamerId) {
       streamerId
     };
   } catch (error) {
-    console.error(`[숲토킹] ${streamerId} 방송 상태 확인 오류:`, error);
+    clearTimeout(timeoutId);
+    // 네트워크 에러는 warn으로 처리 (일시적 오류일 수 있음)
+    if (error.name === 'AbortError') {
+      console.warn(`[숲토킹] ${streamerId} 상태 확인 타임아웃`);
+    } else if (error.message === 'Failed to fetch') {
+      console.warn(`[숲토킹] ${streamerId} 네트워크 오류 (재시도 예정)`);
+    } else {
+      console.warn(`[숲토킹] ${streamerId} 상태 확인 실패:`, error.message);
+    }
     return {
       isLive: false,
       broadNo: null,
