@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 확장 프로그램 =====
 // background.js - 백그라운드 서비스 워커
-// v1.6.4 - 네트워크 오류 처리 개선
+// v1.6.5 - 브라우저 재시작 시 오프라인 탭 자동 종료 수정
 
 // 상수 정의
 const MONITORING_CHECK_INTERVAL = 5000;   // 자동참여 스트리머 체크 주기 (5초)
@@ -43,6 +43,8 @@ chrome.runtime.onInstalled.addListener(async () => {
 chrome.runtime.onStartup.addListener(async () => {
   console.log('[숲토킹] 브라우저가 시작되었습니다.');
   await loadState();
+  // ★ 브라우저 재시작 시 방송 상태 초기화 (실제 API로 다시 확인하도록)
+  state.broadcastStatus = {};
   if (state.isMonitoring) {
     startMonitoring();
   }
