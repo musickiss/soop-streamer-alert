@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 확장 프로그램 =====
 // background.js - 백그라운드 서비스 워커
-// v1.6.1 - GitHub 링크 수정
+// v1.6.2 - 방송 종료 알림 시간 버그 수정
 
 // 상수 정의
 const MONITORING_CHECK_INTERVAL = 5000;   // 자동참여 스트리머 체크 주기 (5초)
@@ -332,14 +332,14 @@ async function showEndNotification(streamerId, nickname) {
       requireInteraction: false
     });
 
-    // 5초 후 알림 자동 닫기
+    // 설정된 시간 후 알림 자동 닫기
     setTimeout(async () => {
       try {
         await chrome.notifications.clear(notificationId);
       } catch (e) {
         // 이미 닫혔을 수 있음
       }
-    }, 5000);
+    }, state.notificationDuration * 1000);
 
     console.log(`[숲토킹] ${streamerId} 방송 종료 알림 표시`);
   } catch (error) {
