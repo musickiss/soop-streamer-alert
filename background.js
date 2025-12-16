@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 확장 프로그램 =====
 // background.js - 백그라운드 서비스 워커
-// v1.5.0 - SOOP 동시 시청 4개 제한 대응
+// v1.6.0 - 스트리머 목록 내보내기/불러오기, 드래그 순서 변경, 닉네임 자동 업데이트
 
 // 상수 정의
 const MONITORING_CHECK_INTERVAL = 5000;   // 자동참여 스트리머 체크 주기 (5초)
@@ -609,7 +609,19 @@ async function checkMonitoringStreamers() {
       title: status.title,
       lastChecked: Date.now()
     };
-    
+
+    // ★ 닉네임 업데이트: API에서 닉네임을 받아왔고, 저장된 닉네임과 다른 경우
+    if (status.nickname) {
+      const streamerIndex = state.favoriteStreamers.findIndex(s => s.id === streamerId);
+      if (streamerIndex !== -1) {
+        const currentNickname = state.favoriteStreamers[streamerIndex].nickname;
+        if (currentNickname !== status.nickname) {
+          state.favoriteStreamers[streamerIndex].nickname = status.nickname;
+          console.log(`[숲토킹] ${streamerId} 닉네임 업데이트: ${currentNickname || streamerId} → ${status.nickname}`);
+        }
+      }
+    }
+
     // 다음 요청 전 딜레이
     if (i < state.monitoringStreamers.length - 1) {
       await delay(REQUEST_DELAY);
@@ -671,7 +683,19 @@ async function checkNotifyStreamers() {
       title: status.title,
       lastChecked: Date.now()
     };
-    
+
+    // ★ 닉네임 업데이트: API에서 닉네임을 받아왔고, 저장된 닉네임과 다른 경우
+    if (status.nickname) {
+      const streamerIndex = state.favoriteStreamers.findIndex(s => s.id === streamerId);
+      if (streamerIndex !== -1) {
+        const currentNickname = state.favoriteStreamers[streamerIndex].nickname;
+        if (currentNickname !== status.nickname) {
+          state.favoriteStreamers[streamerIndex].nickname = status.nickname;
+          console.log(`[숲토킹] ${streamerId} 닉네임 업데이트: ${currentNickname || streamerId} → ${status.nickname}`);
+        }
+      }
+    }
+
     // 다음 요청 전 딜레이
     if (i < notifyStreamers.length - 1) {
       await delay(REQUEST_DELAY);

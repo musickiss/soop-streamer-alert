@@ -17,7 +17,7 @@
 
     body {
       width: 380px;
-      height: 580px;
+      height: 600px;
       font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
       color: #ffffff;
@@ -171,7 +171,7 @@
     }
 
     .notification-settings {
-      padding: 6px 16px;
+      padding: 5px 16px;
       background: rgba(255, 255, 255, 0.03);
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
@@ -180,7 +180,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 3px 0;
+      padding: 2px 0;
     }
 
     .notification-label {
@@ -254,7 +254,7 @@
     }
 
     .section {
-      padding: 10px 16px;
+      padding: 8px 16px;
       flex: 1;
       display: flex;
       flex-direction: column;
@@ -265,10 +265,52 @@
       font-size: 12px;
       font-weight: 600;
       color: #a0a0c0;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+    }
+
+    .section-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .action-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .action-btn.export-btn {
+      color: #64b5f6;
+    }
+
+    .action-btn.export-btn:hover {
+      background: rgba(100, 181, 246, 0.2);
+      transform: scale(1.1);
+    }
+
+    .action-btn.import-btn {
+      color: #81c784;
+    }
+
+    .action-btn.import-btn:hover {
+      background: rgba(129, 199, 132, 0.2);
+      transform: scale(1.1);
     }
 
     .refresh-btn {
@@ -276,14 +318,26 @@
       border: none;
       color: #e94560;
       cursor: pointer;
-      font-size: 14px;
-      padding: 4px;
-      border-radius: 4px;
-      transition: background 0.2s;
+      font-size: 18px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
     }
 
     .refresh-btn:hover {
       background: rgba(233, 69, 96, 0.2);
+      transform: scale(1.1);
+    }
+
+    .refresh-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* 숨겨진 파일 입력 */
+    .hidden-file-input {
+      display: none;
     }
 
     .streamer-list {
@@ -311,9 +365,11 @@
     .streamer-item {
       display: flex;
       align-items: center;
-      padding: 8px 10px;
+      padding: 7px 10px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      transition: background 0.2s;
+      transition: background 0.2s, transform 0.15s, opacity 0.15s;
+      cursor: grab;
+      user-select: none;
     }
 
     .streamer-item:hover {
@@ -322,6 +378,22 @@
 
     .streamer-item:last-child {
       border-bottom: none;
+    }
+
+    /* 드래그 앤 드롭 스타일 */
+    .streamer-item.dragging {
+      opacity: 0.5;
+      cursor: grabbing;
+    }
+
+    .streamer-item.drag-over {
+      border-top: 2px solid #e94560;
+      margin-top: -2px;
+    }
+
+    .streamer-item.drag-over-bottom {
+      border-bottom: 2px solid #e94560;
+      margin-bottom: -2px;
     }
 
     .streamer-checkbox {
@@ -343,6 +415,13 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .streamer-name:hover {
+      color: #64b5f6;
+      text-decoration: underline;
     }
 
     .streamer-id {
@@ -454,13 +533,13 @@
     }
 
     .footer {
-      padding: 8px 16px;
+      padding: 6px 16px;
       background: rgba(0, 0, 0, 0.2);
       border-top: 1px solid rgba(255, 255, 255, 0.1);
       font-size: 10px;
       color: #606080;
       text-align: center;
-      line-height: 1.6;
+      line-height: 1.4;
     }
 
     .footer a,
@@ -469,14 +548,35 @@
       text-decoration: none;
     }
 
+    .footer-label {
+      color: #606080;
+      margin-right: 4px;
+    }
+
+    .footer-divider {
+      color: #505070;
+      margin: 0 4px;
+    }
+
     .footer a:hover,
     .footer-link:hover {
       color: #e94560;
       text-decoration: underline;
     }
 
+    .version-info {
+      margin-left: 8px;
+      font-size: 10px;
+      color: #505070;
+    }
+
+    .version-info::before {
+      content: '|';
+      margin-right: 8px;
+    }
+
     .manual-add {
-      padding: 10px 16px;
+      padding: 8px 16px;
       background: rgba(255, 255, 255, 0.03);
       border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
@@ -617,7 +717,24 @@
   <div class="section">
     <div class="section-title">
       <span>등록된 스트리머</span>
-      <button class="refresh-btn" id="refreshBtn" title="방송 상태 새로고침">🔄</button>
+      <div class="section-actions">
+        <button class="action-btn export-btn" id="exportBtn" title="스트리머 목록 내보내기">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </button>
+        <button class="action-btn import-btn" id="importBtn" title="스트리머 목록 불러오기">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+        </button>
+        <button class="refresh-btn" id="refreshBtn" title="방송 상태 새로고침">🔄</button>
+      </div>
+      <input type="file" id="importFileInput" class="hidden-file-input" accept=".json">
     </div>
     <div class="streamer-list" id="streamerList">
       <div class="empty-message">
@@ -638,8 +755,11 @@
   </div>
 
   <div class="footer">
-    최대 4명까지 동시 모니터링 가능 | 수동 등록 방식<br>
-    <a href="https://www.sooplive.co.kr/station/teamilh" target="_blank" class="footer-link">기능개선 및 문의</a>
+    <span class="footer-label">기능개선 및 문의</span>
+    <a href="https://www.sooplive.co.kr/station/teamilh" target="_blank" class="footer-link">SOOP</a>
+    <span class="footer-divider">·</span>
+    <a href="https://github.com/teamilh/soop-streamer-alert" target="_blank" class="footer-link">GitHub</a>
+    <span class="version-info" id="versionInfo"></span>
   </div>
   </div><!-- container 끝 -->
 

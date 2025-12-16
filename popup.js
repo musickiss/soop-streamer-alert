@@ -15,6 +15,9 @@ const notificationDuration = document.getElementById('notificationDuration');
 const durationRow = document.getElementById('durationRow');
 const endNotificationToggle = document.getElementById('endNotificationToggle');
 const autoCloseToggle = document.getElementById('autoCloseToggle');
+const exportBtn = document.getElementById('exportBtn');
+const importBtn = document.getElementById('importBtn');
+const importFileInput = document.getElementById('importFileInput');
 
 // 상태 저장
 let state = {
@@ -216,14 +219,14 @@ function renderStreamerList() {
       `<span class="mode-badge ${isRunning ? 'mode-running' : 'mode-not-running'}">${isRunning ? '실행' : '미실행'}</span>` : '';
     
     return `
-      <div class="streamer-item" data-id="${escapeHtml(streamer.id)}">
-        <input type="checkbox" 
-               class="streamer-checkbox" 
+      <div class="streamer-item" data-id="${escapeHtml(streamer.id)}" draggable="true">
+        <input type="checkbox"
+               class="streamer-checkbox"
                title="${isMonitoring ? '자동참여 해제' : '자동참여 설정 (최대 4명)'}"
                ${isMonitoring ? 'checked' : ''}
                ${!isMonitoring && state.monitoringStreamers.length >= 4 ? 'disabled' : ''}>
         <div class="streamer-info">
-          <div class="streamer-name">${escapeHtml(streamer.nickname || streamer.id)}</div>
+          <div class="streamer-name" data-id="${escapeHtml(streamer.id)}" title="스테이션 페이지로 이동">${escapeHtml(streamer.nickname || streamer.id)}</div>
           <div class="streamer-id">@${escapeHtml(streamer.id)} <span class="mode-badge ${modeClass}">${modeLabel}</span> ${runningBadge}</div>
         </div>
         <div class="streamer-status ${isLive ? 'live' : 'offline'}">
@@ -244,6 +247,20 @@ function renderStreamerList() {
   document.querySelectorAll('.delete-btn').forEach(btn => {
     btn.addEventListener('click', handleDeleteStreamer);
   });
+
+  // 스트리머 이름 클릭 이벤트 리스너 추가
+  document.querySelectorAll('.streamer-name').forEach(name => {
+    name.addEventListener('click', handleStreamerClick);
+  });
+
+  // 드래그 앤 드롭 이벤트 리스너 추가
+  document.querySelectorAll('.streamer-item').forEach(item => {
+    item.addEventListener('dragstart', handleDragStart);
+    item.addEventListener('dragend', handleDragEnd);
+    item.addEventListener('dragover', handleDragOver);
+    item.addEventListener('dragleave', handleDragLeave);
+    item.addEventListener('drop', handleDrop);
+  });
 }
 
 // HTML 이스케이프 (XSS 방지)
@@ -253,7 +270,143 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// ===== 드래그 앤 드롭 기능 =====
+
+let draggedItem = null;
+let draggedIndex = -1;
+
+// 드래그 시작
+function handleDragStart(e) {
+  draggedItem = e.target.closest('.streamer-item');
+  if (!draggedItem) return;
+
+  draggedIndex = Array.from(streamerList.querySelectorAll('.streamer-item')).indexOf(draggedItem);
+  draggedItem.classList.add('dragging');
+
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', draggedIndex);
+}
+
+// 드래그 종료
+function handleDragEnd(e) {
+  if (draggedItem) {
+    draggedItem.classList.remove('dragging');
+  }
+
+  // 모든 드래그 오버 스타일 제거
+  document.querySelectorAll('.streamer-item').forEach(item => {
+    item.classList.remove('drag-over', 'drag-over-bottom');
+  });
+
+  draggedItem = null;
+  draggedIndex = -1;
+}
+
+// 드래그 오버 (드롭 허용)
+function handleDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+
+  const targetItem = e.target.closest('.streamer-item');
+  if (!targetItem || targetItem === draggedItem) return;
+
+  // 기존 스타일 제거
+  document.querySelectorAll('.streamer-item').forEach(item => {
+    item.classList.remove('drag-over', 'drag-over-bottom');
+  });
+
+  // 마우스 위치에 따라 위/아래 표시
+  const rect = targetItem.getBoundingClientRect();
+  const midY = rect.top + rect.height / 2;
+
+  if (e.clientY < midY) {
+    targetItem.classList.add('drag-over');
+  } else {
+    targetItem.classList.add('drag-over-bottom');
+  }
+}
+
+// 드래그 리브
+function handleDragLeave(e) {
+  const targetItem = e.target.closest('.streamer-item');
+  if (targetItem) {
+    targetItem.classList.remove('drag-over', 'drag-over-bottom');
+  }
+}
+
+// 드롭 처리
+async function handleDrop(e) {
+  e.preventDefault();
+
+  const targetItem = e.target.closest('.streamer-item');
+  if (!targetItem || targetItem === draggedItem) return;
+
+  const items = Array.from(streamerList.querySelectorAll('.streamer-item'));
+  let targetIndex = items.indexOf(targetItem);
+
+  // 마우스 위치에 따라 삽입 위치 조정
+  const rect = targetItem.getBoundingClientRect();
+  const midY = rect.top + rect.height / 2;
+  if (e.clientY > midY) {
+    targetIndex += 1;
+  }
+
+  // 배열 순서 변경
+  if (draggedIndex !== -1 && targetIndex !== draggedIndex) {
+    const [movedStreamer] = state.favoriteStreamers.splice(draggedIndex, 1);
+
+    // 드래그한 아이템이 앞에 있었으면 타겟 인덱스 조정
+    if (draggedIndex < targetIndex) {
+      targetIndex -= 1;
+    }
+
+    state.favoriteStreamers.splice(targetIndex, 0, movedStreamer);
+
+    // storage에 저장
+    await saveStreamerOrder();
+
+    // UI 업데이트
+    renderStreamerList();
+  }
+
+  // 스타일 정리
+  document.querySelectorAll('.streamer-item').forEach(item => {
+    item.classList.remove('drag-over', 'drag-over-bottom');
+  });
+}
+
+// 스트리머 순서 저장
+async function saveStreamerOrder() {
+  try {
+    await chrome.storage.local.set({
+      favoriteStreamers: state.favoriteStreamers
+    });
+
+    // 백그라운드에도 알림
+    try {
+      await sendMessage({
+        type: 'UPDATE_FAVORITES',
+        data: state.favoriteStreamers
+      });
+    } catch (e) {
+      console.log('[팝업] 백그라운드 알림 실패, storage에는 저장됨');
+    }
+  } catch (error) {
+    console.error('순서 저장 오류:', error);
+    showToast('순서 저장 중 오류가 발생했습니다.', 'error');
+  }
+}
+
 // ===== 이벤트 핸들러 =====
+
+// 스트리머 클릭 핸들러 (스테이션 페이지로 이동)
+function handleStreamerClick(event) {
+  const streamerId = event.target.dataset.id;
+  if (streamerId) {
+    const stationUrl = `https://www.sooplive.co.kr/station/${streamerId}`;
+    chrome.tabs.create({ url: stationUrl });
+  }
+}
 
 // 체크박스 변경 핸들러
 async function handleCheckboxChange(event) {
@@ -426,6 +579,121 @@ async function handleRefresh() {
   }
 }
 
+// 스트리머 목록 내보내기 핸들러
+function handleExport() {
+  if (state.favoriteStreamers.length === 0) {
+    showToast('내보낼 스트리머가 없습니다.', 'error');
+    return;
+  }
+
+  try {
+    const exportData = {
+      version: '1.0',
+      exportDate: new Date().toISOString(),
+      streamers: state.favoriteStreamers
+    };
+
+    const jsonString = JSON.stringify(exportData, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sooptalk-streamers-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast(`${state.favoriteStreamers.length}명의 스트리머 목록을 내보냈습니다.`, 'success');
+  } catch (error) {
+    console.error('내보내기 오류:', error);
+    showToast('내보내기 중 오류가 발생했습니다.', 'error');
+  }
+}
+
+// 불러오기 버튼 클릭 핸들러
+function handleImportClick() {
+  importFileInput.click();
+}
+
+// 스트리머 목록 불러오기 핸들러
+async function handleImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    // 데이터 검증
+    let streamersToImport = [];
+
+    if (Array.isArray(data)) {
+      // 이전 형식 호환: 배열 형태
+      streamersToImport = data;
+    } else if (data.streamers && Array.isArray(data.streamers)) {
+      // 새 형식: { version, streamers: [] }
+      streamersToImport = data.streamers;
+    } else {
+      showToast('올바르지 않은 파일 형식입니다.', 'error');
+      return;
+    }
+
+    // 스트리머 데이터 검증 및 정제
+    const validStreamers = streamersToImport.filter(s => {
+      return s && typeof s.id === 'string' && s.id.trim() !== '';
+    }).map(s => ({
+      id: s.id.toLowerCase().trim(),
+      nickname: s.nickname || s.id
+    }));
+
+    if (validStreamers.length === 0) {
+      showToast('불러올 스트리머가 없습니다.', 'error');
+      return;
+    }
+
+    // 중복 제거하면서 기존 목록에 추가
+    let addedCount = 0;
+    for (const streamer of validStreamers) {
+      const exists = state.favoriteStreamers.find(s => s.id === streamer.id);
+      if (!exists) {
+        state.favoriteStreamers.push(streamer);
+        addedCount++;
+      }
+    }
+
+    // chrome.storage.local에 저장
+    await chrome.storage.local.set({
+      favoriteStreamers: state.favoriteStreamers
+    });
+
+    // 백그라운드에도 알림
+    try {
+      await sendMessage({
+        type: 'UPDATE_FAVORITES',
+        data: state.favoriteStreamers
+      });
+    } catch (e) {
+      console.log('[팝업] 백그라운드 알림 실패, storage에는 저장됨');
+    }
+
+    renderStreamerList();
+
+    if (addedCount > 0) {
+      showToast(`${addedCount}명의 스트리머를 추가했습니다.`, 'success');
+    } else {
+      showToast('모든 스트리머가 이미 등록되어 있습니다.', 'info');
+    }
+  } catch (error) {
+    console.error('불러오기 오류:', error);
+    showToast('파일을 읽는 중 오류가 발생했습니다.', 'error');
+  } finally {
+    // 파일 입력 초기화 (같은 파일 다시 선택 가능하도록)
+    importFileInput.value = '';
+  }
+}
+
 // 스트리머 수동 추가 핸들러
 async function handleManualAdd() {
   const streamerId = manualAddInput.value.trim().toLowerCase();
@@ -558,6 +826,13 @@ async function loadState() {
 // ===== 초기화 =====
 
 async function init() {
+  // 버전 정보 표시
+  const versionInfo = document.getElementById('versionInfo');
+  if (versionInfo) {
+    const manifest = chrome.runtime.getManifest();
+    versionInfo.textContent = `v${manifest.version}`;
+  }
+
   // 상태 불러오기 (storage에서 직접)
   await loadState();
 
@@ -574,6 +849,11 @@ async function init() {
   notificationToggle.addEventListener('change', handleNotificationToggle);
   notificationDuration.addEventListener('change', handleDurationChange);
   notificationDuration.addEventListener('blur', handleDurationChange);
+
+  // 내보내기/불러오기 이벤트 리스너
+  exportBtn.addEventListener('click', handleExport);
+  importBtn.addEventListener('click', handleImportClick);
+  importFileInput.addEventListener('change', handleImport);
   
   // 방송 종료 알림 토글
   if (endNotificationToggle) {
