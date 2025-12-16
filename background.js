@@ -1,13 +1,13 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 확장 프로그램 =====
 // background.js - 백그라운드 서비스 워커
-// v1.6.2 - 방송 종료 알림 시간 버그 수정
+// v1.6.3 - 자동참여 스트리머 선택 제한 제거
 
 // 상수 정의
 const MONITORING_CHECK_INTERVAL = 5000;   // 자동참여 스트리머 체크 주기 (5초)
 const NOTIFY_CHECK_INTERVAL = 60000;      // 알림만 스트리머 체크 주기 (60초)
 const TAB_CHECK_INTERVAL = 30000;         // 탭 실행 상태 점검 주기 (30초)
 const REQUEST_DELAY = 300;                // 각 API 요청 사이 딜레이 (ms) - 서버 부하 방지
-const MAX_MONITORING_COUNT = 4;           // 최대 모니터링 스트리머 수
+const MAX_CONCURRENT_TABS = 4;            // SOOP 동시 시청 제한 (탭 열 때 체크용)
 const DEFAULT_NOTIFICATION_DURATION = 10; // 기본 알림 표시 시간 (초)
 
 // 상태 저장 객체
@@ -841,17 +841,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         break;
 
       case 'SET_MONITORING_STREAMERS':
-        const streamers = message.data || [];
-        if (streamers.length > MAX_MONITORING_COUNT) {
-          sendResponse({ 
-            success: false, 
-            error: `최대 ${MAX_MONITORING_COUNT}명까지만 모니터링할 수 있습니다.` 
-          });
-        } else {
-          state.monitoringStreamers = streamers;
-          await saveState();
-          sendResponse({ success: true });
-        }
+        // 선택 제한 없음 - SOOP 동시 시청 4개 제한은 탭 열 때 체크
+        state.monitoringStreamers = message.data || [];
+        await saveState();
+        sendResponse({ success: true });
         break;
 
       case 'START_MONITORING':

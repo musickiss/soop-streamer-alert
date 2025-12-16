@@ -68,7 +68,7 @@ function updateMonitoringStatus() {
 
 // 모니터링 카운트 업데이트
 function updateMonitoringCount() {
-  monitoringCount.textContent = `${state.monitoringStreamers.length}/4명 선택`;
+  monitoringCount.textContent = `${state.monitoringStreamers.length}명 선택`;
 }
 
 // 알림 설정 UI 업데이트
@@ -222,9 +222,9 @@ function renderStreamerList() {
       <div class="streamer-item" data-id="${escapeHtml(streamer.id)}" draggable="true">
         <input type="checkbox"
                class="streamer-checkbox"
-               title="${isMonitoring ? '자동참여 해제' : '자동참여 설정 (최대 4명)'}"
+               title="${isMonitoring ? '자동참여 해제' : '자동참여 설정'}"
                ${isMonitoring ? 'checked' : ''}
-               ${!isMonitoring && state.monitoringStreamers.length >= 4 ? 'disabled' : ''}>
+               >
         <div class="streamer-info">
           <div class="streamer-name" data-id="${escapeHtml(streamer.id)}" title="스테이션 페이지로 이동">${escapeHtml(streamer.nickname || streamer.id)}</div>
           <div class="streamer-id">@${escapeHtml(streamer.id)} <span class="mode-badge ${modeClass}">${modeLabel}</span> ${runningBadge}</div>
@@ -416,17 +416,11 @@ async function handleCheckboxChange(event) {
 
   try {
     if (checkbox.checked) {
-      // 모니터링 추가
-      if (state.monitoringStreamers.length >= 4) {
-        checkbox.checked = false;
-        showToast('최대 4명까지만 모니터링할 수 있습니다.', 'error');
-        return;
-      }
-      
+      // 모니터링 추가 (선택 제한 없음 - SOOP 동시 시청 4개 제한은 탭 열 때 체크)
       if (!state.monitoringStreamers.includes(streamerId)) {
         state.monitoringStreamers.push(streamerId);
       }
-      showToast(`${streamerId} 모니터링 추가됨`, 'success');
+      showToast(`${streamerId} 자동참여 추가됨`, 'success');
     } else {
       // 모니터링 제거
       state.monitoringStreamers = state.monitoringStreamers.filter(id => id !== streamerId);
