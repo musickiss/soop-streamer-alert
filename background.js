@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 확장 프로그램 =====
 // background.js - 백그라운드 서비스 워커
-// v1.6.5 - 브라우저 재시작 시 오프라인 탭 자동 종료 수정
+// v1.6.6 - 오프라인 탭 자동 종료 설정 버그 수정
 
 // 상수 정의
 const MONITORING_CHECK_INTERVAL = 5000;   // 자동참여 스트리머 체크 주기 (5초)
@@ -561,8 +561,19 @@ async function showTabLimitNotification(streamerId, nickname, title, broadNo) {
 }
 
 async function closeBroadcastTab(streamerId) {
-  const tabId = state.openedTabs[streamerId];
-  if (!tabId) return;
+  let tabId = state.openedTabs[streamerId];
+
+  // ★ 탭 ID가 없으면 URL 패턴으로 탭 검색 (브라우저 재시작 후 대응)
+  if (!tabId) {
+    const existingTab = await findExistingBroadcastTab(streamerId);
+    if (existingTab) {
+      tabId = existingTab.id;
+      console.log(`[숲토킹] ${streamerId} 탭을 URL 패턴으로 찾았습니다. (탭 ID: ${tabId})`);
+    } else {
+      // 탭을 찾을 수 없음
+      return;
+    }
+  }
 
   try {
     await chrome.tabs.remove(tabId);
@@ -610,12 +621,15 @@ async function checkMonitoringStreamers() {
     } else if (!isNowLive && wasLive) {
       // ★ 방송중 → 오프라인: 방송 종료
       console.log(`[숲토킹] ${streamerId} 방송 종료`);
-      
+
       // 방송 종료 알림 표시
       const streamer = state.favoriteStreamers.find(s => s.id === streamerId);
       await showEndNotification(streamerId, streamer?.nickname || previousStatus.nickname);
-      
-      await closeBroadcastTab(streamerId);
+
+      // ★ autoCloseOfflineTabs 설정이 true일 때만 탭 종료
+      if (state.autoCloseOfflineTabs) {
+        await closeBroadcastTab(streamerId);
+      }
     }
 
     // ★ 상태 업데이트 및 저장
