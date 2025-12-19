@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 확장 프로그램 =====
 // background.js - 백그라운드 서비스 워커
-// v1.6.6 - 오프라인 탭 자동 종료 설정 버그 수정
+// v1.6.7 - 방송 재시작 시 이전 방송 탭이 아닌 새 탭 열기
 
 // 상수 정의
 const MONITORING_CHECK_INTERVAL = 5000;   // 자동참여 스트리머 체크 주기 (5초)
@@ -462,17 +462,26 @@ async function openBroadcastTab(streamerId, broadNo, nickname, title) {
   // ★ 먼저 URL로 이미 열린 탭이 있는지 확인
   const existingTab = await findExistingBroadcastTab(streamerId);
   if (existingTab) {
-    // 기존 탭을 활성화
-    try {
-      await chrome.tabs.update(existingTab.id, { active: true });
-      await chrome.windows.update(existingTab.windowId, { focused: true });
-      // openedTabs에 기록
-      state.openedTabs[streamerId] = existingTab.id;
-      console.log(`[숲토킹] ${streamerId} 이미 열린 탭 활성화 (탭 ID: ${existingTab.id})`);
-    } catch (e) {
-      console.error(`[숲토킹] 기존 탭 활성화 오류:`, e);
+    // ★ 탭의 URL에서 방송 번호 추출하여 현재 방송과 비교
+    const urlMatch = existingTab.url.match(/play\.sooplive\.co\.kr\/[^\/]+\/(\d+)/);
+    const existingBroadNo = urlMatch ? urlMatch[1] : null;
+
+    if (existingBroadNo === String(broadNo)) {
+      // 같은 방송 → 기존 탭 활성화
+      try {
+        await chrome.tabs.update(existingTab.id, { active: true });
+        await chrome.windows.update(existingTab.windowId, { focused: true });
+        state.openedTabs[streamerId] = existingTab.id;
+        console.log(`[숲토킹] ${streamerId} 같은 방송 탭 활성화 (방송번호: ${broadNo})`);
+      } catch (e) {
+        console.error(`[숲토킹] 기존 탭 활성화 오류:`, e);
+      }
+      return { success: true, action: 'activated' };
+    } else {
+      // 다른 방송 (이전 방송 탭) → 새 탭 열기
+      console.log(`[숲토킹] ${streamerId} 이전 방송 탭 발견 (이전: ${existingBroadNo}, 현재: ${broadNo}) → 새 탭 열기`);
+      delete state.openedTabs[streamerId];
     }
-    return { success: true, action: 'activated' };
   }
 
   // state.openedTabs에서 확인 (위에서 못 찾은 경우)
@@ -480,11 +489,21 @@ async function openBroadcastTab(streamerId, broadNo, nickname, title) {
     try {
       const tab = await chrome.tabs.get(state.openedTabs[streamerId]);
       if (tab) {
-        // 기존 탭을 활성화
-        await chrome.tabs.update(tab.id, { active: true });
-        await chrome.windows.update(tab.windowId, { focused: true });
-        console.log(`[숲토킹] ${streamerId} 기존 탭 활성화`);
-        return { success: true, action: 'activated' };
+        // ★ 탭의 URL에서 방송 번호 추출하여 현재 방송과 비교
+        const urlMatch = tab.url && tab.url.match(/play\.sooplive\.co\.kr\/[^\/]+\/(\d+)/);
+        const existingBroadNo = urlMatch ? urlMatch[1] : null;
+
+        if (existingBroadNo === String(broadNo)) {
+          // 같은 방송 → 기존 탭 활성화
+          await chrome.tabs.update(tab.id, { active: true });
+          await chrome.windows.update(tab.windowId, { focused: true });
+          console.log(`[숲토킹] ${streamerId} 같은 방송 탭 활성화 (방송번호: ${broadNo})`);
+          return { success: true, action: 'activated' };
+        } else {
+          // 다른 방송이거나 방송 URL이 아님 → 새 탭 열기
+          console.log(`[숲토킹] ${streamerId} 탭이 현재 방송이 아님 → 새 탭 열기`);
+          delete state.openedTabs[streamerId];
+        }
       }
     } catch (e) {
       // 탭이 존재하지 않음 - 새로 열기
