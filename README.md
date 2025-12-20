@@ -8,6 +8,12 @@
 
 ## 📥 설치 방법
 
+### Chrome 웹스토어에서 설치 (권장)
+
+[Chrome 웹스토어](https://chromewebstore.google.com/detail/bmmihbljmhbmhkijinicehdbjlinalfi)에서 "숲토킹"을 검색하거나 링크를 클릭하여 바로 설치할 수 있습니다.
+
+### 수동 설치
+
 1. 이 확장 프로그램 파일을 [다운로드](https://github.com/musickiss/soop-streamer-alert/archive/refs/heads/master.zip)하고 압축을 풉니다.
 2. 브라우저 주소창에 확장 프로그램 주소를 입력하고 이동합니다.
    - Chrome: `chrome://extensions/`
