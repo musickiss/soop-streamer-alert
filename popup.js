@@ -1,5 +1,11 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 확장 프로그램 =====
 // popup.js - 팝업 UI 로직
+// v1.7.0 - 다국어 지원 추가
+
+// ===== i18n 헬퍼 함수 =====
+function i18n(key, substitutions = []) {
+  return chrome.i18n.getMessage(key, substitutions) || key;
+}
 
 // DOM 요소 참조
 const monitoringToggle = document.getElementById('monitoringToggle');
@@ -32,13 +38,38 @@ let state = {
   autoCloseOfflineTabs: true
 };
 
+// ===== i18n 적용 함수 =====
+function applyI18n() {
+  // 앱 이름과 슬로건
+  document.getElementById('brandText').textContent = i18n('appName');
+  document.getElementById('creepyText').textContent = i18n('appSlogan');
+
+  // data-i18n 속성을 가진 요소들
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.textContent = i18n(key);
+  });
+
+  // data-i18n-placeholder 속성을 가진 요소들
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.getAttribute('data-i18n-placeholder');
+    el.placeholder = i18n(key);
+  });
+
+  // data-i18n-title 속성을 가진 요소들
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    const key = el.getAttribute('data-i18n-title');
+    el.title = i18n(key);
+  });
+}
+
 // ===== 유틸리티 함수 =====
 
 // 토스트 메시지 표시
 function showToast(message, type = 'info') {
   toast.textContent = message;
   toast.className = 'toast show ' + type;
-  
+
   setTimeout(() => {
     toast.className = 'toast';
   }, 3000);
@@ -62,13 +93,13 @@ function sendMessage(message) {
 // 모니터링 상태 업데이트
 function updateMonitoringStatus() {
   monitoringToggle.checked = state.isMonitoring;
-  statusText.textContent = state.isMonitoring ? '모니터링 ON' : '모니터링 OFF';
+  statusText.textContent = state.isMonitoring ? i18n('monitoringOn') : i18n('monitoringOff');
   statusText.className = state.isMonitoring ? 'status-text active' : 'status-text';
 }
 
 // 모니터링 카운트 업데이트
 function updateMonitoringCount() {
-  monitoringCount.textContent = `${state.monitoringStreamers.length}명 선택`;
+  monitoringCount.textContent = i18n('selectedCount', [state.monitoringStreamers.length.toString()]);
 }
 
 // 알림 설정 UI 업데이트
@@ -77,12 +108,12 @@ function updateNotificationSettings() {
   notificationDuration.value = state.notificationDuration;
   durationRow.style.opacity = state.notificationEnabled ? '1' : '0.5';
   notificationDuration.disabled = !state.notificationEnabled;
-  
+
   // 방송 종료 알림 설정
   if (endNotificationToggle) {
     endNotificationToggle.checked = state.endNotificationEnabled;
   }
-  
+
   // 오프라인 탭 자동 종료 설정
   if (autoCloseToggle) {
     autoCloseToggle.checked = state.autoCloseOfflineTabs;
@@ -92,12 +123,12 @@ function updateNotificationSettings() {
 // 알림 토글 핸들러
 async function handleNotificationToggle() {
   state.notificationEnabled = notificationToggle.checked;
-  
+
   // storage에 저장
   await chrome.storage.local.set({
     notificationEnabled: state.notificationEnabled
   });
-  
+
   // 백그라운드에도 알림
   try {
     await sendMessage({
@@ -107,10 +138,10 @@ async function handleNotificationToggle() {
   } catch (e) {
     console.log('[팝업] 백그라운드 알림 실패');
   }
-  
+
   updateNotificationSettings();
   showToast(
-    state.notificationEnabled ? '알림이 활성화되었습니다.' : '알림이 비활성화되었습니다.',
+    state.notificationEnabled ? i18n('toastNotificationEnabled') : i18n('toastNotificationDisabled'),
     state.notificationEnabled ? 'success' : 'info'
   );
 }
@@ -118,12 +149,12 @@ async function handleNotificationToggle() {
 // 방송 종료 알림 토글 핸들러
 async function handleEndNotificationToggle() {
   state.endNotificationEnabled = endNotificationToggle.checked;
-  
+
   // storage에 저장
   await chrome.storage.local.set({
     endNotificationEnabled: state.endNotificationEnabled
   });
-  
+
   // 백그라운드에도 알림
   try {
     await sendMessage({
@@ -133,9 +164,9 @@ async function handleEndNotificationToggle() {
   } catch (e) {
     console.log('[팝업] 백그라운드 알림 실패');
   }
-  
+
   showToast(
-    state.endNotificationEnabled ? '방송 종료 알림이 활성화되었습니다.' : '방송 종료 알림이 비활성화되었습니다.',
+    state.endNotificationEnabled ? i18n('toastEndNotificationEnabled') : i18n('toastEndNotificationDisabled'),
     state.endNotificationEnabled ? 'success' : 'info'
   );
 }
@@ -143,12 +174,12 @@ async function handleEndNotificationToggle() {
 // 오프라인 탭 자동 종료 토글 핸들러
 async function handleAutoCloseToggle() {
   state.autoCloseOfflineTabs = autoCloseToggle.checked;
-  
+
   // storage에 저장
   await chrome.storage.local.set({
     autoCloseOfflineTabs: state.autoCloseOfflineTabs
   });
-  
+
   // 백그라운드에도 알림
   try {
     await sendMessage({
@@ -158,9 +189,9 @@ async function handleAutoCloseToggle() {
   } catch (e) {
     console.log('[팝업] 백그라운드 알림 실패');
   }
-  
+
   showToast(
-    state.autoCloseOfflineTabs ? '오프라인 탭 자동 종료가 활성화되었습니다.' : '오프라인 탭 자동 종료가 비활성화되었습니다.',
+    state.autoCloseOfflineTabs ? i18n('toastAutoCloseEnabled') : i18n('toastAutoCloseDisabled'),
     state.autoCloseOfflineTabs ? 'success' : 'info'
   );
 }
@@ -168,19 +199,19 @@ async function handleAutoCloseToggle() {
 // 알림 시간 변경 핸들러
 async function handleDurationChange() {
   let duration = parseInt(notificationDuration.value, 10);
-  
+
   // 유효성 검사
   if (isNaN(duration) || duration < 3) duration = 3;
   if (duration > 60) duration = 60;
-  
+
   notificationDuration.value = duration;
   state.notificationDuration = duration;
-  
+
   // storage에 저장
   await chrome.storage.local.set({
     notificationDuration: state.notificationDuration
   });
-  
+
   // 백그라운드에도 알림
   try {
     await sendMessage({
@@ -198,7 +229,7 @@ function renderStreamerList() {
     streamerList.innerHTML = `
       <div class="empty-message">
         <div class="icon">📋</div>
-        <p>등록된 스트리머가 없습니다.<br>아래에서 스트리머 ID를 추가하세요.</p>
+        <p>${i18n('emptyTitle')}<br>${i18n('emptyDescription')}</p>
       </div>
     `;
     return;
@@ -209,31 +240,37 @@ function renderStreamerList() {
     const status = state.broadcastStatus[streamer.id];
     const isLive = status && status.isLive;
     const isRunning = state.runningTabs[streamer.id];
-    
+
     // 모니터링 중이면 "자동참여", 아니면 "알림"
-    const modeLabel = isMonitoring ? '자동참여' : '알림';
+    const modeLabel = isMonitoring ? i18n('modeAutoJoin') : i18n('modeNotify');
     const modeClass = isMonitoring ? 'mode-auto' : 'mode-notify';
-    
+
     // 실행 상태: 탭이 열려있으면 "실행", 아니면 표시 안 함 (방송중일 때만)
-    const runningBadge = isLive ? 
-      `<span class="mode-badge ${isRunning ? 'mode-running' : 'mode-not-running'}">${isRunning ? '실행' : '미실행'}</span>` : '';
-    
+    const runningBadge = isLive ?
+      `<span class="mode-badge ${isRunning ? 'mode-running' : 'mode-not-running'}">${isRunning ? i18n('modeRunning') : i18n('modeNotRunning')}</span>` : '';
+
+    const statusLiveText = i18n('statusLive');
+    const statusOfflineText = i18n('statusOffline');
+    const titleAutoJoin = isMonitoring ? i18n('titleAutoJoinDisable') : i18n('titleAutoJoinEnable');
+    const titleGoToStation = i18n('titleGoToStation');
+    const titleDelete = i18n('deleteButton');
+
     return `
       <div class="streamer-item" data-id="${escapeHtml(streamer.id)}" draggable="true">
         <input type="checkbox"
                class="streamer-checkbox"
-               title="${isMonitoring ? '자동참여 해제' : '자동참여 설정'}"
+               title="${titleAutoJoin}"
                ${isMonitoring ? 'checked' : ''}
                >
         <div class="streamer-info">
-          <div class="streamer-name" data-id="${escapeHtml(streamer.id)}" title="스테이션 페이지로 이동">${escapeHtml(streamer.nickname || streamer.id)}</div>
+          <div class="streamer-name" data-id="${escapeHtml(streamer.id)}" title="${titleGoToStation}">${escapeHtml(streamer.nickname || streamer.id)}</div>
           <div class="streamer-id">@${escapeHtml(streamer.id)} <span class="mode-badge ${modeClass}">${modeLabel}</span> ${runningBadge}</div>
         </div>
         <div class="streamer-status ${isLive ? 'live' : 'offline'}">
           <span class="status-dot ${isLive ? 'live' : 'offline'}"></span>
-          ${isLive ? '방송중' : '오프라인'}
+          ${isLive ? statusLiveText : statusOfflineText}
         </div>
-        <button class="delete-btn" data-id="${escapeHtml(streamer.id)}" title="삭제">✕</button>
+        <button class="delete-btn" data-id="${escapeHtml(streamer.id)}" title="${titleDelete}">✕</button>
       </div>
     `;
   }).join('');
@@ -393,7 +430,7 @@ async function saveStreamerOrder() {
     }
   } catch (error) {
     console.error('순서 저장 오류:', error);
-    showToast('순서 저장 중 오류가 발생했습니다.', 'error');
+    showToast(i18n('toastOrderSaveError'), 'error');
   }
 }
 
@@ -420,11 +457,11 @@ async function handleCheckboxChange(event) {
       if (!state.monitoringStreamers.includes(streamerId)) {
         state.monitoringStreamers.push(streamerId);
       }
-      showToast(`${streamerId} 자동참여 추가됨`, 'success');
+      showToast(i18n('toastAutoJoinAdded', [streamerId]), 'success');
     } else {
       // 모니터링 제거
       state.monitoringStreamers = state.monitoringStreamers.filter(id => id !== streamerId);
-      showToast(`${streamerId} 모니터링 해제됨`, 'info');
+      showToast(i18n('toastMonitoringRemoved', [streamerId]), 'info');
     }
 
     // ★ 직접 chrome.storage.local에 저장 (더 안정적)
@@ -447,7 +484,7 @@ async function handleCheckboxChange(event) {
   } catch (error) {
     console.error('체크박스 변경 오류:', error);
     checkbox.checked = !checkbox.checked;
-    showToast('오류가 발생했습니다.', 'error');
+    showToast(i18n('toastError'), 'error');
   }
 }
 
@@ -455,22 +492,22 @@ async function handleCheckboxChange(event) {
 async function handleDeleteStreamer(event) {
   const btn = event.target;
   const streamerId = btn.dataset.id;
-  
+
   // 삭제 확인
   const streamer = state.favoriteStreamers.find(s => s.id === streamerId);
   const displayName = streamer?.nickname || streamerId;
-  
-  if (!confirm(`"${displayName}" 스트리머를 삭제하시겠습니까?`)) {
+
+  if (!confirm(i18n('confirmDeleteStreamer', [displayName]))) {
     return;
   }
 
   try {
     // 목록에서 제거
     state.favoriteStreamers = state.favoriteStreamers.filter(s => s.id !== streamerId);
-    
+
     // 모니터링 목록에서도 제거
     state.monitoringStreamers = state.monitoringStreamers.filter(id => id !== streamerId);
-    
+
     // 방송 상태에서도 제거
     delete state.broadcastStatus[streamerId];
 
@@ -496,10 +533,10 @@ async function handleDeleteStreamer(event) {
 
     updateMonitoringCount();
     renderStreamerList();
-    showToast(`${displayName} 삭제됨`, 'info');
+    showToast(i18n('toastStreamerDeleted', [displayName]), 'info');
   } catch (error) {
     console.error('스트리머 삭제 오류:', error);
-    showToast('삭제 중 오류가 발생했습니다.', 'error');
+    showToast(i18n('toastDeleteError'), 'error');
   }
 }
 
@@ -507,10 +544,10 @@ async function handleDeleteStreamer(event) {
 async function handleMonitoringToggle() {
   try {
     const isEnabled = monitoringToggle.checked;
-    
+
     if (isEnabled && state.monitoringStreamers.length === 0) {
       monitoringToggle.checked = false;
-      showToast('모니터링할 스트리머를 먼저 선택하세요.', 'error');
+      showToast(i18n('toastSelectStreamerFirst'), 'error');
       return;
     }
 
@@ -531,15 +568,15 @@ async function handleMonitoringToggle() {
     }
 
     updateMonitoringStatus();
-    
+
     showToast(
-      isEnabled ? '모니터링을 시작합니다.' : '모니터링을 중지합니다.',
+      isEnabled ? i18n('toastMonitoringStarted') : i18n('toastMonitoringStopped'),
       isEnabled ? 'success' : 'info'
     );
   } catch (error) {
     console.error('모니터링 토글 오류:', error);
     monitoringToggle.checked = !monitoringToggle.checked;
-    showToast('오류가 발생했습니다.', 'error');
+    showToast(i18n('toastError'), 'error');
   }
 }
 
@@ -561,12 +598,12 @@ async function handleRefresh() {
 
     // 상태 새로 불러오기 (storage에서 직접)
     await loadState();
-    
+
     renderStreamerList();
-    showToast('새로고침 완료', 'success');
+    showToast(i18n('toastRefreshComplete'), 'success');
   } catch (error) {
     console.error('새로고침 오류:', error);
-    showToast('새로고침 실패', 'error');
+    showToast(i18n('toastRefreshFailed'), 'error');
   } finally {
     refreshBtn.disabled = false;
     refreshBtn.textContent = '🔄';
@@ -576,7 +613,7 @@ async function handleRefresh() {
 // 스트리머 목록 내보내기 핸들러
 function handleExport() {
   if (state.favoriteStreamers.length === 0) {
-    showToast('내보낼 스트리머가 없습니다.', 'error');
+    showToast(i18n('toastNoStreamersToExport'), 'error');
     return;
   }
 
@@ -599,10 +636,10 @@ function handleExport() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    showToast(`${state.favoriteStreamers.length}명의 스트리머 목록을 내보냈습니다.`, 'success');
+    showToast(i18n('toastExportComplete', [state.favoriteStreamers.length.toString()]), 'success');
   } catch (error) {
     console.error('내보내기 오류:', error);
-    showToast('내보내기 중 오류가 발생했습니다.', 'error');
+    showToast(i18n('toastExportError'), 'error');
   }
 }
 
@@ -630,7 +667,7 @@ async function handleImport(event) {
       // 새 형식: { version, streamers: [] }
       streamersToImport = data.streamers;
     } else {
-      showToast('올바르지 않은 파일 형식입니다.', 'error');
+      showToast(i18n('toastInvalidFileFormat'), 'error');
       return;
     }
 
@@ -643,7 +680,7 @@ async function handleImport(event) {
     }));
 
     if (validStreamers.length === 0) {
-      showToast('불러올 스트리머가 없습니다.', 'error');
+      showToast(i18n('toastNoStreamersToImport'), 'error');
       return;
     }
 
@@ -675,13 +712,13 @@ async function handleImport(event) {
     renderStreamerList();
 
     if (addedCount > 0) {
-      showToast(`${addedCount}명의 스트리머를 추가했습니다.`, 'success');
+      showToast(i18n('toastImportComplete', [addedCount.toString()]), 'success');
     } else {
-      showToast('모든 스트리머가 이미 등록되어 있습니다.', 'info');
+      showToast(i18n('toastAllStreamersExist'), 'info');
     }
   } catch (error) {
     console.error('불러오기 오류:', error);
-    showToast('파일을 읽는 중 오류가 발생했습니다.', 'error');
+    showToast(i18n('toastFileReadError'), 'error');
   } finally {
     // 파일 입력 초기화 (같은 파일 다시 선택 가능하도록)
     importFileInput.value = '';
@@ -691,26 +728,26 @@ async function handleImport(event) {
 // 스트리머 수동 추가 핸들러
 async function handleManualAdd() {
   const streamerId = manualAddInput.value.trim().toLowerCase();
-  
+
   if (!streamerId) {
-    showToast('스트리머 ID를 입력하세요.', 'error');
+    showToast(i18n('toastEnterStreamerId'), 'error');
     return;
   }
 
   // ID 유효성 검사 (영문, 숫자, 언더스코어만 허용)
   if (!/^[a-z0-9_]+$/.test(streamerId)) {
-    showToast('올바른 스트리머 ID를 입력하세요.', 'error');
+    showToast(i18n('toastInvalidStreamerId'), 'error');
     return;
   }
 
   // 이미 있는지 확인
   if (state.favoriteStreamers.find(s => s.id === streamerId)) {
-    showToast('이미 목록에 있는 스트리머입니다.', 'error');
+    showToast(i18n('toastStreamerAlreadyExists'), 'error');
     return;
   }
 
   manualAddBtn.disabled = true;
-  manualAddBtn.textContent = '확인중...';
+  manualAddBtn.textContent = i18n('checkingStatus');
 
   try {
     // 스트리머 존재 여부 확인
@@ -756,13 +793,13 @@ async function handleManualAdd() {
 
     manualAddInput.value = '';
     renderStreamerList();
-    showToast(`${newStreamer.nickname || streamerId} 추가됨`, 'success');
+    showToast(i18n('toastStreamerAdded', [newStreamer.nickname || streamerId]), 'success');
   } catch (error) {
     console.error('스트리머 추가 오류:', error);
-    showToast('스트리머 추가 실패', 'error');
+    showToast(i18n('toastError'), 'error');
   } finally {
     manualAddBtn.disabled = false;
-    manualAddBtn.textContent = '추가';
+    manualAddBtn.textContent = i18n('addButton');
   }
 }
 
@@ -781,17 +818,17 @@ async function loadState() {
       'endNotificationEnabled',
       'autoCloseOfflineTabs'
     ]);
-    
+
     state.favoriteStreamers = storageData.favoriteStreamers || [];
     state.monitoringStreamers = storageData.monitoringStreamers || [];
     state.isMonitoring = storageData.isMonitoring || false;
-    state.notificationEnabled = storageData.notificationEnabled !== undefined 
+    state.notificationEnabled = storageData.notificationEnabled !== undefined
       ? storageData.notificationEnabled : true;
     state.notificationDuration = storageData.notificationDuration || 10;
     state.endNotificationEnabled = storageData.endNotificationEnabled || false;
-    state.autoCloseOfflineTabs = storageData.autoCloseOfflineTabs !== undefined 
+    state.autoCloseOfflineTabs = storageData.autoCloseOfflineTabs !== undefined
       ? storageData.autoCloseOfflineTabs : true;
-    
+
     console.log('[팝업] Storage에서 직접 로드:', {
       favorites: state.favoriteStreamers.length,
       monitoring: state.monitoringStreamers.length,
@@ -820,6 +857,9 @@ async function loadState() {
 // ===== 초기화 =====
 
 async function init() {
+  // i18n 적용
+  applyI18n();
+
   // 버전 정보 표시
   const versionInfo = document.getElementById('versionInfo');
   if (versionInfo) {
@@ -848,17 +888,17 @@ async function init() {
   exportBtn.addEventListener('click', handleExport);
   importBtn.addEventListener('click', handleImportClick);
   importFileInput.addEventListener('change', handleImport);
-  
+
   // 방송 종료 알림 토글
   if (endNotificationToggle) {
     endNotificationToggle.addEventListener('change', handleEndNotificationToggle);
   }
-  
+
   // 오프라인 탭 자동 종료 토글
   if (autoCloseToggle) {
     autoCloseToggle.addEventListener('change', handleAutoCloseToggle);
   }
-  
+
   // Enter 키로 추가
   manualAddInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
@@ -874,11 +914,11 @@ async function init() {
       if (response.success) {
         state.broadcastStatus = response.data.broadcastStatus || {};
         state.runningTabs = response.data.runningTabs || {};
-        
+
         // isMonitoring 상태도 동기화
         const storageData = await chrome.storage.local.get(['isMonitoring']);
         state.isMonitoring = storageData.isMonitoring || false;
-        
+
         updateMonitoringStatus();
         renderStreamerList();
       }

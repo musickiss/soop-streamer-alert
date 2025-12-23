@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "숲토킹 - SOOP 스트리머 방송 알림",
-  "version": "1.6.7",
-  "description": "즐겨찾기한 스트리머의 방송 시작을 자동 감지하여 새 탭으로 열어줍니다.",
+  "name": "__MSG_extName__",
+  "version": "1.7.0",
+  "description": "__MSG_extDescription__",
+  "default_locale": "ko",
   "permissions": [
     "storage",
     "tabs",

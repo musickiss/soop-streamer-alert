@@ -1,0 +1,330 @@
+{
+  "extName": {
+    "message": "SOOPtalking - SOOP Streamer Alert",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "Automatically detects when your favorite streamers go live and opens their streams in a new tab.",
+    "description": "Extension description"
+  },
+  "appName": {
+    "message": "SOOPtalking",
+    "description": "App name (brand)"
+  },
+  "appSlogan": {
+    "message": "I'm always watching you..",
+    "description": "App slogan (stalker vibe)"
+  },
+  "monitoringOn": {
+    "message": "Monitoring ON",
+    "description": "Monitoring enabled status"
+  },
+  "monitoringOff": {
+    "message": "Monitoring OFF",
+    "description": "Monitoring disabled status"
+  },
+  "selectedCount": {
+    "message": "$count$ selected",
+    "description": "Number of selected streamers",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "streamerBroadcastNotification": {
+    "message": "Stream start notification",
+    "description": "Stream start notification setting"
+  },
+  "broadcastEndNotification": {
+    "message": "Stream end notification",
+    "description": "Stream end notification setting"
+  },
+  "notificationDuration": {
+    "message": "Notification duration",
+    "description": "Notification duration setting"
+  },
+  "seconds": {
+    "message": "sec",
+    "description": "Seconds unit"
+  },
+  "autoCloseOfflineTabs": {
+    "message": "Auto-close offline tabs",
+    "description": "Auto-close offline tabs setting"
+  },
+  "registeredStreamers": {
+    "message": "Registered Streamers",
+    "description": "Registered streamers section title"
+  },
+  "statusLive": {
+    "message": "LIVE",
+    "description": "Live status"
+  },
+  "statusOffline": {
+    "message": "Offline",
+    "description": "Offline status"
+  },
+  "modeAutoJoin": {
+    "message": "Auto-join",
+    "description": "Auto-join mode"
+  },
+  "modeNotify": {
+    "message": "Notify",
+    "description": "Notify mode"
+  },
+  "modeRunning": {
+    "message": "Running",
+    "description": "Tab running"
+  },
+  "modeNotRunning": {
+    "message": "Not running",
+    "description": "Tab not running"
+  },
+  "inputPlaceholder": {
+    "message": "Enter streamer ID (e.g., streamer123)",
+    "description": "Streamer ID input field placeholder"
+  },
+  "addButton": {
+    "message": "Add",
+    "description": "Add button"
+  },
+  "checkingStatus": {
+    "message": "Checking...",
+    "description": "Checking status"
+  },
+  "deleteButton": {
+    "message": "Delete",
+    "description": "Delete button"
+  },
+  "feedbackLabel": {
+    "message": "Feedback & Support",
+    "description": "Feedback label"
+  },
+  "titleAutoJoinEnable": {
+    "message": "Enable auto-join",
+    "description": "Enable auto-join title attribute"
+  },
+  "titleAutoJoinDisable": {
+    "message": "Disable auto-join",
+    "description": "Disable auto-join title attribute"
+  },
+  "titleGoToStation": {
+    "message": "Go to station page",
+    "description": "Go to station page title attribute"
+  },
+  "titleExport": {
+    "message": "Export streamer list",
+    "description": "Export streamer list title attribute"
+  },
+  "titleImport": {
+    "message": "Import streamer list",
+    "description": "Import streamer list title attribute"
+  },
+  "titleRefresh": {
+    "message": "Refresh stream status",
+    "description": "Refresh stream status title attribute"
+  },
+  "emptyTitle": {
+    "message": "No streamers registered.",
+    "description": "Empty state title"
+  },
+  "emptyDescription": {
+    "message": "Add a streamer ID below.",
+    "description": "Empty state description"
+  },
+  "toastNotificationEnabled": {
+    "message": "Notifications enabled.",
+    "description": "Notification enabled toast"
+  },
+  "toastNotificationDisabled": {
+    "message": "Notifications disabled.",
+    "description": "Notification disabled toast"
+  },
+  "toastEndNotificationEnabled": {
+    "message": "Stream end notifications enabled.",
+    "description": "Stream end notification enabled toast"
+  },
+  "toastEndNotificationDisabled": {
+    "message": "Stream end notifications disabled.",
+    "description": "Stream end notification disabled toast"
+  },
+  "toastAutoCloseEnabled": {
+    "message": "Auto-close offline tabs enabled.",
+    "description": "Auto-close offline tabs enabled toast"
+  },
+  "toastAutoCloseDisabled": {
+    "message": "Auto-close offline tabs disabled.",
+    "description": "Auto-close offline tabs disabled toast"
+  },
+  "toastMonitoringStarted": {
+    "message": "Monitoring started.",
+    "description": "Monitoring started toast"
+  },
+  "toastMonitoringStopped": {
+    "message": "Monitoring stopped.",
+    "description": "Monitoring stopped toast"
+  },
+  "toastSelectStreamerFirst": {
+    "message": "Please select a streamer to monitor first.",
+    "description": "Select streamer first toast"
+  },
+  "toastRefreshComplete": {
+    "message": "Refresh complete",
+    "description": "Refresh complete toast"
+  },
+  "toastRefreshFailed": {
+    "message": "Refresh failed",
+    "description": "Refresh failed toast"
+  },
+  "toastEnterStreamerId": {
+    "message": "Please enter a streamer ID.",
+    "description": "Enter streamer ID toast"
+  },
+  "toastInvalidStreamerId": {
+    "message": "Please enter a valid streamer ID.",
+    "description": "Invalid streamer ID toast"
+  },
+  "toastStreamerAlreadyExists": {
+    "message": "This streamer is already in the list.",
+    "description": "Streamer already exists toast"
+  },
+  "toastStreamerAdded": {
+    "message": "$name$ added",
+    "description": "Streamer added toast",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastStreamerDeleted": {
+    "message": "$name$ deleted",
+    "description": "Streamer deleted toast",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastAutoJoinAdded": {
+    "message": "$name$ auto-join enabled",
+    "description": "Auto-join added toast",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastMonitoringRemoved": {
+    "message": "$name$ monitoring disabled",
+    "description": "Monitoring removed toast",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastError": {
+    "message": "An error occurred.",
+    "description": "General error toast"
+  },
+  "toastDeleteError": {
+    "message": "An error occurred while deleting.",
+    "description": "Delete error toast"
+  },
+  "toastOrderSaveError": {
+    "message": "An error occurred while saving the order.",
+    "description": "Order save error toast"
+  },
+  "toastNoStreamersToExport": {
+    "message": "No streamers to export.",
+    "description": "No streamers to export toast"
+  },
+  "toastExportComplete": {
+    "message": "Exported $count$ streamer(s).",
+    "description": "Export complete toast",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "toastExportError": {
+    "message": "An error occurred while exporting.",
+    "description": "Export error toast"
+  },
+  "toastInvalidFileFormat": {
+    "message": "Invalid file format.",
+    "description": "Invalid file format toast"
+  },
+  "toastNoStreamersToImport": {
+    "message": "No streamers to import.",
+    "description": "No streamers to import toast"
+  },
+  "toastImportComplete": {
+    "message": "Added $count$ streamer(s).",
+    "description": "Import complete toast",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "toastAllStreamersExist": {
+    "message": "All streamers are already registered.",
+    "description": "All streamers already exist toast"
+  },
+  "toastFileReadError": {
+    "message": "An error occurred while reading the file.",
+    "description": "File read error toast"
+  },
+  "confirmDeleteStreamer": {
+    "message": "Delete streamer \"$name$\"?",
+    "description": "Delete streamer confirmation dialog",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "notificationBroadcastStartTitle": {
+    "message": "$nickname$ is now LIVE!",
+    "description": "Broadcast start notification title",
+    "placeholders": {
+      "nickname": {
+        "content": "$1",
+        "example": "StreamerNickname"
+      }
+    }
+  },
+  "notificationBroadcastStartMessage": {
+    "message": "The stream has started.",
+    "description": "Broadcast start notification message"
+  },
+  "notificationBroadcastEndTitle": {
+    "message": "$nickname$ ended the stream",
+    "description": "Broadcast end notification title",
+    "placeholders": {
+      "nickname": {
+        "content": "$1",
+        "example": "StreamerNickname"
+      }
+    }
+  },
+  "notificationBroadcastEndMessage": {
+    "message": "The stream has ended.",
+    "description": "Broadcast end notification message"
+  },
+  "notificationTabLimitWarning": {
+    "message": "Notification only due to 4 stream limit",
+    "description": "Tab limit warning message"
+  }
+}

@@ -1,0 +1,330 @@
+{
+  "extName": {
+    "message": "숲토킹 - SOOP 스트리머 방송 알림",
+    "description": "확장 프로그램 이름"
+  },
+  "extDescription": {
+    "message": "즐겨찾기한 스트리머의 방송 시작을 자동 감지하여 새 탭으로 열어줍니다.",
+    "description": "확장 프로그램 설명"
+  },
+  "appName": {
+    "message": "숲토킹",
+    "description": "앱 이름 (브랜드)"
+  },
+  "appSlogan": {
+    "message": "내가 늘 지켜보고 있어..",
+    "description": "앱 슬로건 (스토커 느낌)"
+  },
+  "monitoringOn": {
+    "message": "모니터링 ON",
+    "description": "모니터링 활성화 상태"
+  },
+  "monitoringOff": {
+    "message": "모니터링 OFF",
+    "description": "모니터링 비활성화 상태"
+  },
+  "selectedCount": {
+    "message": "$count$명 선택",
+    "description": "선택된 스트리머 수",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "3"
+      }
+    }
+  },
+  "streamerBroadcastNotification": {
+    "message": "스트리머 방송 알림",
+    "description": "방송 시작 알림 설정"
+  },
+  "broadcastEndNotification": {
+    "message": "방송 종료 알림",
+    "description": "방송 종료 알림 설정"
+  },
+  "notificationDuration": {
+    "message": "알림 표시 시간",
+    "description": "알림 표시 시간 설정"
+  },
+  "seconds": {
+    "message": "초",
+    "description": "초 단위"
+  },
+  "autoCloseOfflineTabs": {
+    "message": "오프라인 탭 자동 종료",
+    "description": "오프라인 탭 자동 종료 설정"
+  },
+  "registeredStreamers": {
+    "message": "등록된 스트리머",
+    "description": "등록된 스트리머 섹션 제목"
+  },
+  "statusLive": {
+    "message": "방송중",
+    "description": "방송중 상태"
+  },
+  "statusOffline": {
+    "message": "오프라인",
+    "description": "오프라인 상태"
+  },
+  "modeAutoJoin": {
+    "message": "자동참여",
+    "description": "자동참여 모드"
+  },
+  "modeNotify": {
+    "message": "알림",
+    "description": "알림 모드"
+  },
+  "modeRunning": {
+    "message": "실행",
+    "description": "탭 실행중"
+  },
+  "modeNotRunning": {
+    "message": "미실행",
+    "description": "탭 미실행"
+  },
+  "inputPlaceholder": {
+    "message": "스트리머 ID 입력 (예: streamer123)",
+    "description": "스트리머 ID 입력 필드 placeholder"
+  },
+  "addButton": {
+    "message": "추가",
+    "description": "추가 버튼"
+  },
+  "checkingStatus": {
+    "message": "확인중...",
+    "description": "확인 중 상태"
+  },
+  "deleteButton": {
+    "message": "삭제",
+    "description": "삭제 버튼"
+  },
+  "feedbackLabel": {
+    "message": "기능개선 및 문의",
+    "description": "피드백 레이블"
+  },
+  "titleAutoJoinEnable": {
+    "message": "자동참여 설정",
+    "description": "자동참여 설정 title 속성"
+  },
+  "titleAutoJoinDisable": {
+    "message": "자동참여 해제",
+    "description": "자동참여 해제 title 속성"
+  },
+  "titleGoToStation": {
+    "message": "스테이션 페이지로 이동",
+    "description": "스테이션 페이지로 이동 title 속성"
+  },
+  "titleExport": {
+    "message": "스트리머 목록 내보내기",
+    "description": "스트리머 목록 내보내기 title 속성"
+  },
+  "titleImport": {
+    "message": "스트리머 목록 불러오기",
+    "description": "스트리머 목록 불러오기 title 속성"
+  },
+  "titleRefresh": {
+    "message": "방송 상태 새로고침",
+    "description": "방송 상태 새로고침 title 속성"
+  },
+  "emptyTitle": {
+    "message": "등록된 스트리머가 없습니다.",
+    "description": "빈 상태 제목"
+  },
+  "emptyDescription": {
+    "message": "아래에서 스트리머 ID를 추가하세요.",
+    "description": "빈 상태 설명"
+  },
+  "toastNotificationEnabled": {
+    "message": "알림이 활성화되었습니다.",
+    "description": "알림 활성화 토스트"
+  },
+  "toastNotificationDisabled": {
+    "message": "알림이 비활성화되었습니다.",
+    "description": "알림 비활성화 토스트"
+  },
+  "toastEndNotificationEnabled": {
+    "message": "방송 종료 알림이 활성화되었습니다.",
+    "description": "방송 종료 알림 활성화 토스트"
+  },
+  "toastEndNotificationDisabled": {
+    "message": "방송 종료 알림이 비활성화되었습니다.",
+    "description": "방송 종료 알림 비활성화 토스트"
+  },
+  "toastAutoCloseEnabled": {
+    "message": "오프라인 탭 자동 종료가 활성화되었습니다.",
+    "description": "오프라인 탭 자동 종료 활성화 토스트"
+  },
+  "toastAutoCloseDisabled": {
+    "message": "오프라인 탭 자동 종료가 비활성화되었습니다.",
+    "description": "오프라인 탭 자동 종료 비활성화 토스트"
+  },
+  "toastMonitoringStarted": {
+    "message": "모니터링을 시작합니다.",
+    "description": "모니터링 시작 토스트"
+  },
+  "toastMonitoringStopped": {
+    "message": "모니터링을 중지합니다.",
+    "description": "모니터링 중지 토스트"
+  },
+  "toastSelectStreamerFirst": {
+    "message": "모니터링할 스트리머를 먼저 선택하세요.",
+    "description": "스트리머 선택 필요 토스트"
+  },
+  "toastRefreshComplete": {
+    "message": "새로고침 완료",
+    "description": "새로고침 완료 토스트"
+  },
+  "toastRefreshFailed": {
+    "message": "새로고침 실패",
+    "description": "새로고침 실패 토스트"
+  },
+  "toastEnterStreamerId": {
+    "message": "스트리머 ID를 입력하세요.",
+    "description": "스트리머 ID 입력 필요 토스트"
+  },
+  "toastInvalidStreamerId": {
+    "message": "올바른 스트리머 ID를 입력하세요.",
+    "description": "잘못된 스트리머 ID 토스트"
+  },
+  "toastStreamerAlreadyExists": {
+    "message": "이미 목록에 있는 스트리머입니다.",
+    "description": "중복 스트리머 토스트"
+  },
+  "toastStreamerAdded": {
+    "message": "$name$ 추가됨",
+    "description": "스트리머 추가 완료 토스트",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastStreamerDeleted": {
+    "message": "$name$ 삭제됨",
+    "description": "스트리머 삭제 완료 토스트",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastAutoJoinAdded": {
+    "message": "$name$ 자동참여 추가됨",
+    "description": "자동참여 추가 완료 토스트",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastMonitoringRemoved": {
+    "message": "$name$ 모니터링 해제됨",
+    "description": "모니터링 해제 완료 토스트",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastError": {
+    "message": "오류가 발생했습니다.",
+    "description": "일반 오류 토스트"
+  },
+  "toastDeleteError": {
+    "message": "삭제 중 오류가 발생했습니다.",
+    "description": "삭제 오류 토스트"
+  },
+  "toastOrderSaveError": {
+    "message": "순서 저장 중 오류가 발생했습니다.",
+    "description": "순서 저장 오류 토스트"
+  },
+  "toastNoStreamersToExport": {
+    "message": "내보낼 스트리머가 없습니다.",
+    "description": "내보낼 스트리머 없음 토스트"
+  },
+  "toastExportComplete": {
+    "message": "$count$명의 스트리머 목록을 내보냈습니다.",
+    "description": "내보내기 완료 토스트",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "toastExportError": {
+    "message": "내보내기 중 오류가 발생했습니다.",
+    "description": "내보내기 오류 토스트"
+  },
+  "toastInvalidFileFormat": {
+    "message": "올바르지 않은 파일 형식입니다.",
+    "description": "잘못된 파일 형식 토스트"
+  },
+  "toastNoStreamersToImport": {
+    "message": "불러올 스트리머가 없습니다.",
+    "description": "불러올 스트리머 없음 토스트"
+  },
+  "toastImportComplete": {
+    "message": "$count$명의 스트리머를 추가했습니다.",
+    "description": "불러오기 완료 토스트",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "5"
+      }
+    }
+  },
+  "toastAllStreamersExist": {
+    "message": "모든 스트리머가 이미 등록되어 있습니다.",
+    "description": "모든 스트리머 이미 등록됨 토스트"
+  },
+  "toastFileReadError": {
+    "message": "파일을 읽는 중 오류가 발생했습니다.",
+    "description": "파일 읽기 오류 토스트"
+  },
+  "confirmDeleteStreamer": {
+    "message": "\"$name$\" 스트리머를 삭제하시겠습니까?",
+    "description": "스트리머 삭제 확인 대화상자",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "notificationBroadcastStartTitle": {
+    "message": "$nickname$ 방송 시작!",
+    "description": "방송 시작 알림 제목",
+    "placeholders": {
+      "nickname": {
+        "content": "$1",
+        "example": "스트리머닉네임"
+      }
+    }
+  },
+  "notificationBroadcastStartMessage": {
+    "message": "방송을 시작했습니다.",
+    "description": "방송 시작 알림 메시지"
+  },
+  "notificationBroadcastEndTitle": {
+    "message": "$nickname$ 방송 종료",
+    "description": "방송 종료 알림 제목",
+    "placeholders": {
+      "nickname": {
+        "content": "$1",
+        "example": "스트리머닉네임"
+      }
+    }
+  },
+  "notificationBroadcastEndMessage": {
+    "message": "방송이 종료되었습니다.",
+    "description": "방송 종료 알림 메시지"
+  },
+  "notificationTabLimitWarning": {
+    "message": "동시 시청 4개 제한으로 알림만 표시",
+    "description": "탭 제한 경고 메시지"
+  }
+}

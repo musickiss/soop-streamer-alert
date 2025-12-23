@@ -1,6 +1,11 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 확장 프로그램 =====
 // background.js - 백그라운드 서비스 워커
-// v1.6.7 - 방송 재시작 시 이전 방송 탭이 아닌 새 탭 열기
+// v1.7.0 - 다국어 지원 추가
+
+// ===== i18n 헬퍼 함수 =====
+function i18n(key, substitutions = []) {
+  return chrome.i18n.getMessage(key, substitutions) || key;
+}
 
 // 상수 정의
 const MONITORING_CHECK_INTERVAL = 5000;   // 자동참여 스트리머 체크 주기 (5초)
@@ -286,8 +291,8 @@ async function showBroadcastNotification(streamerId, nickname, title, broadNo) {
     await chrome.notifications.create(notificationId, {
       type: 'basic',
       iconUrl: 'icons/icon128.png',
-      title: `🔴 ${nickname || streamerId} 방송 시작!`,
-      message: title || '방송을 시작했습니다.',
+      title: `🔴 ${i18n('notificationBroadcastStartTitle', [nickname || streamerId])}`,
+      message: title || i18n('notificationBroadcastStartMessage'),
       priority: 2,
       requireInteraction: false
     });
@@ -328,8 +333,8 @@ async function showEndNotification(streamerId, nickname) {
     await chrome.notifications.create(notificationId, {
       type: 'basic',
       iconUrl: 'icons/icon128.png',
-      title: `⚫ ${nickname || streamerId} 방송 종료`,
-      message: '방송이 종료되었습니다.',
+      title: `⚫ ${i18n('notificationBroadcastEndTitle', [nickname || streamerId])}`,
+      message: i18n('notificationBroadcastEndMessage'),
       priority: 1,
       requireInteraction: false
     });
@@ -549,8 +554,8 @@ async function showTabLimitNotification(streamerId, nickname, title, broadNo) {
     await chrome.notifications.create(notificationId, {
       type: 'basic',
       iconUrl: 'icons/icon128.png',
-      title: `🔴 ${nickname || streamerId} 방송 시작!`,
-      message: `${title || '방송을 시작했습니다.'}\n⚠️ 동시 시청 4개 제한으로 알림만 표시`,
+      title: `🔴 ${i18n('notificationBroadcastStartTitle', [nickname || streamerId])}`,
+      message: `${title || i18n('notificationBroadcastStartMessage')}\n⚠️ ${i18n('notificationTabLimitWarning')}`,
       priority: 2,
       requireInteraction: false
     });
