@@ -286,7 +286,7 @@
     "description": "文件读取错误提示"
   },
   "confirmDeleteStreamer": {
-    "message": "确定要删除主播"$name$"吗？",
+    "message": "确定要删除主播「$name$」吗？",
     "description": "删除主播确认对话框",
     "placeholders": {
       "name": {
