@@ -9,7 +9,7 @@ function i18n(key, substitutions = []) {
 
 // 상수 정의
 const MONITORING_CHECK_INTERVAL = 5000;   // 자동참여 스트리머 체크 주기 (5초)
-const NOTIFY_CHECK_INTERVAL = 60000;      // 알림만 스트리머 체크 주기 (60초)
+const NOTIFY_CHECK_INTERVAL = 30000;      // 알림만 스트리머 체크 주기 (30초)
 const TAB_CHECK_INTERVAL = 30000;         // 탭 실행 상태 점검 주기 (30초)
 const REQUEST_DELAY = 300;                // 각 API 요청 사이 딜레이 (ms) - 서버 부하 방지
 const MAX_CONCURRENT_TABS = 4;            // SOOP 동시 시청 제한 (탭 열 때 체크용)
