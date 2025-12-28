@@ -1,6 +1,9 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 확장 프로그램 =====
 // popup.js - 팝업 UI 로직
-// v1.7.0 - 다국어 지원 추가
+// v1.7.2 - 코드 품질 개선
+
+// 상수 정의
+const POPUP_REFRESH_INTERVAL = 3000; // UI 갱신 주기 (ms)
 
 // ===== i18n 헬퍼 함수 =====
 function i18n(key, substitutions = []) {
@@ -906,7 +909,7 @@ async function init() {
     }
   });
 
-  // 3초마다 방송 상태만 새로고침 (팝업이 열려있는 동안)
+  // 주기적으로 방송 상태 새로고침 (팝업이 열려있는 동안)
   setInterval(async () => {
     try {
       // 방송 상태는 백그라운드에서 가져오기
@@ -928,7 +931,7 @@ async function init() {
       state.isMonitoring = storageData.isMonitoring || false;
       updateMonitoringStatus();
     }
-  }, 3000);
+  }, POPUP_REFRESH_INTERVAL);
 }
 
 // 초기화 실행

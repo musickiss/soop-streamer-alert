@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 확장 프로그램 =====
 // background.js - 백그라운드 서비스 워커
-// v1.7.1 - 알림 체크 주기 단축 (30초)
+// v1.7.2 - 코드 품질 개선
 
 // ===== i18n 헬퍼 함수 =====
 function i18n(key, substitutions = []) {
@@ -127,6 +127,19 @@ async function ensureStateLoaded() {
 // 딜레이 함수
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// 스트리머 닉네임 업데이트 함수 (중복 코드 제거)
+function updateStreamerNickname(streamerId, newNickname) {
+  if (!newNickname) return;
+  const streamerIndex = state.favoriteStreamers.findIndex(s => s.id === streamerId);
+  if (streamerIndex !== -1) {
+    const currentNickname = state.favoriteStreamers[streamerIndex].nickname;
+    if (currentNickname !== newNickname) {
+      state.favoriteStreamers[streamerIndex].nickname = newNickname;
+      console.log(`[숲토킹] ${streamerId} 닉네임 업데이트: ${currentNickname || streamerId} → ${newNickname}`);
+    }
+  }
 }
 
 // ★ 스트리머 방송 URL이 이미 열려있는지 확인하는 함수
@@ -664,17 +677,8 @@ async function checkMonitoringStreamers() {
       lastChecked: Date.now()
     };
 
-    // ★ 닉네임 업데이트: API에서 닉네임을 받아왔고, 저장된 닉네임과 다른 경우
-    if (status.nickname) {
-      const streamerIndex = state.favoriteStreamers.findIndex(s => s.id === streamerId);
-      if (streamerIndex !== -1) {
-        const currentNickname = state.favoriteStreamers[streamerIndex].nickname;
-        if (currentNickname !== status.nickname) {
-          state.favoriteStreamers[streamerIndex].nickname = status.nickname;
-          console.log(`[숲토킹] ${streamerId} 닉네임 업데이트: ${currentNickname || streamerId} → ${status.nickname}`);
-        }
-      }
-    }
+    // ★ 닉네임 업데이트
+    updateStreamerNickname(streamerId, status.nickname);
 
     // 다음 요청 전 딜레이
     if (i < state.monitoringStreamers.length - 1) {
@@ -686,7 +690,7 @@ async function checkMonitoringStreamers() {
   await saveState();
 }
 
-// ===== 알림만 스트리머 체크 (60초 간격) =====
+// ===== 알림만 스트리머 체크 (30초 간격) =====
 async function checkNotifyStreamers() {
   if (!state.isMonitoring) {
     return;
@@ -738,17 +742,8 @@ async function checkNotifyStreamers() {
       lastChecked: Date.now()
     };
 
-    // ★ 닉네임 업데이트: API에서 닉네임을 받아왔고, 저장된 닉네임과 다른 경우
-    if (status.nickname) {
-      const streamerIndex = state.favoriteStreamers.findIndex(s => s.id === streamerId);
-      if (streamerIndex !== -1) {
-        const currentNickname = state.favoriteStreamers[streamerIndex].nickname;
-        if (currentNickname !== status.nickname) {
-          state.favoriteStreamers[streamerIndex].nickname = status.nickname;
-          console.log(`[숲토킹] ${streamerId} 닉네임 업데이트: ${currentNickname || streamerId} → ${status.nickname}`);
-        }
-      }
-    }
+    // ★ 닉네임 업데이트
+    updateStreamerNickname(streamerId, status.nickname);
 
     // 다음 요청 전 딜레이
     if (i < notifyStreamers.length - 1) {
@@ -850,111 +845,116 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     await ensureStateLoaded();
 
-    switch (message.type) {
-      case 'GET_STATE':
-        sendResponse({
-          success: true,
-          data: {
-            favoriteStreamers: state.favoriteStreamers,
-            monitoringStreamers: state.monitoringStreamers,
-            isMonitoring: state.isMonitoring,
-            broadcastStatus: state.broadcastStatus,
-            openedTabs: Object.keys(state.openedTabs),
-            runningTabs: state.runningTabs,
-            notificationEnabled: state.notificationEnabled,
-            notificationDuration: state.notificationDuration,
-            endNotificationEnabled: state.endNotificationEnabled,
-            autoCloseOfflineTabs: state.autoCloseOfflineTabs
-          }
-        });
-        break;
+    try {
+      switch (message.type) {
+        case 'GET_STATE':
+          sendResponse({
+            success: true,
+            data: {
+              favoriteStreamers: state.favoriteStreamers,
+              monitoringStreamers: state.monitoringStreamers,
+              isMonitoring: state.isMonitoring,
+              broadcastStatus: state.broadcastStatus,
+              openedTabs: Object.keys(state.openedTabs),
+              runningTabs: state.runningTabs,
+              notificationEnabled: state.notificationEnabled,
+              notificationDuration: state.notificationDuration,
+              endNotificationEnabled: state.endNotificationEnabled,
+              autoCloseOfflineTabs: state.autoCloseOfflineTabs
+            }
+          });
+          break;
 
-      case 'UPDATE_FAVORITES':
-        state.favoriteStreamers = message.data || [];
-        await saveState();
-        sendResponse({ success: true });
-        break;
-
-      case 'SET_NOTIFICATION_SETTINGS':
-        if (message.data) {
-          if (typeof message.data.enabled === 'boolean') {
-            state.notificationEnabled = message.data.enabled;
-          }
-          if (typeof message.data.duration === 'number' && message.data.duration > 0) {
-            state.notificationDuration = message.data.duration;
-          }
-          if (typeof message.data.endEnabled === 'boolean') {
-            state.endNotificationEnabled = message.data.endEnabled;
-          }
-          if (typeof message.data.autoCloseOfflineTabs === 'boolean') {
-            state.autoCloseOfflineTabs = message.data.autoCloseOfflineTabs;
-          }
+        case 'UPDATE_FAVORITES':
+          state.favoriteStreamers = message.data || [];
           await saveState();
-        }
-        sendResponse({ success: true });
-        break;
+          sendResponse({ success: true });
+          break;
 
-      case 'SET_MONITORING_STREAMERS':
-        // 선택 제한 없음 - SOOP 동시 시청 4개 제한은 탭 열 때 체크
-        state.monitoringStreamers = message.data || [];
-        await saveState();
-        sendResponse({ success: true });
-        break;
-
-      case 'START_MONITORING':
-        startMonitoring();
-        sendResponse({ success: true });
-        break;
-
-      case 'STOP_MONITORING':
-        stopMonitoring();
-        sendResponse({ success: true });
-        break;
-
-      case 'ADD_FAVORITE':
-        const newStreamer = message.data;
-        if (newStreamer && newStreamer.id) {
-          // 중복 체크
-          const exists = state.favoriteStreamers.some(s => s.id === newStreamer.id);
-          if (!exists) {
-            state.favoriteStreamers.push(newStreamer);
+        case 'SET_NOTIFICATION_SETTINGS':
+          if (message.data) {
+            if (typeof message.data.enabled === 'boolean') {
+              state.notificationEnabled = message.data.enabled;
+            }
+            if (typeof message.data.duration === 'number' && message.data.duration > 0) {
+              state.notificationDuration = message.data.duration;
+            }
+            if (typeof message.data.endEnabled === 'boolean') {
+              state.endNotificationEnabled = message.data.endEnabled;
+            }
+            if (typeof message.data.autoCloseOfflineTabs === 'boolean') {
+              state.autoCloseOfflineTabs = message.data.autoCloseOfflineTabs;
+            }
             await saveState();
-            sendResponse({ success: true });
-          } else {
-            sendResponse({ success: false, error: '이미 등록된 스트리머입니다.' });
           }
-        } else {
-          sendResponse({ success: false, error: '잘못된 스트리머 정보입니다.' });
-        }
-        break;
+          sendResponse({ success: true });
+          break;
 
-      case 'REMOVE_FAVORITE':
-        const removeId = message.data;
-        state.favoriteStreamers = state.favoriteStreamers.filter(s => s.id !== removeId);
-        state.monitoringStreamers = state.monitoringStreamers.filter(id => id !== removeId);
-        delete state.broadcastStatus[removeId];
-        delete state.openedTabs[removeId];
-        await saveState();
-        sendResponse({ success: true });
-        break;
+        case 'SET_MONITORING_STREAMERS':
+          // 선택 제한 없음 - SOOP 동시 시청 4개 제한은 탭 열 때 체크
+          state.monitoringStreamers = message.data || [];
+          await saveState();
+          sendResponse({ success: true });
+          break;
 
-      case 'CHECK_BROADCAST_NOW':
-        // 두 그룹 모두 즉시 체크
-        await checkMonitoringStreamers();
-        await checkNotifyStreamers();
-        sendResponse({ 
-          success: true, 
-          data: state.broadcastStatus 
-        });
-        break;
+        case 'START_MONITORING':
+          startMonitoring();
+          sendResponse({ success: true });
+          break;
 
-      case 'GET_BROADCAST_STATUS':
-        const status = await checkBroadcastStatus(message.data);
-        sendResponse({ success: true, data: status });
-        break;
+        case 'STOP_MONITORING':
+          stopMonitoring();
+          sendResponse({ success: true });
+          break;
 
-      default:
-        sendResponse({ success: false, error: '알 수 없는 메시지 타입' });
+        case 'ADD_FAVORITE':
+          const newStreamer = message.data;
+          if (newStreamer && newStreamer.id) {
+            // 중복 체크
+            const exists = state.favoriteStreamers.some(s => s.id === newStreamer.id);
+            if (!exists) {
+              state.favoriteStreamers.push(newStreamer);
+              await saveState();
+              sendResponse({ success: true });
+            } else {
+              sendResponse({ success: false, error: '이미 등록된 스트리머입니다.' });
+            }
+          } else {
+            sendResponse({ success: false, error: '잘못된 스트리머 정보입니다.' });
+          }
+          break;
+
+        case 'REMOVE_FAVORITE':
+          const removeId = message.data;
+          state.favoriteStreamers = state.favoriteStreamers.filter(s => s.id !== removeId);
+          state.monitoringStreamers = state.monitoringStreamers.filter(id => id !== removeId);
+          delete state.broadcastStatus[removeId];
+          delete state.openedTabs[removeId];
+          await saveState();
+          sendResponse({ success: true });
+          break;
+
+        case 'CHECK_BROADCAST_NOW':
+          // 두 그룹 모두 즉시 체크
+          await checkMonitoringStreamers();
+          await checkNotifyStreamers();
+          sendResponse({
+            success: true,
+            data: state.broadcastStatus
+          });
+          break;
+
+        case 'GET_BROADCAST_STATUS':
+          const status = await checkBroadcastStatus(message.data);
+          sendResponse({ success: true, data: status });
+          break;
+
+        default:
+          sendResponse({ success: false, error: '알 수 없는 메시지 타입' });
+      }
+    } catch (error) {
+      console.error('[숲토킹] 메시지 처리 오류:', error);
+      sendResponse({ success: false, error: error.message || '메시지 처리 중 오류 발생' });
     }
   })();
 
