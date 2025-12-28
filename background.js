@@ -32,7 +32,7 @@ let state = {
 
 // 타이머 ID
 let monitoringTimeoutId = null;  // 자동참여 스트리머용 (5초)
-let notifyTimeoutId = null;      // 알림만 스트리머용 (60초)
+let notifyTimeoutId = null;      // 알림만 스트리머용 (30초)
 let tabCheckTimeoutId = null;    // 탭 점검용 (30초)
 
 // 상태 로드 완료 여부
