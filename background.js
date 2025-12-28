@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 확장 프로그램 =====
 // background.js - 백그라운드 서비스 워커
-// v1.7.0 - 다국어 지원 추가
+// v1.7.1 - 알림 체크 주기 단축 (30초)
 
 // ===== i18n 헬퍼 함수 =====
 function i18n(key, substitutions = []) {
@@ -12,7 +12,6 @@ const MONITORING_CHECK_INTERVAL = 5000;   // 자동참여 스트리머 체크 �
 const NOTIFY_CHECK_INTERVAL = 30000;      // 알림만 스트리머 체크 주기 (30초)
 const TAB_CHECK_INTERVAL = 30000;         // 탭 실행 상태 점검 주기 (30초)
 const REQUEST_DELAY = 300;                // 각 API 요청 사이 딜레이 (ms) - 서버 부하 방지
-const MAX_CONCURRENT_TABS = 4;            // SOOP 동시 시청 제한 (탭 열 때 체크용)
 const DEFAULT_NOTIFICATION_DURATION = 10; // 기본 알림 표시 시간 (초)
 
 // 상태 저장 객체
