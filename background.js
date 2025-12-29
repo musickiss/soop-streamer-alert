@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 확장 프로그램 =====
 // background.js - 백그라운드 서비스 워커
-// v1.7.2 - 코드 품질 개선
+// v1.7.3 - 알림만 스트리머 탭 자동 종료 버그 수정
 
 // ===== i18n 헬퍼 함수 =====
 function i18n(key, substitutions = []) {
@@ -213,13 +213,26 @@ async function checkAllRunningTabs() {
 }
 
 // 오프라인 스트리머의 방송 탭 종료
+// ★ 자동참여(monitoringStreamers) 스트리머만 대상으로 함
+// ★ 알림만 스트리머는 탭 자동 종료 대상에서 제외
 async function closeOfflineStreamerTabs() {
   for (const streamer of state.favoriteStreamers) {
     const streamerId = streamer.id;
+
+    // ★ 자동참여 스트리머가 아니면 건너뛰기 (알림만 스트리머는 탭 자동 종료 제외)
+    if (!state.monitoringStreamers.includes(streamerId)) {
+      continue;
+    }
+
     const broadcastStatus = state.broadcastStatus[streamerId];
-    
-    // 오프라인 상태인 스트리머
-    if (!broadcastStatus || !broadcastStatus.isLive) {
+
+    // ★ broadcastStatus가 없으면 아직 API 체크 전이므로 건너뛰기
+    if (!broadcastStatus) {
+      continue;
+    }
+
+    // 오프라인 상태인 스트리머 (자동참여만)
+    if (!broadcastStatus.isLive) {
       try {
         // 해당 스트리머의 방송 탭 찾기
         const tabs = await chrome.tabs.query({
@@ -228,13 +241,13 @@ async function closeOfflineStreamerTabs() {
             `https://play.sooplive.co.kr/${streamerId}`
           ]
         });
-        
+
         // 탭 종료
         for (const tab of tabs) {
           console.log(`[숲토킹] 오프라인 스트리머 ${streamerId} 탭 종료 (탭 ID: ${tab.id})`);
           await chrome.tabs.remove(tab.id);
         }
-        
+
         // 상태 업데이트
         if (tabs.length > 0) {
           delete state.openedTabs[streamerId];
