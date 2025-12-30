@@ -200,18 +200,55 @@
     elements.autoCloseChip.classList.toggle('active', state.autoCloseOfflineTabs);
   }
 
-  async function updateCurrentStream() {
-    // 현재 활성 탭이 SOOP 방송인지 확인
+  // ===== Content Script 관리 =====
+  async function ensureContentScriptLoaded(tabId) {
     try {
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      const tab = tabs[0];
+      // content script가 응답하는지 테스트
+      const response = await chrome.tabs.sendMessage(tabId, { type: 'PING' });
+      return response && response.success;
+    } catch (error) {
+      // content script가 없으면 주입
+      console.log('[사이드패널] Content script 주입 시도...');
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          files: ['content.js']
+        });
+        // 주입 후 잠시 대기
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return true;
+      } catch (injectError) {
+        console.error('[사이드패널] Content script 주입 실패:', injectError);
+        return false;
+      }
+    }
+  }
 
-      if (!tab || !tab.url) {
+  async function findSoopTab() {
+    // 먼저 활성 탭이 SOOP인지 확인
+    const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const activeTab = activeTabs[0];
+
+    if (activeTab && activeTab.url && activeTab.url.includes('play.sooplive.co.kr')) {
+      return activeTab;
+    }
+
+    // 활성 탭이 SOOP이 아니면 SOOP 탭 검색
+    const soopTabs = await chrome.tabs.query({ url: '*://play.sooplive.co.kr/*' });
+    return soopTabs.length > 0 ? soopTabs[0] : null;
+  }
+
+  async function updateCurrentStream() {
+    // SOOP 방송 탭 찾기
+    try {
+      const soopTab = await findSoopTab();
+
+      if (!soopTab) {
         showNotWatching();
         return;
       }
 
-      const match = tab.url.match(/play\.sooplive\.co\.kr\/([^\/]+)/);
+      const match = soopTab.url.match(/play\.sooplive\.co\.kr\/([^\/]+)/);
       if (!match) {
         showNotWatching();
         return;
@@ -219,23 +256,20 @@
 
       const streamerId = match[1];
 
-      // Content script에서 방송 정보 가져오기 (재시도 포함)
-      let response = null;
-      for (let retry = 0; retry < 3; retry++) {
-        try {
-          response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_BROADCAST_INFO' });
-          if (response && response.success) break;
-        } catch (e) {
-          // Content script가 아직 로드되지 않았을 수 있음 - 잠시 대기 후 재시도
-          if (retry < 2) {
-            await new Promise(r => setTimeout(r, 500));
-          }
-        }
-      }
+      // Content script 로드 확인 및 주입
+      const isLoaded = await ensureContentScriptLoaded(soopTab.id);
 
-      if (response && response.success && response.data) {
-        showCurrentStream(response.data);
-        return;
+      if (isLoaded) {
+        // Content script에서 방송 정보 가져오기
+        try {
+          const response = await chrome.tabs.sendMessage(soopTab.id, { type: 'GET_BROADCAST_INFO' });
+          if (response && response.success && response.data) {
+            showCurrentStream(response.data);
+            return;
+          }
+        } catch (e) {
+          console.log('[사이드패널] 방송 정보 요청 실패:', e.message);
+        }
       }
 
       // Fallback 1: 저장된 방송 상태에서 정보 가져오기
@@ -272,7 +306,7 @@
       showCurrentStream({
         streamerId,
         nickname: streamerId,
-        title: document.title || '방송 중'
+        title: '방송 중'
       });
 
     } catch (error) {
@@ -662,61 +696,82 @@
   }
 
   async function startDownload() {
-    if (!state.currentStream) {
-      showToast('SOOP 방송을 시청 중이 아닙니다.', 'error');
-      return;
-    }
+    // 다운로드 중인지 확인 (현재 스트림이 있는 경우)
+    if (state.currentStream) {
+      const existingDownload = state.downloads.find(
+        d => d.streamerId === state.currentStream.streamerId && d.isRunning
+      );
 
-    // 다운로드 중인지 확인
-    const existingDownload = state.downloads.find(
-      d => d.streamerId === state.currentStream.streamerId && d.isRunning
-    );
-
-    if (existingDownload) {
-      // 중지
-      await stopDownload(existingDownload.sessionId);
-      return;
-    }
-
-    // 다운로드 시작
-    const quality = elements.qualitySelect.value;
-
-    try {
-      // 현재 탭에서 m3u8 URL 가져오기
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      const tab = tabs[0];
-
-      const m3u8Response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_M3U8_URL' });
-
-      if (!m3u8Response.success) {
-        showToast('m3u8 URL을 가져올 수 없습니다. 잠시 후 다시 시도하세요.', 'error');
+      if (existingDownload) {
+        // 중지
+        await stopDownload(existingDownload.sessionId);
         return;
       }
+    }
+
+    try {
+      // 1. SOOP 탭 찾기
+      const soopTab = await findSoopTab();
+
+      if (!soopTab) {
+        showToast('SOOP 방송 탭을 찾을 수 없습니다.', 'error');
+        return;
+      }
+
+      console.log('[사이드패널] SOOP 탭 발견:', soopTab.id, soopTab.url);
+
+      // 2. Content script 로드 확인 및 주입
+      const isLoaded = await ensureContentScriptLoaded(soopTab.id);
+      if (!isLoaded) {
+        showToast('페이지에 연결할 수 없습니다. 새로고침 후 다시 시도해주세요.', 'error');
+        return;
+      }
+
+      // 3. m3u8 URL 요청
+      console.log('[사이드패널] m3u8 URL 요청...');
+      const m3u8Response = await chrome.tabs.sendMessage(soopTab.id, { type: 'GET_M3U8_URL' });
+
+      console.log('[사이드패널] m3u8 응답:', m3u8Response);
+
+      if (!m3u8Response || !m3u8Response.success) {
+        showToast(m3u8Response?.error || 'm3u8 URL을 가져올 수 없습니다.', 'error');
+        return;
+      }
+
+      // 4. 다운로드 시작
+      const quality = elements.qualitySelect.value;
 
       const result = await sendMessage({
         type: 'START_DOWNLOAD',
         options: {
-          streamerId: state.currentStream.streamerId,
-          broadNo: state.currentStream.broadNo,
-          nickname: state.currentStream.nickname,
-          title: state.currentStream.title,
+          streamerId: m3u8Response.streamerId || state.currentStream?.streamerId,
+          broadNo: m3u8Response.broadNo || state.currentStream?.broadNo,
+          nickname: m3u8Response.nickname || state.currentStream?.nickname,
+          title: m3u8Response.title || state.currentStream?.title,
           m3u8Url: m3u8Response.m3u8Url,
           baseUrl: m3u8Response.baseUrl,
           quality,
-          isBackgroundDownload: false
+          isBackgroundDownload: false,
+          tabId: soopTab.id
         }
       });
 
-      if (result.success) {
+      if (result && result.success) {
         showToast('다운로드가 시작되었습니다!', 'success');
         await refreshDownloads();
         updateCurrentStream();
       } else {
-        showToast(result.error || '다운로드 시작 실패', 'error');
+        showToast(result?.error || '다운로드 시작 실패', 'error');
       }
-    } catch (e) {
-      showToast('다운로드 시작 중 오류가 발생했습니다.', 'error');
-      console.error(e);
+
+    } catch (error) {
+      console.error('[사이드패널] 다운로드 시작 오류:', error);
+
+      if (error.message && error.message.includes('Could not establish connection')) {
+        showToast('페이지에 연결할 수 없습니다. SOOP 탭을 새로고침해주세요.', 'error');
+      } else {
+        showToast('다운로드 시작 중 오류가 발생했습니다.', 'error');
+      }
     }
   }
 

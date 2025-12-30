@@ -236,9 +236,16 @@
 
   // ===== 메시지 핸들러 =====
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log('[숲토킹 Content] 메시지 수신:', message.type);
+
     (async () => {
       try {
         switch (message.type) {
+          case 'PING':
+            // 연결 확인용
+            sendResponse({ success: true, message: 'pong' });
+            break;
+
           case 'GET_BROADCAST_INFO':
             // 먼저 API로 시도
             let info = await getBroadcastInfo();

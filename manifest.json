@@ -12,7 +12,8 @@
     "notifications",
     "offscreen",
     "downloads",
-    "sidePanel"
+    "sidePanel",
+    "scripting"
   ],
 
   "host_permissions": [
