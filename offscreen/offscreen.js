@@ -25,7 +25,11 @@
     try {
       const response = await fetch(url, {
         signal: controller.signal,
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Origin': 'https://play.sooplive.co.kr',
+          'Referer': 'https://play.sooplive.co.kr/'
+        }
       });
       clearTimeout(timeoutId);
       return response;
