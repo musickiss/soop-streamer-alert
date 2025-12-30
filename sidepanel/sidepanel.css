@@ -53,9 +53,9 @@ body {
   font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
-  width: 320px;
-  min-width: 320px;
-  max-width: 320px;
+  width: 100%;
+  min-width: 100%;
+  max-width: 100%;
   min-height: 100%;
   overflow-x: hidden;
   font-size: 12px;
@@ -66,6 +66,8 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
 }
 
@@ -1101,7 +1103,7 @@ body {
   transition: all 0.3s;
   z-index: 1000;
   pointer-events: none;
-  max-width: 280px;
+  max-width: calc(100% - 32px);
   text-align: center;
 }
 
