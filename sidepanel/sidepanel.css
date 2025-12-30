@@ -1119,3 +1119,38 @@ body {
 .toast.error {
   background: rgba(255, 71, 87, 0.95);
 }
+
+/* ===== 드래그 앤 드롭 ===== */
+.streamer-card {
+  cursor: grab;
+}
+
+.streamer-card.dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.streamer-card.drag-over {
+  border-color: var(--soop-primary);
+  background: rgba(0, 180, 229, 0.1);
+}
+
+.streamer-card .drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  color: var(--text-muted);
+  cursor: grab;
+  margin-right: 4px;
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.streamer-card:hover .drag-handle {
+  opacity: 1;
+}
+
+.streamer-card.dragging .drag-handle {
+  cursor: grabbing;
+}

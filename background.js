@@ -886,12 +886,39 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
-// ===== 아이콘 클릭 시 사이드패널 열기 =====
+// ===== 아이콘 클릭 시 사이드패널 토글 =====
+let sidePanelOpen = {};  // windowId별 사이드패널 상태
+
 chrome.action.onClicked.addListener(async (tab) => {
+  const windowId = tab.windowId;
+
   try {
-    await chrome.sidePanel.open({ windowId: tab.windowId });
+    if (sidePanelOpen[windowId]) {
+      // 사이드패널이 열려있으면 닫기 메시지 전송
+      chrome.runtime.sendMessage({ type: 'CLOSE_SIDEPANEL' }).catch(() => {});
+      sidePanelOpen[windowId] = false;
+    } else {
+      // 사이드패널 열기
+      await chrome.sidePanel.open({ windowId });
+      sidePanelOpen[windowId] = true;
+    }
   } catch (error) {
-    console.error('[숲토킹] 사이드패널 열기 오류:', error);
+    // 오류 시 상태 리셋하고 열기 시도
+    console.error('[숲토킹] 사이드패널 토글 오류:', error);
+    try {
+      await chrome.sidePanel.open({ windowId });
+      sidePanelOpen[windowId] = true;
+    } catch (e) {}
+  }
+});
+
+// 사이드패널이 닫혔을 때 상태 업데이트
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === 'SIDEPANEL_CLOSED') {
+    const windowId = message.windowId;
+    if (windowId) {
+      sidePanelOpen[windowId] = false;
+    }
   }
 });
 

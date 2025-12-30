@@ -50,6 +50,9 @@
     // 스트리머
     streamerList: document.getElementById('streamerList'),
     filterSelect: document.getElementById('filterSelect'),
+    exportBtn: document.getElementById('exportBtn'),
+    importBtn: document.getElementById('importBtn'),
+    importFileInput: document.getElementById('importFileInput'),
     refreshBtn: document.getElementById('refreshBtn'),
     streamerIdInput: document.getElementById('streamerIdInput'),
     addStreamerBtn: document.getElementById('addStreamerBtn'),
@@ -197,10 +200,12 @@
     elements.autoCloseChip.classList.toggle('active', state.autoCloseOfflineTabs);
   }
 
-  function updateCurrentStream() {
+  async function updateCurrentStream() {
     // 현재 활성 탭이 SOOP 방송인지 확인
-    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
       const tab = tabs[0];
+
       if (!tab || !tab.url) {
         showNotWatching();
         return;
@@ -214,29 +219,66 @@
 
       const streamerId = match[1];
 
-      // Content script에서 방송 정보 가져오기
-      try {
-        const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_BROADCAST_INFO' });
-        if (response.success && response.data) {
-          showCurrentStream(response.data);
-        } else {
-          // fallback: API에서 정보 가져오기
-          const status = state.broadcastStatus[streamerId];
-          if (status && status.isLive) {
-            showCurrentStream({
-              streamerId,
-              nickname: status.nickname || streamerId,
-              title: status.title || ''
-            });
-          } else {
-            showNotWatching();
+      // Content script에서 방송 정보 가져오기 (재시도 포함)
+      let response = null;
+      for (let retry = 0; retry < 3; retry++) {
+        try {
+          response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_BROADCAST_INFO' });
+          if (response && response.success) break;
+        } catch (e) {
+          // Content script가 아직 로드되지 않았을 수 있음 - 잠시 대기 후 재시도
+          if (retry < 2) {
+            await new Promise(r => setTimeout(r, 500));
           }
         }
-      } catch (e) {
-        // Content script 통신 실패
-        showNotWatching();
       }
-    });
+
+      if (response && response.success && response.data) {
+        showCurrentStream(response.data);
+        return;
+      }
+
+      // Fallback 1: 저장된 방송 상태에서 정보 가져오기
+      const status = state.broadcastStatus[streamerId];
+      if (status && status.isLive) {
+        showCurrentStream({
+          streamerId,
+          nickname: status.nickname || streamerId,
+          title: status.title || '',
+          broadNo: status.broadNo
+        });
+        return;
+      }
+
+      // Fallback 2: background에서 직접 API 조회
+      try {
+        const apiResponse = await sendMessage({
+          type: 'GET_BROADCAST_STATUS',
+          data: streamerId
+        });
+        if (apiResponse && apiResponse.data && apiResponse.data.isLive) {
+          showCurrentStream({
+            streamerId,
+            nickname: apiResponse.data.nickname || streamerId,
+            title: apiResponse.data.title || '',
+            broadNo: apiResponse.data.broadNo
+          });
+          return;
+        }
+      } catch (e) {}
+
+      // Fallback 3: URL에서 추출한 정보만으로 표시 (방송 중으로 간주)
+      // SOOP 방송 페이지에 있으면 일단 방송 중으로 표시
+      showCurrentStream({
+        streamerId,
+        nickname: streamerId,
+        title: document.title || '방송 중'
+      });
+
+    } catch (error) {
+      console.error('[사이드패널] 현재 스트림 확인 오류:', error);
+      showNotWatching();
+    }
   }
 
   function showCurrentStream(info) {
@@ -345,8 +387,9 @@
       }
 
       return `
-        <div class="streamer-card ${isLive ? 'live' : ''}" data-id="${escapeHtml(streamer.id)}">
+        <div class="streamer-card ${isLive ? 'live' : ''}" data-id="${escapeHtml(streamer.id)}" draggable="true">
           <div class="streamer-card-header">
+            <div class="drag-handle" title="드래그하여 순서 변경">⋮⋮</div>
             <div class="avatar">
               <span>${getFirstChar(streamer.nickname || streamer.id)}</span>
               <span class="status-dot ${isLive ? 'live' : 'offline'}"></span>
@@ -421,11 +464,79 @@
   }
 
   function bindStreamerCardEvents() {
-    // 카드 확장/축소
+    // 카드 확장/축소 (드래그 핸들 클릭 제외)
     document.querySelectorAll('.streamer-card-header').forEach(header => {
-      header.addEventListener('click', () => {
+      header.addEventListener('click', (e) => {
+        // 드래그 핸들 클릭 시 확장/축소하지 않음
+        if (e.target.closest('.drag-handle')) return;
         const card = header.closest('.streamer-card');
         card.classList.toggle('expanded');
+      });
+    });
+
+    // 드래그 앤 드롭 이벤트
+    let draggedCard = null;
+
+    document.querySelectorAll('.streamer-card').forEach(card => {
+      card.addEventListener('dragstart', (e) => {
+        draggedCard = card;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', card.dataset.id);
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        document.querySelectorAll('.streamer-card.drag-over').forEach(c => {
+          c.classList.remove('drag-over');
+        });
+        draggedCard = null;
+      });
+
+      card.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (draggedCard && draggedCard !== card) {
+          card.classList.add('drag-over');
+        }
+      });
+
+      card.addEventListener('dragleave', () => {
+        card.classList.remove('drag-over');
+      });
+
+      card.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        card.classList.remove('drag-over');
+
+        if (!draggedCard || draggedCard === card) return;
+
+        const draggedId = draggedCard.dataset.id;
+        const targetId = card.dataset.id;
+
+        // 배열에서 인덱스 찾기
+        const draggedIndex = state.favoriteStreamers.findIndex(s => s.id === draggedId);
+        const targetIndex = state.favoriteStreamers.findIndex(s => s.id === targetId);
+
+        if (draggedIndex === -1 || targetIndex === -1) return;
+
+        // 배열에서 이동
+        const [removed] = state.favoriteStreamers.splice(draggedIndex, 1);
+        state.favoriteStreamers.splice(targetIndex, 0, removed);
+
+        // 저장
+        await chrome.storage.local.set({ favoriteStreamers: state.favoriteStreamers });
+
+        try {
+          await sendMessage({
+            type: 'UPDATE_FAVORITES',
+            data: state.favoriteStreamers
+          });
+        } catch (e) {}
+
+        // UI 업데이트
+        updateStreamerList();
+        showToast('순서가 변경되었습니다.', 'success');
       });
     });
 
@@ -805,6 +916,129 @@
     }
   }
 
+  // ===== 내보내기/가져오기 =====
+  function exportStreamers() {
+    if (state.favoriteStreamers.length === 0) {
+      showToast('내보낼 스트리머가 없습니다.', 'error');
+      return;
+    }
+
+    const exportData = {
+      version: '2.0',
+      exportedAt: new Date().toISOString(),
+      streamers: state.favoriteStreamers
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sooptalking-streamers-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    showToast(`${state.favoriteStreamers.length}명의 스트리머를 내보냈습니다.`, 'success');
+  }
+
+  async function importStreamers(file) {
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const importData = JSON.parse(text);
+
+      let streamersToImport = [];
+
+      // 버전 2.0 형식
+      if (importData.version && importData.streamers) {
+        streamersToImport = importData.streamers;
+      }
+      // 이전 버전 또는 단순 배열 형식
+      else if (Array.isArray(importData)) {
+        streamersToImport = importData;
+      }
+      // 이전 버전 객체 형식
+      else if (importData.favoriteStreamers) {
+        streamersToImport = importData.favoriteStreamers;
+      }
+      else {
+        showToast('올바른 형식의 파일이 아닙니다.', 'error');
+        return;
+      }
+
+      if (!Array.isArray(streamersToImport) || streamersToImport.length === 0) {
+        showToast('가져올 스트리머가 없습니다.', 'error');
+        return;
+      }
+
+      // 유효성 검사 및 중복 체크
+      let addedCount = 0;
+      let skippedCount = 0;
+
+      for (const streamer of streamersToImport) {
+        // ID가 있는지 확인
+        const streamerId = streamer.id || streamer.streamerId;
+        if (!streamerId) {
+          skippedCount++;
+          continue;
+        }
+
+        // 이미 존재하는지 확인
+        if (state.favoriteStreamers.some(s => s.id === streamerId)) {
+          skippedCount++;
+          continue;
+        }
+
+        // 새 스트리머 추가
+        const newStreamer = {
+          id: streamerId,
+          nickname: streamer.nickname || streamerId,
+          addedAt: streamer.addedAt || Date.now(),
+          settings: streamer.settings || {
+            autoJoin: false,
+            autoDownload: false,
+            notification: true,
+            downloadQuality: 'original'
+          }
+        };
+
+        state.favoriteStreamers.push(newStreamer);
+        addedCount++;
+      }
+
+      if (addedCount > 0) {
+        await chrome.storage.local.set({ favoriteStreamers: state.favoriteStreamers });
+
+        try {
+          await sendMessage({
+            type: 'UPDATE_FAVORITES',
+            data: state.favoriteStreamers
+          });
+        } catch (e) {}
+
+        updateStreamerList();
+        updateMonitoringUI();
+      }
+
+      if (addedCount > 0 && skippedCount > 0) {
+        showToast(`${addedCount}명 추가됨, ${skippedCount}명 건너뜀 (중복)`, 'success');
+      } else if (addedCount > 0) {
+        showToast(`${addedCount}명의 스트리머를 가져왔습니다.`, 'success');
+      } else {
+        showToast('모든 스트리머가 이미 등록되어 있습니다.', 'info');
+      }
+
+    } catch (error) {
+      console.error('[사이드패널] 가져오기 오류:', error);
+      showToast('파일을 읽는 중 오류가 발생했습니다.', 'error');
+    }
+
+    // 파일 입력 초기화
+    elements.importFileInput.value = '';
+  }
+
   // ===== 이벤트 바인딩 =====
   function bindEvents() {
     // 모니터링 토글
@@ -827,6 +1061,15 @@
     // 새로고침
     elements.refreshBtn.addEventListener('click', refreshBroadcastStatus);
 
+    // 내보내기/가져오기
+    elements.exportBtn.addEventListener('click', exportStreamers);
+    elements.importBtn.addEventListener('click', () => elements.importFileInput.click());
+    elements.importFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        importStreamers(e.target.files[0]);
+      }
+    });
+
     // 스트리머 추가
     elements.addStreamerBtn.addEventListener('click', addStreamer);
     elements.streamerIdInput.addEventListener('keypress', (e) => {
@@ -836,6 +1079,11 @@
     // 메시지 수신 (다운로드 진행 상태 등)
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       switch (message.type) {
+        case 'CLOSE_SIDEPANEL':
+          // 사이드패널 닫기 요청
+          window.close();
+          break;
+
         case 'DOWNLOAD_PROGRESS':
           // 다운로드 진행 상태 업데이트
           const download = state.downloads.find(d => d.sessionId === message.sessionId);
@@ -864,6 +1112,17 @@
           updateMonitoringUI();
           break;
       }
+    });
+
+    // 사이드패널이 닫힐 때 background에 알림
+    window.addEventListener('beforeunload', async () => {
+      try {
+        const currentWindow = await chrome.windows.getCurrent();
+        chrome.runtime.sendMessage({
+          type: 'SIDEPANEL_CLOSED',
+          windowId: currentWindow.id
+        }).catch(() => {});
+      } catch (e) {}
     });
 
     // 탭 변경 감지
