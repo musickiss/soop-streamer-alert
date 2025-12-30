@@ -17,34 +17,61 @@
     SEGMENT_BUFFER_SIZE: 30, // 30개 세그먼트씩 저장
   };
 
-  // ===== 유틸리티 =====
-  async function fetchWithTimeout(url, timeout = CONFIG.SEGMENT_FETCH_TIMEOUT) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        credentials: 'include',
-        headers: {
-          'Origin': 'https://play.sooplive.co.kr',
-          'Referer': 'https://play.sooplive.co.kr/'
+  // ===== Background 프록시를 통한 fetch (DNS 문제 우회) =====
+  async function fetchViaBackground(url, responseType = 'arraybuffer') {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({
+        type: 'PROXY_FETCH',
+        url: url,
+        responseType: responseType
+      }, response => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
         }
+        if (!response || !response.success) {
+          reject(new Error(response?.error || 'Fetch 실패'));
+          return;
+        }
+        resolve(response);
       });
-      clearTimeout(timeoutId);
-      return response;
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
+    });
+  }
+
+  // m3u8 플레이리스트 가져오기 (텍스트)
+  async function fetchM3u8(url) {
+    const response = await fetchViaBackground(url, 'text');
+    return response.data;
+  }
+
+  // ts 세그먼트 가져오기 (바이너리)
+  async function fetchSegment(url) {
+    const response = await fetchViaBackground(url, 'arraybuffer');
+    // base64 -> Uint8Array 변환
+    const binary = atob(response.data);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  }
+
+  // 재시도 로직이 포함된 fetch
+  async function fetchM3u8WithRetry(url, retries = CONFIG.MAX_RETRY_COUNT) {
+    for (let i = 0; i < retries; i++) {
+      try {
+        return await fetchM3u8(url);
+      } catch (error) {
+        if (i === retries - 1) throw error;
+        await new Promise(r => setTimeout(r, CONFIG.RETRY_DELAY * (i + 1)));
+      }
     }
   }
 
-  async function fetchWithRetry(url, retries = CONFIG.MAX_RETRY_COUNT) {
+  async function fetchSegmentWithRetry(url, retries = CONFIG.MAX_RETRY_COUNT) {
     for (let i = 0; i < retries; i++) {
       try {
-        const response = await fetchWithTimeout(url);
-        if (response.ok) return response;
-        throw new Error(`HTTP ${response.status}`);
+        return await fetchSegment(url);
       } catch (error) {
         if (i === retries - 1) throw error;
         await new Promise(r => setTimeout(r, CONFIG.RETRY_DELAY * (i + 1)));
@@ -133,9 +160,8 @@
     async downloadLoop() {
       while (this.isRunning) {
         try {
-          // m3u8 플레이리스트 가져오기
-          const response = await fetchWithRetry(this.m3u8Url);
-          const content = await response.text();
+          // m3u8 플레이리스트 가져오기 (Background 프록시 사용)
+          const content = await fetchM3u8WithRetry(this.m3u8Url);
           const { segments, targetDuration } = parseM3u8(content, this.baseUrl);
 
           // 새로운 세그먼트 다운로드
@@ -173,9 +199,8 @@
     }
 
     async downloadSegment(segment) {
-      const response = await fetchWithRetry(segment.url);
-      const buffer = await response.arrayBuffer();
-      return new Uint8Array(buffer);
+      // Background 프록시를 통해 세그먼트 다운로드
+      return await fetchSegmentWithRetry(segment.url);
     }
 
     async saveCurrentBuffer() {
