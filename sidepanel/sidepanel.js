@@ -654,9 +654,42 @@
       });
     } catch (e) {}
 
-    // 자동참여/자동다운로드 변경 시 UI 업데이트
+    // 자동참여/자동다운로드 변경 시 해당 카드만 업데이트 (확장 상태 유지)
     if (setting === 'autoJoin' || setting === 'autoDownload') {
-      updateStreamerList();
+      const card = document.querySelector(`.streamer-card[data-id="${streamerId}"]`);
+      if (card) {
+        const settings = streamer.settings || {};
+        const autoJoin = settings.autoJoin || false;
+        const autoDownload = settings.autoDownload || false;
+        const isFastCheck = autoJoin || autoDownload;
+
+        // 체크 주기 텍스트 업데이트
+        const checkIntervalEl = card.querySelector('.check-interval');
+        if (checkIntervalEl) {
+          let checkIntervalText = '';
+          if (isFastCheck) {
+            const reasons = [];
+            if (autoJoin) reasons.push('자동참여');
+            if (autoDownload) reasons.push('자동DL');
+            checkIntervalText = `⚡ 5초 주기 (${reasons.join('+')})`;
+            checkIntervalEl.classList.add('fast');
+          } else {
+            checkIntervalText = '🕐 30초 주기 (알림만)';
+            checkIntervalEl.classList.remove('fast');
+          }
+          checkIntervalEl.textContent = checkIntervalText;
+        }
+
+        // 힌트 텍스트 업데이트
+        const autoJoinHint = card.querySelector('[data-setting="autoJoin"]')?.closest('.setting-row')?.querySelector('.hint');
+        if (autoJoinHint) {
+          autoJoinHint.textContent = autoJoin ? 'ON - 탭 열기' : 'OFF - 시청 안함';
+        }
+        const autoDownloadHint = card.querySelector('[data-setting="autoDownload"]')?.closest('.setting-row')?.querySelector('.hint');
+        if (autoDownloadHint) {
+          autoDownloadHint.textContent = autoDownload ? 'ON - 자동 녹화' : 'OFF - 다운로드 안함';
+        }
+      }
     }
   }
 

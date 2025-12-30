@@ -886,4 +886,13 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   }
 });
 
+// ===== 아이콘 클릭 시 사이드패널 열기 =====
+chrome.action.onClicked.addListener(async (tab) => {
+  try {
+    await chrome.sidePanel.open({ windowId: tab.windowId });
+  } catch (error) {
+    console.error('[숲토킹] 사이드패널 열기 오류:', error);
+  }
+});
+
 console.log('[숲토킹] 백그라운드 서비스 워커 v2.0 로드됨');
