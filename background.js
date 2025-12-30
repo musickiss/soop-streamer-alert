@@ -752,6 +752,77 @@ async function checkBroadcastStatus(streamerId) {
   }
 }
 
+// ===== m3u8 URL 직접 탐색 =====
+async function probeM3u8Url(streamerId, broadNo) {
+  console.log('[숲토킹] m3u8 URL 직접 탐색 시작:', streamerId, broadNo);
+
+  // broadNo가 없으면 API에서 가져오기
+  let actualBroadNo = broadNo;
+  if (!actualBroadNo) {
+    try {
+      const apiResponse = await fetch('https://live.sooplive.co.kr/afreeca/player_live_api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `bid=${streamerId}`,
+        credentials: 'include'
+      });
+      const apiData = await apiResponse.json();
+      if (apiData.CHANNEL && apiData.CHANNEL.BNO) {
+        actualBroadNo = apiData.CHANNEL.BNO;
+        console.log('[숲토킹] API에서 broadNo 획득:', actualBroadNo);
+      }
+    } catch (e) {
+      console.log('[숲토킹] API 호출 실패:', e.message);
+    }
+  }
+
+  if (!actualBroadNo) {
+    return { success: false, error: 'broadNo를 찾을 수 없습니다.' };
+  }
+
+  // 테스트할 URL 패턴들
+  const testUrls = [
+    `https://live-gs.sooplive.co.kr/hls/${streamerId}/${actualBroadNo}/playlist.m3u8`,
+    `https://live-avs.sooplive.co.kr/hls/${streamerId}/${actualBroadNo}/playlist.m3u8`,
+    `https://live-global.afreecatv.com/hls/${streamerId}/${actualBroadNo}/playlist.m3u8`,
+    `https://live-global.sooplive.co.kr/hls/${streamerId}/${actualBroadNo}/playlist.m3u8`,
+    `https://live-kt.sooplive.co.kr/hls/${streamerId}/${actualBroadNo}/playlist.m3u8`,
+    `https://live-lg.sooplive.co.kr/hls/${streamerId}/${actualBroadNo}/playlist.m3u8`
+  ];
+
+  // 각 URL 테스트
+  for (const url of testUrls) {
+    try {
+      console.log('[숲토킹] m3u8 테스트:', url);
+      const response = await fetch(url, {
+        credentials: 'include',
+        headers: {
+          'Origin': 'https://play.sooplive.co.kr',
+          'Referer': 'https://play.sooplive.co.kr/'
+        }
+      });
+      if (response.ok) {
+        const text = await response.text();
+        if (text.includes('#EXTM3U')) {
+          console.log('[숲토킹] ✅ m3u8 URL 발견:', url);
+          const baseUrl = url.substring(0, url.lastIndexOf('/') + 1);
+          return {
+            success: true,
+            m3u8Url: url,
+            baseUrl: baseUrl,
+            broadNo: actualBroadNo
+          };
+        }
+      }
+    } catch (e) {
+      // 실패하면 다음 URL 시도
+    }
+  }
+
+  console.log('[숲토킹] ❌ 모든 m3u8 URL 테스트 실패');
+  return { success: false, error: '사용 가능한 m3u8 URL을 찾을 수 없습니다.' };
+}
+
 // ===== 방송 시작 처리 =====
 async function handleBroadcastStart(streamer, broadcastInfo) {
   const settings = streamer.settings || {};
@@ -1154,68 +1225,44 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
 
         case 'START_DOWNLOAD_FROM_TAB':
-          // sidepanel에서 현재 탭 다운로드 요청
           console.log('[숲토킹] ========== 다운로드 요청 시작 ==========');
-          console.log('[숲토킹] 요청된 tabId:', message.tabId);
-          console.log('[숲토킹] 현재 캡처된 모든 탭:', Array.from(capturedMediaUrls.entries()));
-          console.log('[숲토킹] 캡처된 탭 ID 목록:', Array.from(capturedMediaUrls.keys()));
-          
-          // 모든 캡처된 데이터 출력
-          capturedMediaUrls.forEach((data, tabId) => {
-            console.log('[숲토킹] 캡처 데이터 - tabId:', tabId, 'playlist:', data.playlist ? data.playlist.substring(0, 50) + '...' : '없음');
-          });
+          console.log('[숲토킹] 요청 데이터:', message);
 
-          // 캡처된 m3u8 URL 확인
-          let capturedForDownload = capturedMediaUrls.get(message.tabId);
-          console.log('[숲토킹] 요청 탭의 캡처 데이터:', capturedForDownload);
+          const dlStreamerId = message.streamerId;
+          const dlBroadNo = message.broadNo;
 
-          // 요청한 tabId에 데이터가 없으면, 가장 최근 캡처된 데이터 사용
-          if (!capturedForDownload || !capturedForDownload.playlist) {
-            console.log('[숲토킹] ⚠️ 요청 탭에 캡처 데이터 없음, 최근 캡처 검색...');
-            
-            // 가장 최근에 캡처된 데이터 찾기
-            let latestCapture = null;
-            let latestTimestamp = 0;
-            let latestTabId = null;
-            
-            capturedMediaUrls.forEach((data, tabId) => {
-              if (data.playlist && data.timestamp > latestTimestamp) {
-                latestCapture = data;
-                latestTimestamp = data.timestamp;
-                latestTabId = tabId;
-              }
-            });
-            
-            if (latestCapture) {
-              console.log('[숲토킹] ✅ 최근 캡처 발견! tabId:', latestTabId, 'playlist:', latestCapture.playlist);
-              capturedForDownload = latestCapture;
-            }
+          if (!dlStreamerId) {
+            sendResponse({ success: false, error: '스트리머 ID가 없습니다.' });
+            break;
           }
 
-          if (!capturedForDownload || !capturedForDownload.playlist) {
-            console.log('[숲토킹] ❌ 캡처된 m3u8 URL 없음 - 모든 탭에서 찾을 수 없음');
+          // 직접 m3u8 URL 탐색
+          console.log('[숲토킹] m3u8 URL 직접 탐색 시작...');
+          const probeResult = await probeM3u8Url(dlStreamerId, dlBroadNo);
+
+          if (!probeResult.success) {
+            console.log('[숲토킹] ❌ m3u8 탐색 실패:', probeResult.error);
             sendResponse({
               success: false,
-              error: '방송 스트림을 감지하지 못했습니다. 방송 페이지를 새로고침하고 5초 후 다시 시도해주세요.'
+              error: probeResult.error || '방송 스트림을 찾을 수 없습니다.'
             });
             break;
           }
 
-          console.log('[숲토킹] ✅ 캡처된 m3u8 URL 사용:', capturedForDownload.playlist);
+          console.log('[숲토킹] ✅ m3u8 URL 확보:', probeResult.m3u8Url);
 
           // Offscreen document로 다운로드 시작
-          console.log('[숲토킹] Offscreen으로 다운로드 요청...');
           await ensureOffscreenDocument();
 
           const dlStartResult = await sendMessageToOffscreen({
             type: 'START_HLS_DOWNLOAD',
             options: {
-              streamerId: message.streamerId || 'unknown',
-              broadNo: message.broadNo || '',
-              nickname: message.nickname || message.streamerId || 'unknown',
+              streamerId: dlStreamerId,
+              broadNo: probeResult.broadNo || dlBroadNo,
+              nickname: message.nickname || dlStreamerId,
               title: message.title || '',
-              m3u8Url: capturedForDownload.playlist,
-              baseUrl: capturedForDownload.baseUrl,
+              m3u8Url: probeResult.m3u8Url,
+              baseUrl: probeResult.baseUrl,
               quality: message.quality || 'original',
               isBackgroundDownload: false
             }
@@ -1226,13 +1273,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           if (dlStartResult && dlStartResult.success) {
             state.downloads.push({
               sessionId: dlStartResult.sessionId,
-              streamerId: message.streamerId || 'unknown',
-              nickname: message.nickname || message.streamerId || 'unknown',
+              streamerId: dlStreamerId,
+              nickname: message.nickname || dlStreamerId,
               isRunning: true,
               isBackgroundDownload: false,
               startTime: Date.now()
             });
           }
+
           sendResponse(dlStartResult || { success: false, error: 'Offscreen 응답 없음' });
           break;
 
