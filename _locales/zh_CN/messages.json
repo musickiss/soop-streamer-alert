@@ -4,16 +4,24 @@
     "description": "扩展程序名称"
   },
   "extDescription": {
-    "message": "自动检测您收藏的主播开播，并在新标签页中打开直播。",
+    "message": "自动检测您收藏的主播开播，并在新标签页中打开直播。还可以直接下载HLS流。",
     "description": "扩展程序描述"
   },
   "appName": {
     "message": "SOOPtalking",
     "description": "应用名称（品牌）"
   },
-  "appSlogan": {
-    "message": "我一直在看着你..",
-    "description": "应用标语（跟踪狂风格）"
+  "tagline": {
+    "message": "SOOP主播通知和下载",
+    "description": "标语"
+  },
+  "openSidepanel": {
+    "message": "打开侧边栏",
+    "description": "打开侧边栏按钮"
+  },
+  "sidepanelHint": {
+    "message": "在侧边栏中可以使用所有功能。",
+    "description": "侧边栏提示"
   },
   "monitoringOn": {
     "message": "监控中",
@@ -23,63 +31,69 @@
     "message": "监控关闭",
     "description": "监控已禁用状态"
   },
-  "selectedCount": {
-    "message": "已选择 $count$ 人",
-    "description": "已选择的主播数量",
-    "placeholders": {
-      "count": {
-        "content": "$1",
-        "example": "3"
-      }
-    }
-  },
-  "streamerBroadcastNotification": {
+  "broadcastNotification": {
     "message": "开播通知",
     "description": "开播通知设置"
   },
-  "broadcastEndNotification": {
+  "endNotification": {
     "message": "下播通知",
     "description": "下播通知设置"
   },
-  "notificationDuration": {
-    "message": "通知显示时间",
-    "description": "通知显示时间设置"
-  },
-  "seconds": {
-    "message": "秒",
-    "description": "秒单位"
-  },
   "autoCloseOfflineTabs": {
-    "message": "自动关闭离线标签页",
+    "message": "自动关闭标签页",
     "description": "自动关闭离线标签页设置"
   },
-  "registeredStreamers": {
-    "message": "已注册的主播",
-    "description": "已注册主播区域标题"
+  "nowWatching": {
+    "message": "正在观看",
+    "description": "正在观看区域"
   },
-  "statusLive": {
+  "notWatchingMessage": {
+    "message": "未在观看SOOP直播",
+    "description": "未观看时的消息"
+  },
+  "startDownload": {
+    "message": "开始下载",
+    "description": "开始下载按钮"
+  },
+  "stopDownload": {
+    "message": "停止下载",
+    "description": "停止下载按钮"
+  },
+  "qualityOriginal": {
+    "message": "原画",
+    "description": "原画画质"
+  },
+  "downloading": {
+    "message": "下载中",
+    "description": "下载中区域"
+  },
+  "noDownloads": {
+    "message": "没有正在下载的直播",
+    "description": "无下载消息"
+  },
+  "favoriteStreamers": {
+    "message": "收藏主播",
+    "description": "收藏主播区域"
+  },
+  "filterAll": {
+    "message": "全部",
+    "description": "全部筛选"
+  },
+  "filterLive": {
     "message": "直播中",
-    "description": "直播中状态"
+    "description": "直播中筛选"
   },
-  "statusOffline": {
+  "filterOffline": {
     "message": "离线",
-    "description": "离线状态"
+    "description": "离线筛选"
   },
-  "modeAutoJoin": {
-    "message": "自动加入",
-    "description": "自动加入模式"
+  "storage": {
+    "message": "存储空间",
+    "description": "存储空间"
   },
-  "modeNotify": {
-    "message": "通知",
-    "description": "通知模式"
-  },
-  "modeRunning": {
-    "message": "运行中",
-    "description": "标签页运行中"
-  },
-  "modeNotRunning": {
-    "message": "未运行",
-    "description": "标签页未运行"
+  "privacy": {
+    "message": "隐私政策",
+    "description": "隐私政策链接"
   },
   "inputPlaceholder": {
     "message": "输入主播ID（例如：streamer123）",
@@ -89,42 +103,6 @@
     "message": "添加",
     "description": "添加按钮"
   },
-  "checkingStatus": {
-    "message": "检查中...",
-    "description": "检查中状态"
-  },
-  "deleteButton": {
-    "message": "删除",
-    "description": "删除按钮"
-  },
-  "feedbackLabel": {
-    "message": "反馈与支持",
-    "description": "反馈标签"
-  },
-  "titleAutoJoinEnable": {
-    "message": "启用自动加入",
-    "description": "启用自动加入title属性"
-  },
-  "titleAutoJoinDisable": {
-    "message": "禁用自动加入",
-    "description": "禁用自动加入title属性"
-  },
-  "titleGoToStation": {
-    "message": "前往主播主页",
-    "description": "前往主播主页title属性"
-  },
-  "titleExport": {
-    "message": "导出主播列表",
-    "description": "导出主播列表title属性"
-  },
-  "titleImport": {
-    "message": "导入主播列表",
-    "description": "导入主播列表title属性"
-  },
-  "titleRefresh": {
-    "message": "刷新直播状态",
-    "description": "刷新直播状态title属性"
-  },
   "emptyTitle": {
     "message": "没有已注册的主播。",
     "description": "空状态标题"
@@ -132,168 +110,6 @@
   "emptyDescription": {
     "message": "在下方添加主播ID。",
     "description": "空状态描述"
-  },
-  "toastNotificationEnabled": {
-    "message": "通知已启用。",
-    "description": "通知启用提示"
-  },
-  "toastNotificationDisabled": {
-    "message": "通知已禁用。",
-    "description": "通知禁用提示"
-  },
-  "toastEndNotificationEnabled": {
-    "message": "下播通知已启用。",
-    "description": "下播通知启用提示"
-  },
-  "toastEndNotificationDisabled": {
-    "message": "下播通知已禁用。",
-    "description": "下播通知禁用提示"
-  },
-  "toastAutoCloseEnabled": {
-    "message": "自动关闭离线标签页已启用。",
-    "description": "自动关闭离线标签页启用提示"
-  },
-  "toastAutoCloseDisabled": {
-    "message": "自动关闭离线标签页已禁用。",
-    "description": "自动关闭离线标签页禁用提示"
-  },
-  "toastMonitoringStarted": {
-    "message": "监控已开始。",
-    "description": "监控开始提示"
-  },
-  "toastMonitoringStopped": {
-    "message": "监控已停止。",
-    "description": "监控停止提示"
-  },
-  "toastSelectStreamerFirst": {
-    "message": "请先选择要监控的主播。",
-    "description": "先选择主播提示"
-  },
-  "toastRefreshComplete": {
-    "message": "刷新完成",
-    "description": "刷新完成提示"
-  },
-  "toastRefreshFailed": {
-    "message": "刷新失败",
-    "description": "刷新失败提示"
-  },
-  "toastEnterStreamerId": {
-    "message": "请输入主播ID。",
-    "description": "输入主播ID提示"
-  },
-  "toastInvalidStreamerId": {
-    "message": "请输入有效的主播ID。",
-    "description": "无效主播ID提示"
-  },
-  "toastStreamerAlreadyExists": {
-    "message": "该主播已在列表中。",
-    "description": "主播已存在提示"
-  },
-  "toastStreamerAdded": {
-    "message": "已添加 $name$",
-    "description": "主播添加成功提示",
-    "placeholders": {
-      "name": {
-        "content": "$1",
-        "example": "streamer123"
-      }
-    }
-  },
-  "toastStreamerDeleted": {
-    "message": "已删除 $name$",
-    "description": "主播删除成功提示",
-    "placeholders": {
-      "name": {
-        "content": "$1",
-        "example": "streamer123"
-      }
-    }
-  },
-  "toastAutoJoinAdded": {
-    "message": "$name$ 自动加入已启用",
-    "description": "自动加入添加成功提示",
-    "placeholders": {
-      "name": {
-        "content": "$1",
-        "example": "streamer123"
-      }
-    }
-  },
-  "toastMonitoringRemoved": {
-    "message": "$name$ 监控已禁用",
-    "description": "监控移除成功提示",
-    "placeholders": {
-      "name": {
-        "content": "$1",
-        "example": "streamer123"
-      }
-    }
-  },
-  "toastError": {
-    "message": "发生错误。",
-    "description": "一般错误提示"
-  },
-  "toastDeleteError": {
-    "message": "删除时发生错误。",
-    "description": "删除错误提示"
-  },
-  "toastOrderSaveError": {
-    "message": "保存顺序时发生错误。",
-    "description": "保存顺序错误提示"
-  },
-  "toastNoStreamersToExport": {
-    "message": "没有可导出的主播。",
-    "description": "没有可导出主播提示"
-  },
-  "toastExportComplete": {
-    "message": "已导出 $count$ 位主播。",
-    "description": "导出完成提示",
-    "placeholders": {
-      "count": {
-        "content": "$1",
-        "example": "5"
-      }
-    }
-  },
-  "toastExportError": {
-    "message": "导出时发生错误。",
-    "description": "导出错误提示"
-  },
-  "toastInvalidFileFormat": {
-    "message": "文件格式无效。",
-    "description": "无效文件格式提示"
-  },
-  "toastNoStreamersToImport": {
-    "message": "没有可导入的主播。",
-    "description": "没有可导入主播提示"
-  },
-  "toastImportComplete": {
-    "message": "已添加 $count$ 位主播。",
-    "description": "导入完成提示",
-    "placeholders": {
-      "count": {
-        "content": "$1",
-        "example": "5"
-      }
-    }
-  },
-  "toastAllStreamersExist": {
-    "message": "所有主播都已注册。",
-    "description": "所有主播已存在提示"
-  },
-  "toastFileReadError": {
-    "message": "读取文件时发生错误。",
-    "description": "文件读取错误提示"
-  },
-  "confirmDeleteStreamer": {
-    "message": "确定要删除主播「$name$」吗？",
-    "description": "删除主播确认对话框",
-    "placeholders": {
-      "name": {
-        "content": "$1",
-        "example": "streamer123"
-      }
-    }
   },
   "notificationBroadcastStartTitle": {
     "message": "$nickname$ 开播了！",
@@ -323,8 +139,90 @@
     "message": "直播已结束。",
     "description": "下播通知消息"
   },
-  "notificationTabLimitWarning": {
-    "message": "由于4个直播限制，仅显示通知",
-    "description": "标签页限制警告消息"
+  "autoJoin": {
+    "message": "自动加入",
+    "description": "自动加入设置"
+  },
+  "autoDownload": {
+    "message": "自动下载",
+    "description": "自动下载设置"
+  },
+  "downloadQuality": {
+    "message": "下载画质",
+    "description": "下载画质设置"
+  },
+  "deleteStreamer": {
+    "message": "删除主播",
+    "description": "删除主播按钮"
+  },
+  "backgroundDownload": {
+    "message": "后台下载",
+    "description": "后台下载"
+  },
+  "watchingDownload": {
+    "message": "观看中",
+    "description": "观看中下载"
+  },
+  "fastCheckHint": {
+    "message": "5秒间隔",
+    "description": "快速检查提示"
+  },
+  "slowCheckHint": {
+    "message": "30秒间隔",
+    "description": "慢速检查提示"
+  },
+  "toastMonitoringStarted": {
+    "message": "监控已开始。",
+    "description": "监控开始提示"
+  },
+  "toastMonitoringStopped": {
+    "message": "监控已停止。",
+    "description": "监控停止提示"
+  },
+  "toastRefreshComplete": {
+    "message": "刷新完成",
+    "description": "刷新完成提示"
+  },
+  "toastStreamerAdded": {
+    "message": "已添加 $name$",
+    "description": "主播添加成功提示",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastStreamerDeleted": {
+    "message": "已删除 $name$",
+    "description": "主播删除成功提示",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastDownloadStarted": {
+    "message": "下载已开始！",
+    "description": "下载开始提示"
+  },
+  "toastDownloadStopped": {
+    "message": "下载已停止并保存。",
+    "description": "下载停止提示"
+  },
+  "toastDownloadComplete": {
+    "message": "$fileName$ 下载完成！",
+    "description": "下载完成提示",
+    "placeholders": {
+      "fileName": {
+        "content": "$1",
+        "example": "streamer_20250130.ts"
+      }
+    }
+  },
+  "toastError": {
+    "message": "发生错误。",
+    "description": "一般错误提示"
   }
 }

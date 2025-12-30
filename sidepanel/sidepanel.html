@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="extName">숲토킹 - 사이드패널</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="container">
+    <!-- 헤더 -->
+    <header class="header">
+      <div class="header-content">
+        <div class="brand">
+          <div class="brand-logo">📺</div>
+          <div class="brand-text">
+            <h1 id="brandText">숲토킹</h1>
+            <p class="tagline" data-i18n="tagline">SOOP 알림 & 다운로드</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <button class="icon-btn" id="settingsBtn" title="설정">⚙️</button>
+          <button class="icon-btn" id="helpBtn" title="도움말">❓</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 모니터링 상태 바 -->
+    <div class="monitoring-bar" id="monitoringBar">
+      <div class="monitoring-status">
+        <div class="status-indicator" id="statusIndicator">
+          <span class="dot"></span>
+          <span id="statusText" data-i18n="monitoringOff">모니터링 OFF</span>
+        </div>
+        <span class="monitoring-info" id="monitoringInfo">0명 모니터링</span>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" id="monitoringToggle">
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <!-- 빠른 설정 -->
+    <div class="quick-settings">
+      <div class="setting-chip active" data-setting="notification" id="notificationChip">
+        <span class="chip-icon">🔔</span>
+        <span data-i18n="broadcastNotification">방송 알림</span>
+      </div>
+      <div class="setting-chip" data-setting="endNotification" id="endNotificationChip">
+        <span class="chip-icon">⚫</span>
+        <span data-i18n="endNotification">종료 알림</span>
+      </div>
+      <div class="setting-chip active" data-setting="autoClose" id="autoCloseChip">
+        <span class="chip-icon">🚫</span>
+        <span data-i18n="autoCloseOfflineTabs">탭 자동종료</span>
+      </div>
+    </div>
+
+    <!-- 현재 시청 중 섹션 -->
+    <section class="section now-watching" id="nowWatching">
+      <div class="section-header">
+        <div class="section-title">📺 <span data-i18n="nowWatching">현재 시청 중</span></div>
+      </div>
+
+      <!-- SOOP 방송 시청 중일 때 -->
+      <div class="current-stream-card" id="currentStreamCard" style="display: none;">
+        <div class="stream-info-row">
+          <div class="streamer-avatar" id="currentAvatar">
+            <span class="live-ring"></span>
+            <span id="currentAvatarText">-</span>
+          </div>
+          <div class="stream-details">
+            <div class="streamer-name">
+              <span id="currentStreamerName">-</span>
+              <span class="live-badge">LIVE</span>
+            </div>
+            <div class="stream-title" id="currentStreamTitle">-</div>
+          </div>
+        </div>
+        <div class="download-controls">
+          <button class="download-btn start" id="downloadBtn">
+            <span class="rec-icon"></span>
+            <span data-i18n="startDownload">지금부터 다운로드</span>
+          </button>
+          <select class="quality-select" id="qualitySelect">
+            <option value="original" data-i18n="qualityOriginal">원본</option>
+            <option value="1080p">1080p</option>
+            <option value="720p">720p</option>
+            <option value="540p">540p</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- SOOP 시청 중이 아닐 때 -->
+      <div class="not-watching" id="notWatchingMessage">
+        <div class="icon">📺</div>
+        <p data-i18n="notWatchingMessage">SOOP 방송을 시청 중이 아닙니다</p>
+      </div>
+    </section>
+
+    <!-- 다운로드 목록 섹션 -->
+    <section class="section downloads-section" id="downloadsSection">
+      <div class="section-header">
+        <div class="section-title red">📥 <span data-i18n="downloading">다운로드 중</span></div>
+        <span class="section-badge" id="downloadCount">0</span>
+      </div>
+
+      <div class="download-list" id="downloadList">
+        <!-- 동적으로 채워짐 -->
+      </div>
+
+      <div class="empty-downloads" id="emptyDownloads" data-i18n="noDownloads">다운로드 중인 방송이 없습니다</div>
+    </section>
+
+    <!-- 스트리머 목록 섹션 -->
+    <section class="streamer-section">
+      <div class="section-header">
+        <div class="section-title">⭐ <span data-i18n="favoriteStreamers">즐겨찾기 스트리머</span></div>
+        <div class="section-actions">
+          <select class="filter-select" id="filterSelect">
+            <option value="all" data-i18n="filterAll">전체</option>
+            <option value="live" data-i18n="filterLive">방송중</option>
+            <option value="offline" data-i18n="filterOffline">오프라인</option>
+          </select>
+          <button class="action-btn-small" id="refreshBtn" title="새로고침">🔄</button>
+        </div>
+      </div>
+
+      <div class="streamer-list" id="streamerList">
+        <!-- 동적으로 채워짐 -->
+      </div>
+    </section>
+
+    <!-- 스트리머 추가 폼 -->
+    <div class="add-form">
+      <div class="add-form-row">
+        <input type="text"
+               class="add-input"
+               id="streamerIdInput"
+               data-i18n-placeholder="inputPlaceholder"
+               placeholder="스트리머 ID 입력 (예: streamer123)">
+        <button class="add-btn" id="addStreamerBtn" data-i18n="addButton">추가</button>
+      </div>
+    </div>
+
+    <!-- 저장 공간 바 -->
+    <div class="storage-bar" id="storageBar">
+      <div class="storage-info">
+        <span class="storage-label">💾 <span data-i18n="storage">저장 공간</span></span>
+        <span class="storage-value" id="storageValue">- / -</span>
+      </div>
+      <div class="storage-progress">
+        <div class="storage-progress-fill" id="storageProgressFill" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- 푸터 -->
+    <footer class="footer">
+      <span class="footer-links">
+        <a href="https://www.sooplive.co.kr" target="_blank">SOOP</a>
+        <span>·</span>
+        <a href="https://github.com/musickiss/soop-streamer-alert" target="_blank">GitHub</a>
+        <span>·</span>
+        <a href="#" id="privacyLink" data-i18n="privacy">개인정보</a>
+      </span>
+      <span id="versionInfo">v2.0.0</span>
+    </footer>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>

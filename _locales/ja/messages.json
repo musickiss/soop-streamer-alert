@@ -4,16 +4,24 @@
     "description": "拡張機能名"
   },
   "extDescription": {
-    "message": "お気に入りの配信者が放送を開始すると自動で検知し、新しいタブで開きます。",
+    "message": "お気に入りの配信者が放送を開始すると自動で検知し、新しいタブで開きます。HLSストリームを直接ダウンロードすることもできます。",
     "description": "拡張機能の説明"
   },
   "appName": {
     "message": "SOOPtalking",
     "description": "アプリ名（ブランド）"
   },
-  "appSlogan": {
-    "message": "ずっと見てるからね..",
-    "description": "アプリのスローガン（ストーカー風）"
+  "tagline": {
+    "message": "SOOP配信者通知＆ダウンロード",
+    "description": "タグライン"
+  },
+  "openSidepanel": {
+    "message": "サイドパネルを開く",
+    "description": "サイドパネルを開くボタン"
+  },
+  "sidepanelHint": {
+    "message": "サイドパネルですべての機能を使用できます。",
+    "description": "サイドパネルのヒント"
   },
   "monitoringOn": {
     "message": "監視中",
@@ -23,63 +31,69 @@
     "message": "監視オフ",
     "description": "監視無効状態"
   },
-  "selectedCount": {
-    "message": "$count$人選択中",
-    "description": "選択された配信者の数",
-    "placeholders": {
-      "count": {
-        "content": "$1",
-        "example": "3"
-      }
-    }
-  },
-  "streamerBroadcastNotification": {
-    "message": "放送開始通知",
+  "broadcastNotification": {
+    "message": "放送通知",
     "description": "放送開始通知設定"
   },
-  "broadcastEndNotification": {
-    "message": "放送終了通知",
+  "endNotification": {
+    "message": "終了通知",
     "description": "放送終了通知設定"
   },
-  "notificationDuration": {
-    "message": "通知表示時間",
-    "description": "通知表示時間設定"
-  },
-  "seconds": {
-    "message": "秒",
-    "description": "秒単位"
-  },
   "autoCloseOfflineTabs": {
-    "message": "オフラインタブを自動で閉じる",
+    "message": "タブ自動終了",
     "description": "オフラインタブ自動クローズ設定"
   },
-  "registeredStreamers": {
-    "message": "登録済み配信者",
-    "description": "登録済み配信者セクションタイトル"
+  "nowWatching": {
+    "message": "現在視聴中",
+    "description": "現在視聴中セクション"
   },
-  "statusLive": {
+  "notWatchingMessage": {
+    "message": "SOOP放送を視聴していません",
+    "description": "視聴中でない時のメッセージ"
+  },
+  "startDownload": {
+    "message": "今からダウンロード",
+    "description": "ダウンロード開始ボタン"
+  },
+  "stopDownload": {
+    "message": "ダウンロード停止",
+    "description": "ダウンロード停止ボタン"
+  },
+  "qualityOriginal": {
+    "message": "オリジナル",
+    "description": "オリジナル画質"
+  },
+  "downloading": {
+    "message": "ダウンロード中",
+    "description": "ダウンロード中セクション"
+  },
+  "noDownloads": {
+    "message": "ダウンロード中の放送はありません",
+    "description": "ダウンロードなしメッセージ"
+  },
+  "favoriteStreamers": {
+    "message": "お気に入り配信者",
+    "description": "お気に入り配信者セクション"
+  },
+  "filterAll": {
+    "message": "すべて",
+    "description": "すべてフィルター"
+  },
+  "filterLive": {
     "message": "配信中",
-    "description": "配信中状態"
+    "description": "配信中フィルター"
   },
-  "statusOffline": {
+  "filterOffline": {
     "message": "オフライン",
-    "description": "オフライン状態"
+    "description": "オフラインフィルター"
   },
-  "modeAutoJoin": {
-    "message": "自動参加",
-    "description": "自動参加モード"
+  "storage": {
+    "message": "ストレージ",
+    "description": "ストレージ"
   },
-  "modeNotify": {
-    "message": "通知",
-    "description": "通知モード"
-  },
-  "modeRunning": {
-    "message": "実行中",
-    "description": "タブ実行中"
-  },
-  "modeNotRunning": {
-    "message": "未実行",
-    "description": "タブ未実行"
+  "privacy": {
+    "message": "プライバシー",
+    "description": "プライバシーリンク"
   },
   "inputPlaceholder": {
     "message": "配信者IDを入力（例：streamer123）",
@@ -89,42 +103,6 @@
     "message": "追加",
     "description": "追加ボタン"
   },
-  "checkingStatus": {
-    "message": "確認中...",
-    "description": "確認中状態"
-  },
-  "deleteButton": {
-    "message": "削除",
-    "description": "削除ボタン"
-  },
-  "feedbackLabel": {
-    "message": "フィードバック・お問い合わせ",
-    "description": "フィードバックラベル"
-  },
-  "titleAutoJoinEnable": {
-    "message": "自動参加を有効にする",
-    "description": "自動参加有効化title属性"
-  },
-  "titleAutoJoinDisable": {
-    "message": "自動参加を無効にする",
-    "description": "自動参加無効化title属性"
-  },
-  "titleGoToStation": {
-    "message": "配信者ページへ移動",
-    "description": "配信者ページへ移動title属性"
-  },
-  "titleExport": {
-    "message": "配信者リストをエクスポート",
-    "description": "配信者リストエクスポートtitle属性"
-  },
-  "titleImport": {
-    "message": "配信者リストをインポート",
-    "description": "配信者リストインポートtitle属性"
-  },
-  "titleRefresh": {
-    "message": "放送状態を更新",
-    "description": "放送状態更新title属性"
-  },
   "emptyTitle": {
     "message": "登録された配信者がいません。",
     "description": "空状態タイトル"
@@ -132,168 +110,6 @@
   "emptyDescription": {
     "message": "下で配信者IDを追加してください。",
     "description": "空状態説明"
-  },
-  "toastNotificationEnabled": {
-    "message": "通知が有効になりました。",
-    "description": "通知有効化トースト"
-  },
-  "toastNotificationDisabled": {
-    "message": "通知が無効になりました。",
-    "description": "通知無効化トースト"
-  },
-  "toastEndNotificationEnabled": {
-    "message": "放送終了通知が有効になりました。",
-    "description": "放送終了通知有効化トースト"
-  },
-  "toastEndNotificationDisabled": {
-    "message": "放送終了通知が無効になりました。",
-    "description": "放送終了通知無効化トースト"
-  },
-  "toastAutoCloseEnabled": {
-    "message": "オフラインタブ自動クローズが有効になりました。",
-    "description": "オフラインタブ自動クローズ有効化トースト"
-  },
-  "toastAutoCloseDisabled": {
-    "message": "オフラインタブ自動クローズが無効になりました。",
-    "description": "オフラインタブ自動クローズ無効化トースト"
-  },
-  "toastMonitoringStarted": {
-    "message": "監視を開始しました。",
-    "description": "監視開始トースト"
-  },
-  "toastMonitoringStopped": {
-    "message": "監視を停止しました。",
-    "description": "監視停止トースト"
-  },
-  "toastSelectStreamerFirst": {
-    "message": "監視する配信者を先に選択してください。",
-    "description": "配信者先選択トースト"
-  },
-  "toastRefreshComplete": {
-    "message": "更新完了",
-    "description": "更新完了トースト"
-  },
-  "toastRefreshFailed": {
-    "message": "更新失敗",
-    "description": "更新失敗トースト"
-  },
-  "toastEnterStreamerId": {
-    "message": "配信者IDを入力してください。",
-    "description": "配信者ID入力トースト"
-  },
-  "toastInvalidStreamerId": {
-    "message": "正しい配信者IDを入力してください。",
-    "description": "無効配信者IDトースト"
-  },
-  "toastStreamerAlreadyExists": {
-    "message": "この配信者は既にリストにいます。",
-    "description": "配信者既存トースト"
-  },
-  "toastStreamerAdded": {
-    "message": "$name$ を追加しました",
-    "description": "配信者追加完了トースト",
-    "placeholders": {
-      "name": {
-        "content": "$1",
-        "example": "streamer123"
-      }
-    }
-  },
-  "toastStreamerDeleted": {
-    "message": "$name$ を削除しました",
-    "description": "配信者削除完了トースト",
-    "placeholders": {
-      "name": {
-        "content": "$1",
-        "example": "streamer123"
-      }
-    }
-  },
-  "toastAutoJoinAdded": {
-    "message": "$name$ の自動参加を有効にしました",
-    "description": "自動参加追加完了トースト",
-    "placeholders": {
-      "name": {
-        "content": "$1",
-        "example": "streamer123"
-      }
-    }
-  },
-  "toastMonitoringRemoved": {
-    "message": "$name$ の監視を解除しました",
-    "description": "監視解除完了トースト",
-    "placeholders": {
-      "name": {
-        "content": "$1",
-        "example": "streamer123"
-      }
-    }
-  },
-  "toastError": {
-    "message": "エラーが発生しました。",
-    "description": "一般エラートースト"
-  },
-  "toastDeleteError": {
-    "message": "削除中にエラーが発生しました。",
-    "description": "削除エラートースト"
-  },
-  "toastOrderSaveError": {
-    "message": "順序の保存中にエラーが発生しました。",
-    "description": "順序保存エラートースト"
-  },
-  "toastNoStreamersToExport": {
-    "message": "エクスポートする配信者がいません。",
-    "description": "エクスポート配信者なしトースト"
-  },
-  "toastExportComplete": {
-    "message": "$count$人の配信者をエクスポートしました。",
-    "description": "エクスポート完了トースト",
-    "placeholders": {
-      "count": {
-        "content": "$1",
-        "example": "5"
-      }
-    }
-  },
-  "toastExportError": {
-    "message": "エクスポート中にエラーが発生しました。",
-    "description": "エクスポートエラートースト"
-  },
-  "toastInvalidFileFormat": {
-    "message": "ファイル形式が無効です。",
-    "description": "無効ファイル形式トースト"
-  },
-  "toastNoStreamersToImport": {
-    "message": "インポートする配信者がいません。",
-    "description": "インポート配信者なしトースト"
-  },
-  "toastImportComplete": {
-    "message": "$count$人の配信者を追加しました。",
-    "description": "インポート完了トースト",
-    "placeholders": {
-      "count": {
-        "content": "$1",
-        "example": "5"
-      }
-    }
-  },
-  "toastAllStreamersExist": {
-    "message": "すべての配信者は既に登録されています。",
-    "description": "全配信者既存トースト"
-  },
-  "toastFileReadError": {
-    "message": "ファイルの読み込み中にエラーが発生しました。",
-    "description": "ファイル読み込みエラートースト"
-  },
-  "confirmDeleteStreamer": {
-    "message": "配信者「$name$」を削除しますか？",
-    "description": "配信者削除確認ダイアログ",
-    "placeholders": {
-      "name": {
-        "content": "$1",
-        "example": "streamer123"
-      }
-    }
   },
   "notificationBroadcastStartTitle": {
     "message": "$nickname$ が放送を開始しました！",
@@ -323,8 +139,90 @@
     "message": "放送が終了しました。",
     "description": "放送終了通知メッセージ"
   },
-  "notificationTabLimitWarning": {
-    "message": "同時視聴4つ制限のため通知のみ表示",
-    "description": "タブ制限警告メッセージ"
+  "autoJoin": {
+    "message": "自動参加",
+    "description": "自動参加設定"
+  },
+  "autoDownload": {
+    "message": "自動ダウンロード",
+    "description": "自動ダウンロード設定"
+  },
+  "downloadQuality": {
+    "message": "ダウンロード画質",
+    "description": "ダウンロード画質設定"
+  },
+  "deleteStreamer": {
+    "message": "配信者削除",
+    "description": "配信者削除ボタン"
+  },
+  "backgroundDownload": {
+    "message": "バックグラウンド",
+    "description": "バックグラウンドダウンロード"
+  },
+  "watchingDownload": {
+    "message": "視聴中",
+    "description": "視聴中ダウンロード"
+  },
+  "fastCheckHint": {
+    "message": "5秒周期",
+    "description": "高速チェックヒント"
+  },
+  "slowCheckHint": {
+    "message": "30秒周期",
+    "description": "低速チェックヒント"
+  },
+  "toastMonitoringStarted": {
+    "message": "監視を開始しました。",
+    "description": "監視開始トースト"
+  },
+  "toastMonitoringStopped": {
+    "message": "監視を停止しました。",
+    "description": "監視停止トースト"
+  },
+  "toastRefreshComplete": {
+    "message": "更新完了",
+    "description": "更新完了トースト"
+  },
+  "toastStreamerAdded": {
+    "message": "$name$ を追加しました",
+    "description": "配信者追加完了トースト",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastStreamerDeleted": {
+    "message": "$name$ を削除しました",
+    "description": "配信者削除完了トースト",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastDownloadStarted": {
+    "message": "ダウンロードを開始しました！",
+    "description": "ダウンロード開始トースト"
+  },
+  "toastDownloadStopped": {
+    "message": "ダウンロードを停止して保存しました。",
+    "description": "ダウンロード停止トースト"
+  },
+  "toastDownloadComplete": {
+    "message": "$fileName$ ダウンロード完了！",
+    "description": "ダウンロード完了トースト",
+    "placeholders": {
+      "fileName": {
+        "content": "$1",
+        "example": "streamer_20250130.ts"
+      }
+    }
+  },
+  "toastError": {
+    "message": "エラーが発生しました。",
+    "description": "一般エラートースト"
   }
 }
