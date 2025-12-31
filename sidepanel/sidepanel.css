@@ -1265,3 +1265,23 @@ body {
   font-size: 11px;
   color: var(--text-secondary);
 }
+
+.recording-info {
+  color: var(--record-red);
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 6px;
+  padding: 4px 8px;
+  background: rgba(255, 71, 87, 0.08);
+  border-radius: 4px;
+  animation: recPulse 2s ease-in-out infinite;
+}
+
+.recording-info:empty {
+  display: none;
+}
+
+@keyframes recPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}

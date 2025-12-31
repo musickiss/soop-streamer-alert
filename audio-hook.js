@@ -1,5 +1,6 @@
-// ===== 숲토킹 v2.3 - 녹화 시스템 (MAIN World) =====
+// ===== 숲토킹 v2.4 - 녹화 시스템 (MAIN World) =====
 // MediaRecorder + 메모리 누적 방식 (녹화 종료 시 단일 파일 저장)
+// v2.4: timeslice 제거, 이벤트 push 방식으로 최적화
 
 (function() {
   'use strict';
@@ -11,13 +12,13 @@
   }
   window.__soopRecorderInstalled = true;
 
-  console.log('[숲토킹 Recorder] 녹화 시스템 시작');
+  console.log('[숲토킹 Recorder] 녹화 시스템 시작 v2.4');
 
   // ===== 설정 =====
   const CONFIG = {
     VIDEO_BITRATE: 4000000,            // 4Mbps
     AUDIO_BITRATE: 128000,             // 128kbps
-    TIMESLICE: 1000                    // 1초마다 데이터 수집
+    PROGRESS_INTERVAL: 10000           // 10초마다 진행 상황 전송
   };
 
   // ===== 전역 상태 =====
@@ -26,6 +27,7 @@
     isRecording: false,
     mediaRecorder: null,
     recordingStream: null,
+    progressInterval: null,
 
     // 녹화 데이터 (메모리 누적)
     recordedChunks: [],
@@ -113,17 +115,21 @@
           audioBitsPerSecond: CONFIG.AUDIO_BITRATE
         });
 
-        // 데이터 수신 (메모리에 누적)
+        // 데이터 수신 (메모리에 누적) - stop() 시에만 호출됨
         this.mediaRecorder.ondataavailable = (event) => {
           if (event.data && event.data.size > 0) {
             this.recordedChunks.push(event.data);
             this.totalBytes += event.data.size;
+            console.log('[숲토킹 Recorder] 데이터 수신:', (event.data.size / 1024 / 1024).toFixed(2), 'MB');
           }
         };
 
         // 녹화 중지 이벤트
         this.mediaRecorder.onstop = () => {
           console.log('[숲토킹 Recorder] MediaRecorder 중지됨');
+
+          // 진행 상황 interval 정리
+          this.clearProgressInterval();
 
           // 스트림 트랙 중지
           if (this.recordingStream) {
@@ -139,24 +145,30 @@
         // 에러 이벤트
         this.mediaRecorder.onerror = (event) => {
           console.error('[숲토킹 Recorder] 에러:', event.error);
-          this.stopRecording();
 
+          // 에러 이벤트를 Background로 전달
           window.postMessage({
             type: 'SOOPTALKING_RECORDING_ERROR',
             error: event.error?.message || '녹화 오류'
           }, '*');
+
+          this.stopRecording();
         };
 
-        // 녹화 시작
-        this.mediaRecorder.start(CONFIG.TIMESLICE);
+        // 녹화 시작 - timeslice 제거! (성능 최적화)
+        // stop() 호출 시에만 ondataavailable 발생
+        this.mediaRecorder.start();
         this.isRecording = true;
         this.recordingStartTime = Date.now();
+
+        // 10초마다 진행 상황 전송 (폴링 대신 push)
+        this.startProgressInterval();
 
         // 방송 종료 감지
         video.addEventListener('ended', this.handleVideoEnded.bind(this));
         video.addEventListener('error', this.handleVideoError.bind(this));
 
-        console.log('[숲토킹 Recorder] ▶️ 녹화 시작');
+        console.log('[숲토킹 Recorder] ▶️ 녹화 시작 (timeslice 없음)');
         console.log('[숲토킹 Recorder] 스트리머:', this.streamerId);
         console.log('[숲토킹 Recorder] 녹화 ID:', this.recordingId);
         console.log('[숲토킹 Recorder] 코덱:', this.mimeType);
@@ -174,15 +186,51 @@
       }
     },
 
+    // ===== 진행 상황 interval 시작 =====
+    startProgressInterval: function() {
+      this.clearProgressInterval();
+
+      this.progressInterval = setInterval(() => {
+        if (this.isRecording) {
+          const duration = (Date.now() - this.recordingStartTime) / 1000;
+
+          // Background로 진행 상황 전송
+          window.postMessage({
+            type: 'SOOPTALKING_RECORDING_PROGRESS',
+            totalBytes: this.totalBytes,
+            duration: duration,
+            streamerId: this.streamerId
+          }, '*');
+
+          console.log('[숲토킹 Recorder] 진행:', duration.toFixed(0), '초');
+        }
+      }, CONFIG.PROGRESS_INTERVAL);
+    },
+
+    // ===== 진행 상황 interval 정리 =====
+    clearProgressInterval: function() {
+      if (this.progressInterval) {
+        clearInterval(this.progressInterval);
+        this.progressInterval = null;
+      }
+    },
+
     // ===== 최종 녹화 저장 =====
     saveFinalRecording: function() {
+      const duration = this.recordingStartTime
+        ? (Date.now() - this.recordingStartTime) / 1000
+        : 0;
+
       if (this.recordedChunks.length === 0) {
         console.log('[숲토킹 Recorder] 저장할 데이터 없음');
+
+        // 녹화 완료 이벤트 (데이터 없음)
         window.postMessage({
-          type: 'SOOPTALKING_RECORDING_COMPLETE',
+          type: 'SOOPTALKING_RECORDING_STOPPED',
           streamerId: this.streamerId,
           recordingId: this.recordingId,
           totalBytes: 0,
+          duration: duration,
           saved: false
         }, '*');
         return;
@@ -190,7 +238,7 @@
 
       const blob = new Blob(this.recordedChunks, { type: this.mimeType });
       const filename = this.getFinalFilename();
-      const duration = (Date.now() - this.recordingStartTime) / 1000;
+      const blobUrl = URL.createObjectURL(blob);
 
       console.log('[숲토킹 Recorder] 💾 최종 녹화 저장:', filename);
       console.log('[숲토킹 Recorder] 크기:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
@@ -201,15 +249,15 @@
         type: 'SOOPTALKING_SAVE_FINAL_RECORDING',
         filename: filename,
         size: blob.size,
-        blobUrl: URL.createObjectURL(blob),
+        blobUrl: blobUrl,
         streamerId: this.streamerId,
         recordingId: this.recordingId,
         duration: duration
       }, '*');
 
-      // 녹화 완료 알림
+      // 녹화 완료 이벤트 전송 (Background 상태 업데이트용)
       window.postMessage({
-        type: 'SOOPTALKING_RECORDING_COMPLETE',
+        type: 'SOOPTALKING_RECORDING_STOPPED',
         streamerId: this.streamerId,
         recordingId: this.recordingId,
         totalBytes: blob.size,
@@ -228,18 +276,19 @@
         return { success: false, error: '녹화 중이 아닙니다.' };
       }
 
+      const duration = (Date.now() - this.recordingStartTime) / 1000;
+      console.log('[숲토킹 Recorder] ⏹️ 녹화 중지 요청, 경과 시간:', duration.toFixed(1), '초');
+
       // MediaRecorder 중지 (onstop에서 최종 파일 저장)
       if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
         this.mediaRecorder.stop();
       }
 
-      const duration = (Date.now() - this.recordingStartTime) / 1000;
-      console.log('[숲토킹 Recorder] ⏹️ 녹화 중지, 총 시간:', duration.toFixed(1), '초');
-
       return {
         success: true,
         duration: duration,
-        totalBytes: this.totalBytes
+        totalBytes: this.totalBytes,
+        streamerId: this.streamerId
       };
     },
 
@@ -265,20 +314,11 @@
       }, 3000);
     },
 
-    // ===== 녹화 상태 조회 =====
+    // ===== 녹화 상태 조회 (최소화) =====
     getStatus: function() {
-      const duration = this.isRecording
-        ? (Date.now() - this.recordingStartTime) / 1000
-        : 0;
-
       return {
         isRecording: this.isRecording,
-        streamerId: this.streamerId,
-        recordingId: this.recordingId,
-        mimeType: this.mimeType,
-        duration: duration.toFixed(1),
-        totalBytes: this.totalBytes,
-        totalMB: (this.totalBytes / 1024 / 1024).toFixed(2)
+        streamerId: this.streamerId
       };
     }
   };
@@ -289,19 +329,19 @@
     stop: () => window.__soopRecorder.stopRecording(),
     status: () => {
       const s = window.__soopRecorder.getStatus();
+      const duration = window.__soopRecorder.isRecording
+        ? ((Date.now() - window.__soopRecorder.recordingStartTime) / 1000).toFixed(1)
+        : 0;
       console.log('[숲토킹 Recorder] 상태:');
       console.log('  녹화 중:', s.isRecording);
       console.log('  스트리머:', s.streamerId);
-      console.log('  녹화 ID:', s.recordingId);
-      console.log('  코덱:', s.mimeType);
-      console.log('  경과 시간:', s.duration, '초');
-      console.log('  총 크기:', s.totalMB, 'MB');
+      console.log('  경과 시간:', duration, '초');
       return s;
     },
     help: () => {
       console.log(`
 ╔════════════════════════════════════════════════════╗
-║        🎬 숲토킹 녹화 시스템                        ║
+║        🎬 숲토킹 녹화 시스템 v2.4                   ║
 ╠════════════════════════════════════════════════════╣
 ║  soopRec.start()   - 녹화 시작                     ║
 ║  soopRec.stop()    - 녹화 중지 (파일 저장)         ║
@@ -342,7 +382,7 @@
     }, '*');
   });
 
-  console.log('[숲토킹 Recorder] ✅ 설치 완료');
+  console.log('[숲토킹 Recorder] ✅ 설치 완료 v2.4');
   console.log('[숲토킹 Recorder] 📖 사용법: soopRec.help()');
 
 })();

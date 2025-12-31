@@ -34,11 +34,6 @@
   let capturedM3u8Url = null;
   let capturedBaseUrl = null;
 
-  // window 객체에 콜백 저장하여 중복 주입 시에도 공유
-  if (typeof window.__soopPendingCallback === 'undefined') {
-    window.__soopPendingCallback = null;
-  }
-
   // ===== MAIN World에서 보낸 메시지 수신 =====
   window.addEventListener('message', (event) => {
     if (event.source !== window) return;
@@ -132,21 +127,41 @@
     if (event.data && event.data.type === 'SOOPTALKING_RECORDING_ERROR') {
       console.error('[숲토킹 Content] 녹화 에러:', event.data.error);
       safeSendMessage({
-        type: 'RECORDING_ERROR',
+        type: 'RECORDING_ERROR_FROM_HOOK',
         data: {
           error: event.data.error
         }
       }).catch(() => {});
     }
 
-    // ===== 녹화 명령 결과 =====
-    if (event.data && event.data.type === 'SOOPTALKING_RECORDER_RESULT') {
-      console.log('[숲토킹 Content] 녹화 명령 결과:', event.data.command, event.data.result);
-      if (window.__soopPendingCallback) {
-        window.__soopPendingCallback(event.data.result);
-        window.__soopPendingCallback = null;
-      }
+    // ===== 녹화 진행 상황 (10초마다 push) =====
+    if (event.data && event.data.type === 'SOOPTALKING_RECORDING_PROGRESS') {
+      // Background로 진행 상황 전달
+      safeSendMessage({
+        type: 'RECORDING_PROGRESS_FROM_HOOK',
+        data: {
+          totalBytes: event.data.totalBytes,
+          duration: event.data.duration,
+          streamerId: event.data.streamerId
+        }
+      }).catch(() => {});
     }
+
+    // ===== 녹화 완료 (Background 상태 업데이트용) =====
+    if (event.data && event.data.type === 'SOOPTALKING_RECORDING_STOPPED') {
+      console.log('[숲토킹 Content] 녹화 완료:', event.data);
+      safeSendMessage({
+        type: 'RECORDING_STOPPED_FROM_HOOK',
+        data: {
+          streamerId: event.data.streamerId,
+          recordingId: event.data.recordingId,
+          totalBytes: event.data.totalBytes,
+          duration: event.data.duration,
+          saved: event.data.saved
+        }
+      }).catch(() => {});
+    }
+
   });
 
   // ===== URL에서 정보 추출 =====
@@ -320,18 +335,6 @@
         const { command: recCommand, params: recParams } = message;
         console.log('[숲토킹 Content] 녹화 명령 수신:', recCommand);
 
-        // 응답 완료 플래그 (중복 호출 방지)
-        let hasResponded = false;
-
-        // 콜백 설정하여 MAIN world 응답 대기 (window 객체에 저장)
-        window.__soopPendingCallback = (result) => {
-          if (!hasResponded) {
-            hasResponded = true;
-            window.__soopPendingCallback = null;
-            sendResponse({ success: true, result: result });
-          }
-        };
-
         // MAIN world (audio-hook.js)로 명령 전달
         window.postMessage({
           type: 'SOOPTALKING_RECORDER_COMMAND',
@@ -339,15 +342,8 @@
           params: recParams
         }, '*');
 
-        // 타임아웃 설정 (5초)
-        setTimeout(() => {
-          if (!hasResponded) {
-            hasResponded = true;
-            window.__soopPendingCallback = null;
-            sendResponse({ success: false, error: '응답 시간 초과' });
-          }
-        }, 5000);
-
+        // 즉시 응답 (결과는 이벤트로 전달됨)
+        sendResponse({ success: true, message: '명령 전달됨' });
         return true;
 
       default:

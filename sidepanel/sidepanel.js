@@ -16,12 +16,15 @@
     endNotificationEnabled: false,
     autoCloseOfflineTabs: true,
     filter: 'all',
-    // 녹화 상태 (메모리 누적 + 단일 파일 저장)
+    // 녹화 상태 (Background 중앙 관리와 동기화)
     isRecording: false,
     recordingTabId: null,
+    recordingStreamerId: null,
+    recordingNickname: null,
     recordingStartTime: null,
     recordingTimerInterval: null,
-    recordingTotalBytes: 0
+    recordingTotalBytes: 0,
+    pendingRecordingTabId: null
   };
 
   // ===== DOM 요소 =====
@@ -65,12 +68,13 @@
     storageValue: document.getElementById('storageValue'),
     storageProgressFill: document.getElementById('storageProgressFill'),
 
-    // 녹화 (메모리 누적 + 단일 파일 저장)
+    // 녹화 (이벤트 기반 중앙 관리)
     startRecordingBtn: document.getElementById('startRecordingBtn'),
     stopRecordingBtn: document.getElementById('stopRecordingBtn'),
     recordingStatus: document.getElementById('recordingStatus'),
     recordingTime: document.getElementById('recordingTime'),
     recordingSize: document.getElementById('recordingSize'),
+    recordingInfo: document.getElementById('recordingInfo'),
 
     // 기타
     toast: document.getElementById('toast'),
@@ -209,30 +213,6 @@
     elements.notificationChip.classList.toggle('active', state.notificationEnabled);
     elements.endNotificationChip.classList.toggle('active', state.endNotificationEnabled);
     elements.autoCloseChip.classList.toggle('active', state.autoCloseOfflineTabs);
-  }
-
-  // ===== Content Script 관리 =====
-  async function ensureContentScriptLoaded(tabId) {
-    try {
-      // content script가 응답하는지 테스트
-      const response = await chrome.tabs.sendMessage(tabId, { type: 'PING' });
-      return response && response.success;
-    } catch (error) {
-      // content script가 없으면 주입
-      console.log('[사이드패널] Content script 주입 시도...');
-      try {
-        await chrome.scripting.executeScript({
-          target: { tabId: tabId },
-          files: ['content.js']
-        });
-        // 주입 후 잠시 대기
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return true;
-      } catch (injectError) {
-        console.error('[사이드패널] Content script 주입 실패:', injectError);
-        return false;
-      }
-    }
   }
 
   async function findSoopTab() {
@@ -896,6 +876,11 @@
         return;
       }
 
+      // 스트리머 정보 추출
+      const match = soopTab.url.match(/play\.sooplive\.co\.kr\/([^\/]+)/);
+      const streamerId = match ? match[1] : 'unknown';
+      const nickname = state.currentStream?.nickname || streamerId;
+
       // 버튼 비활성화 & 로딩 상태
       if (elements.startRecordingBtn) {
         elements.startRecordingBtn.disabled = true;
@@ -908,12 +893,16 @@
       showToast('녹화 시작 중...', 'info');
 
       // 명령 전송 (응답은 이벤트로 받음)
-      await sendMessage({
+      const result = await sendMessage({
         type: 'SIDEPANEL_RECORDING_COMMAND',
         tabId: soopTab.id,
         command: 'START_RECORDING',
-        params: { streamerId: state.currentStream?.streamerId }
+        params: { streamerId, nickname }
       });
+
+      if (!result?.success) {
+        throw new Error(result?.error || '녹화 시작 실패');
+      }
 
       // 5초 타임아웃 설정 (이벤트가 오지 않으면 복구)
       setTimeout(() => {
@@ -973,14 +962,13 @@
       clearInterval(state.recordingTimerInterval);
     }
 
-    // 1초마다 시간 업데이트
+    // 1초마다 시간 업데이트만 (GET_STATUS 폴링 제거!)
     state.recordingTimerInterval = setInterval(() => {
       if (state.isRecording && state.recordingStartTime) {
         const elapsed = Date.now() - state.recordingStartTime;
-        elements.recordingTime.textContent = formatDuration(elapsed);
-
-        // 녹화 상태 조회 (크기 및 세그먼트 수 업데이트)
-        updateRecordingStatus();
+        if (elements.recordingTime) {
+          elements.recordingTime.textContent = formatDuration(elapsed);
+        }
       }
     }, 1000);
   }
@@ -992,26 +980,14 @@
     }
   }
 
-  async function updateRecordingStatus() {
-    if (!state.recordingTabId) return;
-
-    try {
-      // 상태 조회 명령 전송 (응답은 RECORDING_STATUS 이벤트로 받음)
-      await sendMessage({
-        type: 'SIDEPANEL_RECORDING_COMMAND',
-        tabId: state.recordingTabId,
-        command: 'GET_STATUS'
-      });
-    } catch (e) {
-      // 상태 조회 실패 무시
-    }
-  }
-
   function resetRecordingState() {
     state.isRecording = false;
     state.recordingTabId = null;
+    state.recordingStreamerId = null;
+    state.recordingNickname = null;
     state.recordingStartTime = null;
     state.recordingTotalBytes = 0;
+    state.pendingRecordingTabId = null;
     stopRecordingTimer();
   }
 
@@ -1022,62 +998,66 @@
       // 녹화 중
       elements.startRecordingBtn.style.display = 'none';
       elements.stopRecordingBtn.style.display = 'flex';
+      elements.stopRecordingBtn.disabled = false;
+      elements.stopRecordingBtn.innerHTML = '<span class="stop-icon"></span><span>녹화 중지</span>';
       elements.recordingStatus.style.display = 'flex';
+
+      // 녹화 중인 스트리머 정보 표시
+      if (elements.recordingInfo) {
+        const displayName = state.recordingNickname || state.recordingStreamerId;
+        if (displayName) {
+          elements.recordingInfo.textContent = `${displayName} 녹화 중`;
+        }
+      }
     } else {
       // 대기 상태
       elements.startRecordingBtn.style.display = 'flex';
+      elements.startRecordingBtn.disabled = false;
+      elements.startRecordingBtn.innerHTML = '<span class="rec-dot"></span><span>녹화 시작</span>';
       elements.stopRecordingBtn.style.display = 'none';
       elements.recordingStatus.style.display = 'none';
       elements.recordingTime.textContent = '00:00:00';
       elements.recordingSize.textContent = '0 MB';
+
+      // 녹화 정보 초기화
+      if (elements.recordingInfo) {
+        elements.recordingInfo.textContent = '';
+      }
     }
   }
 
-  // 사이드패널 재열림 시 녹화 상태 복원
+  // 사이드패널 재열림 시 녹화 상태 복원 (Background 중앙 상태에서)
   async function restoreRecordingState() {
     try {
-      // SOOP 탭 찾기
-      const soopTab = await findSoopTab();
-      if (!soopTab) {
-        console.log('[사이드패널] SOOP 탭 없음, 녹화 상태 복원 스킵');
-        return;
-      }
-
-      // 해당 탭의 녹화 상태 확인
-      const result = await sendMessage({
-        type: 'SIDEPANEL_RECORDING_COMMAND',
-        tabId: soopTab.id,
-        command: 'GET_STATUS'
-      });
+      // Background에서 녹화 상태 확인
+      const result = await sendMessage({ type: 'GET_RECORDING_STATE' });
 
       console.log('[사이드패널] 녹화 상태 복원 확인:', result);
 
-      if (result && result.success && result.result) {
-        const status = result.result;
+      if (result?.success && result?.data) {
+        const data = result.data;
 
-        if (status.isRecording) {
-          // 녹화 중인 경우 상태 복원
-          state.isRecording = true;
-          state.recordingTabId = soopTab.id;
+        // 녹화 중인 경우 상태 복원
+        state.isRecording = true;
+        state.recordingTabId = data.tabId;
+        state.recordingStreamerId = data.streamerId;
+        state.recordingNickname = data.nickname;
+        state.recordingStartTime = data.startTime;
+        state.recordingTotalBytes = data.totalBytes || 0;
 
-          // 녹화 시작 시간 추정 (현재 시간 - 녹화 시간)
-          const durationSeconds = parseFloat(status.duration) || 0;
-          state.recordingStartTime = Date.now() - (durationSeconds * 1000);
+        // 타이머 시작
+        startRecordingTimer();
 
-          // 타이머 시작
-          startRecordingTimer();
-
-          // 크기 업데이트
-          if (elements.recordingSize) {
-            elements.recordingSize.textContent = (status.totalMB || '0') + ' MB';
-          }
-
-          console.log('[사이드패널] 녹화 상태 복원됨 - 녹화 중');
+        // 크기 업데이트
+        if (elements.recordingSize && data.totalBytes) {
+          elements.recordingSize.textContent = (data.totalBytes / 1024 / 1024).toFixed(2) + ' MB';
         }
+
+        console.log('[사이드패널] 녹화 상태 복원됨 - 녹화 중:', data.nickname || data.streamerId);
       }
     } catch (error) {
-      console.log('[사이드패널] 녹화 상태 복원 실패 (정상):', error.message);
-      // 실패해도 무시 (새 탭이거나 녹화 안 함)
+      console.log('[사이드패널] 녹화 상태 없음 (정상)');
+      // 실패해도 무시 (녹화 안 함)
     }
   }
 
@@ -1287,12 +1267,14 @@
           console.log('[사이드패널] 🔴 녹화 시작됨:', message.data);
           state.isRecording = true;
           state.recordingTabId = message.data.tabId || state.pendingRecordingTabId;
-          state.recordingStartTime = Date.now();
+          state.recordingStreamerId = message.data.streamerId;
+          state.recordingNickname = message.data.nickname;
+          state.recordingStartTime = message.data.startTime || Date.now();
           state.recordingTotalBytes = 0;
 
           updateRecordingUI();
           startRecordingTimer();
-          showToast('🔴 녹화가 시작되었습니다!', 'success');
+          showToast(`🔴 ${message.data.nickname || message.data.streamerId} 녹화 시작!`, 'success');
           break;
 
         case 'RECORDING_STOPPED':
@@ -1302,24 +1284,22 @@
           const stoppedTotalMB = message.data.totalBytes
             ? (message.data.totalBytes / 1024 / 1024).toFixed(2)
             : '0';
-          showToast(`✅ 녹화 완료! ${stoppedTotalMB} MB 저장됨`, 'success');
+          const stoppedDuration = message.data.duration
+            ? (message.data.duration / 60).toFixed(1)
+            : '0';
+          showToast(`✅ 녹화 완료! ${stoppedDuration}분, ${stoppedTotalMB} MB`, 'success');
 
           resetRecordingState();
           updateRecordingUI();
           break;
 
-        case 'RECORDING_STATUS':
-          console.log('[사이드패널] 녹화 상태:', message.data);
-          if (message.data.isRecording && !state.isRecording) {
-            // 녹화 중인데 상태가 안 맞으면 복원
-            state.isRecording = true;
-            state.recordingTabId = message.data.tabId;
-            state.recordingStartTime = Date.now() - ((parseFloat(message.data.duration) || 0) * 1000);
-            updateRecordingUI();
-            startRecordingTimer();
-          }
-          if (elements.recordingSize && message.data.totalMB) {
-            elements.recordingSize.textContent = message.data.totalMB + ' MB';
+        case 'RECORDING_PROGRESS':
+          // 10초마다 진행 상황 업데이트 (폴링 없이 push로 받음)
+          if (state.isRecording && message.data.totalBytes) {
+            state.recordingTotalBytes = message.data.totalBytes;
+            if (elements.recordingSize) {
+              elements.recordingSize.textContent = (message.data.totalBytes / 1024 / 1024).toFixed(2) + ' MB';
+            }
           }
           break;
 
@@ -1345,39 +1325,6 @@
           }
           break;
 
-        case 'RECORDING_COMPLETED':
-          // 녹화 완료 (방송 종료 등으로 인한 자동 완료)
-          console.log('[사이드패널] 녹화 완료:', message.data);
-          stopRecordingTimer();
-          resetRecordingState();
-          updateRecordingUI();
-          if (message.data && message.data.totalBytes) {
-            const sizeMB = (message.data.totalBytes / 1024 / 1024).toFixed(2);
-            const durationMin = message.data.duration ? (message.data.duration / 60).toFixed(1) : '0';
-            showToast(`녹화 완료! ${durationMin}분, ${sizeMB} MB 저장됨`, 'success');
-          } else {
-            showToast('녹화가 완료되었습니다.', 'success');
-          }
-          break;
-
-        case 'RECORDING_STATUS_CHANGED':
-          // 레거시 녹화 상태 업데이트 (호환성)
-          const recordingData = message.data;
-          console.log('[사이드패널] 녹화 상태 변경:', recordingData);
-
-          if (recordingData.status === 'complete') {
-            // 녹화 완료
-            stopRecordingTimer();
-            resetRecordingState();
-            updateRecordingUI();
-            showToast('녹화가 완료되었습니다.', 'success');
-          } else if (recordingData.status === 'error') {
-            // 녹화 에러
-            resetRecordingState();
-            updateRecordingUI();
-            showToast('녹화 오류: ' + (recordingData.error || '알 수 없는 오류'), 'error');
-          }
-          break;
       }
     });
 
