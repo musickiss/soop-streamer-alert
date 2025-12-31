@@ -19,11 +19,7 @@
 
   "host_permissions": [
     "*://*.sooplive.co.kr/*",
-    "*://*.afreecatv.com/*",
-    "*://livestream-manager.sooplive.co.kr/*",
-    "*://live.sooplive.co.kr/*",
-    "*://live-*.sooplive.co.kr/*",
-    "*://live-*.afreecatv.com/*"
+    "*://*.afreecatv.com/*"
   ],
 
   "background": {
