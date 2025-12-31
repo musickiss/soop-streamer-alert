@@ -50,10 +50,10 @@
     currentAvatar: document.getElementById('currentAvatar'),
     currentAvatarText: document.getElementById('currentAvatarText'),
 
-    // 다운로드
-    downloadList: document.getElementById('downloadList'),
-    downloadCount: document.getElementById('downloadCount'),
-    emptyDownloads: document.getElementById('emptyDownloads'),
+    // 녹화 중 목록
+    activeRecordingList: document.getElementById('activeRecordingList'),
+    recordingCount: document.getElementById('recordingCount'),
+    noRecordingMessage: document.getElementById('noRecordingMessage'),
 
     // 스트리머
     streamerList: document.getElementById('streamerList'),
@@ -1206,6 +1206,156 @@
     }
   }
 
+  // ===== 녹화 중 목록 관리 =====
+  // 녹화 중 목록 업데이트
+  async function updateActiveRecordingList() {
+    try {
+      const result = await sendMessage({ type: 'GET_ALL_RECORDINGS' });
+
+      if (!elements.activeRecordingList) return;
+
+      const recordings = result?.success ? (result.data || []) : [];
+
+      // 카운트 업데이트
+      if (elements.recordingCount) {
+        elements.recordingCount.textContent = recordings.length;
+        elements.recordingCount.classList.toggle('empty', recordings.length === 0);
+      }
+
+      // 빈 메시지 표시/숨김
+      if (elements.noRecordingMessage) {
+        elements.noRecordingMessage.style.display = recordings.length === 0 ? 'block' : 'none';
+      }
+
+      // 목록이 비어있으면 빈 메시지만 표시
+      if (recordings.length === 0) {
+        elements.activeRecordingList.innerHTML = '';
+        return;
+      }
+
+      // 녹화 카드 생성
+      const cardsHTML = recordings.map(rec => createRecordingCardHTML(rec)).join('');
+      elements.activeRecordingList.innerHTML = cardsHTML;
+
+      // 중지 버튼 이벤트 연결
+      recordings.forEach(rec => {
+        const stopBtn = document.getElementById(`stop-recording-${rec.tabId}`);
+        if (stopBtn) {
+          stopBtn.addEventListener('click', () => stopRecordingByTabId(rec.tabId));
+        }
+      });
+
+    } catch (error) {
+      console.error('[사이드패널] 녹화 목록 업데이트 오류:', error);
+    }
+  }
+
+  // 녹화 카드 HTML 생성
+  function createRecordingCardHTML(recording) {
+    const duration = recording.startTime
+      ? Math.floor((Date.now() - recording.startTime) / 1000)
+      : 0;
+    const hours = Math.floor(duration / 3600);
+    const minutes = Math.floor((duration % 3600) / 60);
+    const seconds = duration % 60;
+    const timeStr = hours > 0
+      ? `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+      : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+    const sizeStr = recording.totalBytes
+      ? (recording.totalBytes / 1024 / 1024).toFixed(2) + ' MB'
+      : '0.00 MB';
+
+    const displayName = escapeHtml(recording.nickname || recording.streamerId || '알 수 없음');
+
+    return `
+      <div class="recording-card" data-tab-id="${recording.tabId}">
+        <div class="recording-card-header">
+          <span class="recording-indicator"></span>
+          <span class="recording-streamer-name" title="${displayName}">${displayName}</span>
+        </div>
+        <div class="recording-card-stats">
+          <div class="recording-stat">
+            <span>⏱️</span>
+            <span class="recording-stat-value recording-time" data-tab-id="${recording.tabId}">${timeStr}</span>
+          </div>
+          <div class="recording-stat">
+            <span>💾</span>
+            <span class="recording-stat-value recording-size" data-tab-id="${recording.tabId}">${sizeStr}</span>
+          </div>
+        </div>
+        <button class="recording-stop-btn" id="stop-recording-${recording.tabId}">
+          <span>⏹</span>
+          <span>녹화 중지</span>
+        </button>
+      </div>
+    `;
+  }
+
+  // 특정 탭의 녹화 중지
+  async function stopRecordingByTabId(tabId) {
+    const stopBtn = document.getElementById(`stop-recording-${tabId}`);
+    if (stopBtn) {
+      stopBtn.disabled = true;
+      stopBtn.innerHTML = '<span>⏳</span><span>중지 중...</span>';
+    }
+
+    try {
+      const result = await sendMessage({
+        type: 'STOP_RECORDING',
+        tabId: tabId
+      });
+
+      if (result?.success) {
+        console.log('[사이드패널] 녹화 중지 성공:', tabId);
+        // 목록 즉시 업데이트
+        await updateActiveRecordingList();
+      } else {
+        console.error('[사이드패널] 녹화 중지 실패:', result?.error);
+        if (stopBtn) {
+          stopBtn.disabled = false;
+          stopBtn.innerHTML = '<span>⏹</span><span>녹화 중지</span>';
+        }
+      }
+    } catch (error) {
+      console.error('[사이드패널] 녹화 중지 오류:', error);
+      if (stopBtn) {
+        stopBtn.disabled = false;
+        stopBtn.innerHTML = '<span>⏹</span><span>녹화 중지</span>';
+      }
+    }
+  }
+
+  // 녹화 목록의 시간/크기 실시간 업데이트
+  function updateRecordingCardsTimer() {
+    const cards = document.querySelectorAll('.recording-card');
+    cards.forEach(card => {
+      const tabId = card.dataset.tabId;
+      const timeEl = card.querySelector(`.recording-time[data-tab-id="${tabId}"]`);
+
+      if (timeEl) {
+        // 현재 표시된 시간에서 1초 증가
+        const currentTime = timeEl.textContent;
+        const parts = currentTime.split(':').map(Number);
+        let totalSeconds;
+
+        if (parts.length === 3) {
+          totalSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2] + 1;
+        } else {
+          totalSeconds = parts[0] * 60 + parts[1] + 1;
+        }
+
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        timeEl.textContent = hours > 0
+          ? `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+          : `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      }
+    });
+  }
+
   // ===== 내보내기/가져오기 =====
   function exportStreamers() {
     if (state.favoriteStreamers.length === 0) {
@@ -1424,6 +1574,9 @@
             startRecordingTimer();
           }
 
+          // 녹화 목록 즉시 업데이트
+          await updateActiveRecordingList();
+
           showToast(`🔴 ${message.data.nickname || message.data.streamerId} 녹화 시작!`, 'success');
           break;
 
@@ -1447,6 +1600,9 @@
             }
           }
 
+          // 녹화 목록 즉시 업데이트
+          await updateActiveRecordingList();
+
           const stoppedTotalMB = message.data.totalBytes
             ? (message.data.totalBytes / 1024 / 1024).toFixed(2)
             : '0';
@@ -1467,6 +1623,13 @@
             state.recordingTotalBytes = message.data.totalBytes;
             if (elements.recordingSize) {
               elements.recordingSize.textContent = (message.data.totalBytes / 1024 / 1024).toFixed(2) + ' MB';
+            }
+          }
+          // 해당 카드의 크기 업데이트
+          if (message.data?.tabId) {
+            const sizeEl = document.querySelector(`.recording-size[data-tab-id="${message.data.tabId}"]`);
+            if (sizeEl && message.data.totalBytes) {
+              sizeEl.textContent = (message.data.totalBytes / 1024 / 1024).toFixed(2) + ' MB';
             }
           }
           break;
@@ -1490,6 +1653,9 @@
               elements.stopRecordingBtn.innerHTML = '<span class="stop-icon"></span><span>녹화 중지</span>';
             }
           }
+
+          // 녹화 목록 업데이트
+          await updateActiveRecordingList();
 
           showToast('녹화 오류: ' + (message.data.error || '알 수 없는 오류'), 'error');
           break;
@@ -1543,15 +1709,22 @@
     await restoreRecordingState();
 
     updateRecordingUI();
-    await refreshDownloads();
+
+    // 녹화 목록 초기 로드
+    await updateActiveRecordingList();
     await updateStorageInfo();
 
     // 이벤트 바인딩
     bindEvents();
 
+    // 녹화 카드 시간 업데이트 타이머 (1초마다)
+    setInterval(updateRecordingCardsTimer, 1000);
+
+    // 녹화 목록 전체 갱신 타이머 (10초마다) - 크기 등 동기화
+    setInterval(updateActiveRecordingList, 10000);
+
     // 주기적 업데이트
     setInterval(async () => {
-      await refreshDownloads();
       await updateStorageInfo();
     }, 5000);
 

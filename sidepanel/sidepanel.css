@@ -1285,3 +1285,124 @@ body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.7; }
 }
+
+/* ===== 녹화 중 목록 스타일 ===== */
+.recordings-section .section-title {
+  color: var(--record-red);
+}
+
+.recording-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.recording-card {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 1px solid var(--record-red);
+  border-radius: 8px;
+  padding: 12px;
+  animation: recording-pulse 2s ease-in-out infinite;
+}
+
+@keyframes recording-pulse {
+  0%, 100% { border-color: var(--record-red); box-shadow: 0 0 5px rgba(255, 71, 87, 0.3); }
+  50% { border-color: #ff6b6b; box-shadow: 0 0 15px rgba(255, 71, 87, 0.5); }
+}
+
+.recording-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.recording-card .recording-indicator {
+  width: 10px;
+  height: 10px;
+  background: var(--record-red);
+  border-radius: 50%;
+  animation: blink 1s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.recording-streamer-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.recording-card-stats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 10px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.recording-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.recording-stat-value {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.recording-stop-btn {
+  width: 100%;
+  padding: 8px;
+  background: var(--record-red);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+}
+
+.recording-stop-btn:hover {
+  background: #c0392b;
+}
+
+.recording-stop-btn:disabled {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.section-badge.recording-count {
+  background: var(--record-red);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.section-badge.recording-count.empty {
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+}
+
+.empty-recordings {
+  text-align: center;
+  padding: 16px;
+  color: var(--text-muted);
+  font-size: 11px;
+}

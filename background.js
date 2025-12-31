@@ -120,6 +120,17 @@ const M3U8_WAIT_TIMEOUT = 15000;     // m3u8 캡처 대기 시간 (15초)
 const DEFAULT_NOTIFICATION_DURATION = 10;
 const MAX_SOOP_TABS = 4;
 
+// ===== 뱃지 업데이트 함수 =====
+function updateRecordingBadge() {
+  const count = state.activeRecordings.size;
+  if (count > 0) {
+    chrome.action.setBadgeText({ text: String(count) });
+    chrome.action.setBadgeBackgroundColor({ color: '#FF4757' }); // 빨간색
+  } else {
+    chrome.action.setBadgeText({ text: '' });
+  }
+}
+
 // ===== 상태 저장 객체 =====
 let state = {
   favoriteStreamers: [],
@@ -397,6 +408,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     console.log('[숲토킹] 녹화 중인 탭 닫힘, 상태 정리:', tabId);
     const recordingInfo = state.activeRecordings.get(tabId);
     state.activeRecordings.delete(tabId);
+    updateRecordingBadge();  // 뱃지 업데이트
 
     chrome.runtime.sendMessage({
       type: 'RECORDING_STOPPED',
@@ -1542,6 +1554,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
                   // 성공 이벤트 브로드캐스트
                   console.log('[숲토킹] ✅ START_RECORDING 성공, tabId:', targetTabId);
+                  updateRecordingBadge();  // 뱃지 업데이트
                   chrome.runtime.sendMessage({
                     type: 'RECORDING_STARTED',
                     data: { tabId: targetTabId, ...newRecording }
@@ -1581,6 +1594,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   // 최종 실패
                   console.error('[숲토킹] START_RECORDING 최종 실패');
                   state.activeRecordings.delete(targetTabId);  // 롤백
+                  updateRecordingBadge();  // 뱃지 업데이트
 
                   chrome.runtime.sendMessage({
                     type: 'RECORDING_ERROR',
@@ -1758,6 +1772,67 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           break;
 
+        case 'GET_ALL_RECORDINGS':
+          // 모든 활성 녹화 목록 반환
+          try {
+            const allRecordings = [];
+            for (const [tabId, recording] of state.activeRecordings) {
+              allRecordings.push({
+                tabId: tabId,
+                streamerId: recording.streamerId,
+                nickname: recording.nickname,
+                startTime: recording.startTime,
+                totalBytes: recording.totalBytes || 0
+              });
+            }
+            sendResponse({ success: true, data: allRecordings });
+          } catch (error) {
+            sendResponse({ success: false, error: error.message, data: [] });
+          }
+          break;
+
+        case 'STOP_RECORDING':
+          // 특정 탭의 녹화 중지
+          const stopTabId = message.tabId;
+          console.log('[숲토킹] STOP_RECORDING 요청, tabId:', stopTabId);
+
+          if (!stopTabId) {
+            sendResponse({ success: false, error: '탭 ID가 없습니다.' });
+            break;
+          }
+
+          if (!state.activeRecordings.has(stopTabId)) {
+            sendResponse({ success: false, error: '이 탭에서 녹화 중이 아닙니다.' });
+            break;
+          }
+
+          const stopRecordingInfo = { tabId: stopTabId, ...state.activeRecordings.get(stopTabId) };
+
+          // 즉시 응답
+          sendResponse({ success: true, message: '녹화 중지 요청됨' });
+
+          // 비동기로 실제 중지 명령 전달
+          (async () => {
+            try {
+              await chrome.tabs.sendMessage(stopTabId, {
+                type: 'RECORDING_COMMAND',
+                command: 'STOP_RECORDING'
+              });
+              console.log('[숲토킹] STOP_RECORDING 명령 전달 완료:', stopTabId);
+            } catch (error) {
+              console.error('[숲토킹] STOP_RECORDING 전달 실패:', error.message);
+              // 에러여도 상태 정리 (탭이 닫혔을 수 있음)
+              state.activeRecordings.delete(stopTabId);
+              updateRecordingBadge();
+
+              chrome.runtime.sendMessage({
+                type: 'RECORDING_STOPPED',
+                data: { ...stopRecordingInfo, error: error.message }
+              }).catch(() => {});
+            }
+          })();
+          break;
+
         case 'RECORDING_STOPPED_FROM_HOOK':
           // audio-hook에서 녹화 완료 이벤트
           console.log('[숲토킹] 녹화 완료 이벤트:', message.data);
@@ -1768,6 +1843,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
           if (stoppedTabId) {
             state.activeRecordings.delete(stoppedTabId);  // 상태 초기화
+            updateRecordingBadge();  // 뱃지 업데이트
           }
 
           // sidepanel에 브로드캐스트
@@ -1810,6 +1886,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
           if (errorTabId) {
             state.activeRecordings.delete(errorTabId);
+            updateRecordingBadge();  // 뱃지 업데이트
           }
 
           chrome.runtime.sendMessage({
