@@ -1,0 +1,228 @@
+{
+  "extName": {
+    "message": "SOOPtalking - SOOP主播开播提醒",
+    "description": "扩展程序名称"
+  },
+  "extDescription": {
+    "message": "自动检测您收藏的主播开播，并在新标签页中打开直播。还可以直接下载HLS流。",
+    "description": "扩展程序描述"
+  },
+  "appName": {
+    "message": "SOOPtalking",
+    "description": "应用名称（品牌）"
+  },
+  "tagline": {
+    "message": "SOOP主播通知和下载",
+    "description": "标语"
+  },
+  "openSidepanel": {
+    "message": "打开侧边栏",
+    "description": "打开侧边栏按钮"
+  },
+  "sidepanelHint": {
+    "message": "在侧边栏中可以使用所有功能。",
+    "description": "侧边栏提示"
+  },
+  "monitoringOn": {
+    "message": "监控中",
+    "description": "监控已启用状态"
+  },
+  "monitoringOff": {
+    "message": "监控关闭",
+    "description": "监控已禁用状态"
+  },
+  "broadcastNotification": {
+    "message": "开播通知",
+    "description": "开播通知设置"
+  },
+  "endNotification": {
+    "message": "下播通知",
+    "description": "下播通知设置"
+  },
+  "autoCloseOfflineTabs": {
+    "message": "自动关闭标签页",
+    "description": "自动关闭离线标签页设置"
+  },
+  "nowWatching": {
+    "message": "正在观看",
+    "description": "正在观看区域"
+  },
+  "notWatchingMessage": {
+    "message": "未在观看SOOP直播",
+    "description": "未观看时的消息"
+  },
+  "startDownload": {
+    "message": "开始下载",
+    "description": "开始下载按钮"
+  },
+  "stopDownload": {
+    "message": "停止下载",
+    "description": "停止下载按钮"
+  },
+  "qualityOriginal": {
+    "message": "原画",
+    "description": "原画画质"
+  },
+  "downloading": {
+    "message": "下载中",
+    "description": "下载中区域"
+  },
+  "noDownloads": {
+    "message": "没有正在下载的直播",
+    "description": "无下载消息"
+  },
+  "favoriteStreamers": {
+    "message": "收藏主播",
+    "description": "收藏主播区域"
+  },
+  "filterAll": {
+    "message": "全部",
+    "description": "全部筛选"
+  },
+  "filterLive": {
+    "message": "直播中",
+    "description": "直播中筛选"
+  },
+  "filterOffline": {
+    "message": "离线",
+    "description": "离线筛选"
+  },
+  "storage": {
+    "message": "存储空间",
+    "description": "存储空间"
+  },
+  "privacy": {
+    "message": "隐私政策",
+    "description": "隐私政策链接"
+  },
+  "inputPlaceholder": {
+    "message": "输入主播ID（例如：streamer123）",
+    "description": "主播ID输入框占位符"
+  },
+  "addButton": {
+    "message": "添加",
+    "description": "添加按钮"
+  },
+  "emptyTitle": {
+    "message": "没有已注册的主播。",
+    "description": "空状态标题"
+  },
+  "emptyDescription": {
+    "message": "在下方添加主播ID。",
+    "description": "空状态描述"
+  },
+  "notificationBroadcastStartTitle": {
+    "message": "$nickname$ 开播了！",
+    "description": "开播通知标题",
+    "placeholders": {
+      "nickname": {
+        "content": "$1",
+        "example": "主播昵称"
+      }
+    }
+  },
+  "notificationBroadcastStartMessage": {
+    "message": "直播已开始。",
+    "description": "开播通知消息"
+  },
+  "notificationBroadcastEndTitle": {
+    "message": "$nickname$ 下播了",
+    "description": "下播通知标题",
+    "placeholders": {
+      "nickname": {
+        "content": "$1",
+        "example": "主播昵称"
+      }
+    }
+  },
+  "notificationBroadcastEndMessage": {
+    "message": "直播已结束。",
+    "description": "下播通知消息"
+  },
+  "autoJoin": {
+    "message": "自动加入",
+    "description": "自动加入设置"
+  },
+  "autoDownload": {
+    "message": "自动下载",
+    "description": "自动下载设置"
+  },
+  "downloadQuality": {
+    "message": "下载画质",
+    "description": "下载画质设置"
+  },
+  "deleteStreamer": {
+    "message": "删除主播",
+    "description": "删除主播按钮"
+  },
+  "backgroundDownload": {
+    "message": "后台下载",
+    "description": "后台下载"
+  },
+  "watchingDownload": {
+    "message": "观看中",
+    "description": "观看中下载"
+  },
+  "fastCheckHint": {
+    "message": "5秒间隔",
+    "description": "快速检查提示"
+  },
+  "slowCheckHint": {
+    "message": "30秒间隔",
+    "description": "慢速检查提示"
+  },
+  "toastMonitoringStarted": {
+    "message": "监控已开始。",
+    "description": "监控开始提示"
+  },
+  "toastMonitoringStopped": {
+    "message": "监控已停止。",
+    "description": "监控停止提示"
+  },
+  "toastRefreshComplete": {
+    "message": "刷新完成",
+    "description": "刷新完成提示"
+  },
+  "toastStreamerAdded": {
+    "message": "已添加 $name$",
+    "description": "主播添加成功提示",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastStreamerDeleted": {
+    "message": "已删除 $name$",
+    "description": "主播删除成功提示",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastDownloadStarted": {
+    "message": "下载已开始！",
+    "description": "下载开始提示"
+  },
+  "toastDownloadStopped": {
+    "message": "下载已停止并保存。",
+    "description": "下载停止提示"
+  },
+  "toastDownloadComplete": {
+    "message": "$fileName$ 下载完成！",
+    "description": "下载完成提示",
+    "placeholders": {
+      "fileName": {
+        "content": "$1",
+        "example": "streamer_20250130.ts"
+      }
+    }
+  },
+  "toastError": {
+    "message": "发生错误。",
+    "description": "一般错误提示"
+  }
+}

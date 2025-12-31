@@ -1,0 +1,228 @@
+{
+  "extName": {
+    "message": "SOOPtalking - SOOP配信者放送通知",
+    "description": "拡張機能名"
+  },
+  "extDescription": {
+    "message": "お気に入りの配信者が放送を開始すると自動で検知し、新しいタブで開きます。HLSストリームを直接ダウンロードすることもできます。",
+    "description": "拡張機能の説明"
+  },
+  "appName": {
+    "message": "SOOPtalking",
+    "description": "アプリ名（ブランド）"
+  },
+  "tagline": {
+    "message": "SOOP配信者通知＆ダウンロード",
+    "description": "タグライン"
+  },
+  "openSidepanel": {
+    "message": "サイドパネルを開く",
+    "description": "サイドパネルを開くボタン"
+  },
+  "sidepanelHint": {
+    "message": "サイドパネルですべての機能を使用できます。",
+    "description": "サイドパネルのヒント"
+  },
+  "monitoringOn": {
+    "message": "監視中",
+    "description": "監視有効状態"
+  },
+  "monitoringOff": {
+    "message": "監視オフ",
+    "description": "監視無効状態"
+  },
+  "broadcastNotification": {
+    "message": "放送通知",
+    "description": "放送開始通知設定"
+  },
+  "endNotification": {
+    "message": "終了通知",
+    "description": "放送終了通知設定"
+  },
+  "autoCloseOfflineTabs": {
+    "message": "タブ自動終了",
+    "description": "オフラインタブ自動クローズ設定"
+  },
+  "nowWatching": {
+    "message": "現在視聴中",
+    "description": "現在視聴中セクション"
+  },
+  "notWatchingMessage": {
+    "message": "SOOP放送を視聴していません",
+    "description": "視聴中でない時のメッセージ"
+  },
+  "startDownload": {
+    "message": "今からダウンロード",
+    "description": "ダウンロード開始ボタン"
+  },
+  "stopDownload": {
+    "message": "ダウンロード停止",
+    "description": "ダウンロード停止ボタン"
+  },
+  "qualityOriginal": {
+    "message": "オリジナル",
+    "description": "オリジナル画質"
+  },
+  "downloading": {
+    "message": "ダウンロード中",
+    "description": "ダウンロード中セクション"
+  },
+  "noDownloads": {
+    "message": "ダウンロード中の放送はありません",
+    "description": "ダウンロードなしメッセージ"
+  },
+  "favoriteStreamers": {
+    "message": "お気に入り配信者",
+    "description": "お気に入り配信者セクション"
+  },
+  "filterAll": {
+    "message": "すべて",
+    "description": "すべてフィルター"
+  },
+  "filterLive": {
+    "message": "配信中",
+    "description": "配信中フィルター"
+  },
+  "filterOffline": {
+    "message": "オフライン",
+    "description": "オフラインフィルター"
+  },
+  "storage": {
+    "message": "ストレージ",
+    "description": "ストレージ"
+  },
+  "privacy": {
+    "message": "プライバシー",
+    "description": "プライバシーリンク"
+  },
+  "inputPlaceholder": {
+    "message": "配信者IDを入力（例：streamer123）",
+    "description": "配信者ID入力フィールドのプレースホルダー"
+  },
+  "addButton": {
+    "message": "追加",
+    "description": "追加ボタン"
+  },
+  "emptyTitle": {
+    "message": "登録された配信者がいません。",
+    "description": "空状態タイトル"
+  },
+  "emptyDescription": {
+    "message": "下で配信者IDを追加してください。",
+    "description": "空状態説明"
+  },
+  "notificationBroadcastStartTitle": {
+    "message": "$nickname$ が放送を開始しました！",
+    "description": "放送開始通知タイトル",
+    "placeholders": {
+      "nickname": {
+        "content": "$1",
+        "example": "配信者ニックネーム"
+      }
+    }
+  },
+  "notificationBroadcastStartMessage": {
+    "message": "放送が始まりました。",
+    "description": "放送開始通知メッセージ"
+  },
+  "notificationBroadcastEndTitle": {
+    "message": "$nickname$ が放送を終了しました",
+    "description": "放送終了通知タイトル",
+    "placeholders": {
+      "nickname": {
+        "content": "$1",
+        "example": "配信者ニックネーム"
+      }
+    }
+  },
+  "notificationBroadcastEndMessage": {
+    "message": "放送が終了しました。",
+    "description": "放送終了通知メッセージ"
+  },
+  "autoJoin": {
+    "message": "自動参加",
+    "description": "自動参加設定"
+  },
+  "autoDownload": {
+    "message": "自動ダウンロード",
+    "description": "自動ダウンロード設定"
+  },
+  "downloadQuality": {
+    "message": "ダウンロード画質",
+    "description": "ダウンロード画質設定"
+  },
+  "deleteStreamer": {
+    "message": "配信者削除",
+    "description": "配信者削除ボタン"
+  },
+  "backgroundDownload": {
+    "message": "バックグラウンド",
+    "description": "バックグラウンドダウンロード"
+  },
+  "watchingDownload": {
+    "message": "視聴中",
+    "description": "視聴中ダウンロード"
+  },
+  "fastCheckHint": {
+    "message": "5秒周期",
+    "description": "高速チェックヒント"
+  },
+  "slowCheckHint": {
+    "message": "30秒周期",
+    "description": "低速チェックヒント"
+  },
+  "toastMonitoringStarted": {
+    "message": "監視を開始しました。",
+    "description": "監視開始トースト"
+  },
+  "toastMonitoringStopped": {
+    "message": "監視を停止しました。",
+    "description": "監視停止トースト"
+  },
+  "toastRefreshComplete": {
+    "message": "更新完了",
+    "description": "更新完了トースト"
+  },
+  "toastStreamerAdded": {
+    "message": "$name$ を追加しました",
+    "description": "配信者追加完了トースト",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastStreamerDeleted": {
+    "message": "$name$ を削除しました",
+    "description": "配信者削除完了トースト",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastDownloadStarted": {
+    "message": "ダウンロードを開始しました！",
+    "description": "ダウンロード開始トースト"
+  },
+  "toastDownloadStopped": {
+    "message": "ダウンロードを停止して保存しました。",
+    "description": "ダウンロード停止トースト"
+  },
+  "toastDownloadComplete": {
+    "message": "$fileName$ ダウンロード完了！",
+    "description": "ダウンロード完了トースト",
+    "placeholders": {
+      "fileName": {
+        "content": "$1",
+        "example": "streamer_20250130.ts"
+      }
+    }
+  },
+  "toastError": {
+    "message": "エラーが発生しました。",
+    "description": "一般エラートースト"
+  }
+}

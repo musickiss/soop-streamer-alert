@@ -1,0 +1,228 @@
+{
+  "extName": {
+    "message": "숲토킹 - SOOP 스트리머 방송 알림",
+    "description": "확장 프로그램 이름"
+  },
+  "extDescription": {
+    "message": "즐겨찾기한 스트리머의 방송 시작을 자동 감지하여 새 탭으로 열어주고, HLS 스트림을 직접 다운로드할 수 있습니다.",
+    "description": "확장 프로그램 설명"
+  },
+  "appName": {
+    "message": "숲토킹",
+    "description": "앱 이름 (브랜드)"
+  },
+  "tagline": {
+    "message": "SOOP 스트리머 알림 & 다운로드",
+    "description": "태그라인"
+  },
+  "openSidepanel": {
+    "message": "사이드패널 열기",
+    "description": "사이드패널 열기 버튼"
+  },
+  "sidepanelHint": {
+    "message": "사이드패널에서 모든 기능을 사용할 수 있습니다.",
+    "description": "사이드패널 힌트"
+  },
+  "monitoringOn": {
+    "message": "모니터링 ON",
+    "description": "모니터링 활성화 상태"
+  },
+  "monitoringOff": {
+    "message": "모니터링 OFF",
+    "description": "모니터링 비활성화 상태"
+  },
+  "broadcastNotification": {
+    "message": "방송 알림",
+    "description": "방송 시작 알림 설정"
+  },
+  "endNotification": {
+    "message": "종료 알림",
+    "description": "방송 종료 알림 설정"
+  },
+  "autoCloseOfflineTabs": {
+    "message": "탭 자동종료",
+    "description": "오프라인 탭 자동 종료 설정"
+  },
+  "nowWatching": {
+    "message": "현재 시청 중",
+    "description": "현재 시청 중 섹션"
+  },
+  "notWatchingMessage": {
+    "message": "SOOP 방송을 시청 중이 아닙니다",
+    "description": "시청 중 아닐 때 메시지"
+  },
+  "startDownload": {
+    "message": "지금부터 다운로드",
+    "description": "다운로드 시작 버튼"
+  },
+  "stopDownload": {
+    "message": "다운로드 중지",
+    "description": "다운로드 중지 버튼"
+  },
+  "qualityOriginal": {
+    "message": "원본",
+    "description": "원본 화질"
+  },
+  "downloading": {
+    "message": "다운로드 중",
+    "description": "다운로드 중 섹션"
+  },
+  "noDownloads": {
+    "message": "다운로드 중인 방송이 없습니다",
+    "description": "다운로드 없음 메시지"
+  },
+  "favoriteStreamers": {
+    "message": "즐겨찾기 스트리머",
+    "description": "즐겨찾기 스트리머 섹션"
+  },
+  "filterAll": {
+    "message": "전체",
+    "description": "전체 필터"
+  },
+  "filterLive": {
+    "message": "방송중",
+    "description": "방송중 필터"
+  },
+  "filterOffline": {
+    "message": "오프라인",
+    "description": "오프라인 필터"
+  },
+  "storage": {
+    "message": "저장 공간",
+    "description": "저장 공간"
+  },
+  "privacy": {
+    "message": "개인정보",
+    "description": "개인정보 링크"
+  },
+  "inputPlaceholder": {
+    "message": "스트리머 ID 입력 (예: streamer123)",
+    "description": "스트리머 ID 입력 필드 placeholder"
+  },
+  "addButton": {
+    "message": "추가",
+    "description": "추가 버튼"
+  },
+  "emptyTitle": {
+    "message": "등록된 스트리머가 없습니다.",
+    "description": "빈 상태 제목"
+  },
+  "emptyDescription": {
+    "message": "아래에서 스트리머 ID를 추가하세요.",
+    "description": "빈 상태 설명"
+  },
+  "notificationBroadcastStartTitle": {
+    "message": "$nickname$ 방송 시작!",
+    "description": "방송 시작 알림 제목",
+    "placeholders": {
+      "nickname": {
+        "content": "$1",
+        "example": "스트리머닉네임"
+      }
+    }
+  },
+  "notificationBroadcastStartMessage": {
+    "message": "방송을 시작했습니다.",
+    "description": "방송 시작 알림 메시지"
+  },
+  "notificationBroadcastEndTitle": {
+    "message": "$nickname$ 방송 종료",
+    "description": "방송 종료 알림 제목",
+    "placeholders": {
+      "nickname": {
+        "content": "$1",
+        "example": "스트리머닉네임"
+      }
+    }
+  },
+  "notificationBroadcastEndMessage": {
+    "message": "방송이 종료되었습니다.",
+    "description": "방송 종료 알림 메시지"
+  },
+  "autoJoin": {
+    "message": "자동 참여",
+    "description": "자동 참여 설정"
+  },
+  "autoDownload": {
+    "message": "자동 다운로드",
+    "description": "자동 다운로드 설정"
+  },
+  "downloadQuality": {
+    "message": "다운로드 화질",
+    "description": "다운로드 화질 설정"
+  },
+  "deleteStreamer": {
+    "message": "스트리머 삭제",
+    "description": "스트리머 삭제 버튼"
+  },
+  "backgroundDownload": {
+    "message": "백그라운드",
+    "description": "백그라운드 다운로드"
+  },
+  "watchingDownload": {
+    "message": "시청중",
+    "description": "시청 중 다운로드"
+  },
+  "fastCheckHint": {
+    "message": "5초 주기",
+    "description": "빠른 체크 힌트"
+  },
+  "slowCheckHint": {
+    "message": "30초 주기",
+    "description": "느린 체크 힌트"
+  },
+  "toastMonitoringStarted": {
+    "message": "모니터링을 시작합니다.",
+    "description": "모니터링 시작 토스트"
+  },
+  "toastMonitoringStopped": {
+    "message": "모니터링을 중지합니다.",
+    "description": "모니터링 중지 토스트"
+  },
+  "toastRefreshComplete": {
+    "message": "새로고침 완료",
+    "description": "새로고침 완료 토스트"
+  },
+  "toastStreamerAdded": {
+    "message": "$name$ 추가됨",
+    "description": "스트리머 추가 완료 토스트",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastStreamerDeleted": {
+    "message": "$name$ 삭제됨",
+    "description": "스트리머 삭제 완료 토스트",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastDownloadStarted": {
+    "message": "다운로드가 시작되었습니다!",
+    "description": "다운로드 시작 토스트"
+  },
+  "toastDownloadStopped": {
+    "message": "다운로드가 중지되고 저장되었습니다.",
+    "description": "다운로드 중지 토스트"
+  },
+  "toastDownloadComplete": {
+    "message": "$fileName$ 다운로드 완료!",
+    "description": "다운로드 완료 토스트",
+    "placeholders": {
+      "fileName": {
+        "content": "$1",
+        "example": "streamer_20250130.ts"
+      }
+    }
+  },
+  "toastError": {
+    "message": "오류가 발생했습니다.",
+    "description": "일반 오류 토스트"
+  }
+}

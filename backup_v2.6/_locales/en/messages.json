@@ -1,0 +1,228 @@
+{
+  "extName": {
+    "message": "SOOPtalking - SOOP Streamer Alert",
+    "description": "Extension name"
+  },
+  "extDescription": {
+    "message": "Automatically detects when your favorite streamers go live, opens their streams in a new tab, and allows direct HLS stream downloads.",
+    "description": "Extension description"
+  },
+  "appName": {
+    "message": "SOOPtalking",
+    "description": "App name (brand)"
+  },
+  "tagline": {
+    "message": "SOOP Streamer Alert & Download",
+    "description": "Tagline"
+  },
+  "openSidepanel": {
+    "message": "Open Side Panel",
+    "description": "Open side panel button"
+  },
+  "sidepanelHint": {
+    "message": "Access all features in the side panel.",
+    "description": "Side panel hint"
+  },
+  "monitoringOn": {
+    "message": "Monitoring ON",
+    "description": "Monitoring enabled status"
+  },
+  "monitoringOff": {
+    "message": "Monitoring OFF",
+    "description": "Monitoring disabled status"
+  },
+  "broadcastNotification": {
+    "message": "Stream Alert",
+    "description": "Stream start notification setting"
+  },
+  "endNotification": {
+    "message": "End Alert",
+    "description": "Stream end notification setting"
+  },
+  "autoCloseOfflineTabs": {
+    "message": "Auto-close Tabs",
+    "description": "Auto-close offline tabs setting"
+  },
+  "nowWatching": {
+    "message": "Now Watching",
+    "description": "Now watching section"
+  },
+  "notWatchingMessage": {
+    "message": "Not watching a SOOP stream",
+    "description": "Not watching message"
+  },
+  "startDownload": {
+    "message": "Start Download",
+    "description": "Download start button"
+  },
+  "stopDownload": {
+    "message": "Stop Download",
+    "description": "Download stop button"
+  },
+  "qualityOriginal": {
+    "message": "Original",
+    "description": "Original quality"
+  },
+  "downloading": {
+    "message": "Downloading",
+    "description": "Downloading section"
+  },
+  "noDownloads": {
+    "message": "No active downloads",
+    "description": "No downloads message"
+  },
+  "favoriteStreamers": {
+    "message": "Favorite Streamers",
+    "description": "Favorite streamers section"
+  },
+  "filterAll": {
+    "message": "All",
+    "description": "All filter"
+  },
+  "filterLive": {
+    "message": "Live",
+    "description": "Live filter"
+  },
+  "filterOffline": {
+    "message": "Offline",
+    "description": "Offline filter"
+  },
+  "storage": {
+    "message": "Storage",
+    "description": "Storage"
+  },
+  "privacy": {
+    "message": "Privacy",
+    "description": "Privacy link"
+  },
+  "inputPlaceholder": {
+    "message": "Enter streamer ID (e.g., streamer123)",
+    "description": "Streamer ID input field placeholder"
+  },
+  "addButton": {
+    "message": "Add",
+    "description": "Add button"
+  },
+  "emptyTitle": {
+    "message": "No streamers registered.",
+    "description": "Empty state title"
+  },
+  "emptyDescription": {
+    "message": "Add a streamer ID below.",
+    "description": "Empty state description"
+  },
+  "notificationBroadcastStartTitle": {
+    "message": "$nickname$ is now LIVE!",
+    "description": "Broadcast start notification title",
+    "placeholders": {
+      "nickname": {
+        "content": "$1",
+        "example": "StreamerNickname"
+      }
+    }
+  },
+  "notificationBroadcastStartMessage": {
+    "message": "The stream has started.",
+    "description": "Broadcast start notification message"
+  },
+  "notificationBroadcastEndTitle": {
+    "message": "$nickname$ ended the stream",
+    "description": "Broadcast end notification title",
+    "placeholders": {
+      "nickname": {
+        "content": "$1",
+        "example": "StreamerNickname"
+      }
+    }
+  },
+  "notificationBroadcastEndMessage": {
+    "message": "The stream has ended.",
+    "description": "Broadcast end notification message"
+  },
+  "autoJoin": {
+    "message": "Auto Join",
+    "description": "Auto join setting"
+  },
+  "autoDownload": {
+    "message": "Auto Download",
+    "description": "Auto download setting"
+  },
+  "downloadQuality": {
+    "message": "Download Quality",
+    "description": "Download quality setting"
+  },
+  "deleteStreamer": {
+    "message": "Delete Streamer",
+    "description": "Delete streamer button"
+  },
+  "backgroundDownload": {
+    "message": "Background",
+    "description": "Background download"
+  },
+  "watchingDownload": {
+    "message": "Watching",
+    "description": "Watching download"
+  },
+  "fastCheckHint": {
+    "message": "5s interval",
+    "description": "Fast check hint"
+  },
+  "slowCheckHint": {
+    "message": "30s interval",
+    "description": "Slow check hint"
+  },
+  "toastMonitoringStarted": {
+    "message": "Monitoring started.",
+    "description": "Monitoring started toast"
+  },
+  "toastMonitoringStopped": {
+    "message": "Monitoring stopped.",
+    "description": "Monitoring stopped toast"
+  },
+  "toastRefreshComplete": {
+    "message": "Refresh complete",
+    "description": "Refresh complete toast"
+  },
+  "toastStreamerAdded": {
+    "message": "$name$ added",
+    "description": "Streamer added toast",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastStreamerDeleted": {
+    "message": "$name$ deleted",
+    "description": "Streamer deleted toast",
+    "placeholders": {
+      "name": {
+        "content": "$1",
+        "example": "streamer123"
+      }
+    }
+  },
+  "toastDownloadStarted": {
+    "message": "Download started!",
+    "description": "Download started toast"
+  },
+  "toastDownloadStopped": {
+    "message": "Download stopped and saved.",
+    "description": "Download stopped toast"
+  },
+  "toastDownloadComplete": {
+    "message": "$fileName$ download complete!",
+    "description": "Download complete toast",
+    "placeholders": {
+      "fileName": {
+        "content": "$1",
+        "example": "streamer_20250130.ts"
+      }
+    }
+  },
+  "toastError": {
+    "message": "An error occurred.",
+    "description": "General error toast"
+  }
+}

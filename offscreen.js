@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.0 - Offscreen Document =====
+// ===== 숲토킹 v3.0.1 - Offscreen Document =====
 // Side Panel과 독립적으로 녹화 실행
 // OPFS(Origin Private File System)에 실시간 저장
 
@@ -96,7 +96,7 @@ async function startRecording(data) {
       fileHandle,
       startTime: Date.now(),
       totalBytes: 0,
-      lastProgressTime: Date.now()
+      mimeType
     };
     sessions.set(sessionId, session);
 
@@ -120,7 +120,6 @@ async function startRecording(data) {
             elapsedTime
           }).catch(() => {});
 
-          session.lastProgressTime = Date.now();
         } catch (err) {
           console.error('[Offscreen] 데이터 쓰기 오류:', err);
         }
@@ -133,16 +132,9 @@ async function startRecording(data) {
 
       try {
         await writable.close();
-
-        // 파일 가져오기
-        const file = await fileHandle.getFile();
         const duration = Math.floor((Date.now() - session.startTime) / 1000);
 
-        // 다운로드 트리거를 위해 Blob URL 생성
-        const blob = await file.arrayBuffer().then(buf => new Blob([buf], { type: mimeType }));
-        const downloadUrl = URL.createObjectURL(blob);
-
-        // Background에 완료 알림
+        // Background에 완료 알림 (다운로드는 Background에서 OPFS 직접 접근)
         chrome.runtime.sendMessage({
           type: 'RECORDING_STOPPED',
           sessionId,
@@ -151,17 +143,8 @@ async function startRecording(data) {
           nickname,
           fileName,
           totalBytes: session.totalBytes,
-          duration,
-          downloadUrl
+          duration
         }).catch(() => {});
-
-        // OPFS에서 파일 삭제 (다운로드 후)
-        setTimeout(async () => {
-          try {
-            await folder.removeEntry(fileName);
-            console.log('[Offscreen] OPFS 파일 정리됨:', fileName);
-          } catch (e) {}
-        }, 5000);
 
       } catch (err) {
         console.error('[Offscreen] 녹화 종료 처리 오류:', err);
@@ -277,12 +260,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case 'GET_RECORDING_STATUS':
       sendResponse(getRecordingStatus());
-      break;
+      return;  // 동기 응답
 
     case 'PING':
       sendResponse({ success: true, message: 'pong' });
-      break;
+      return;  // 동기 응답
   }
 });
 
-console.log('[Offscreen] 숲토킹 녹화 모듈 v3.0 로드됨');
+console.log('[Offscreen] 숲토킹 녹화 모듈 v3.0.1 로드됨');
