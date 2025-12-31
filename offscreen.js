@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.0.1 - Offscreen Document =====
+// ===== 숲토킹 v3.0.2 - Offscreen Document =====
 // Side Panel과 독립적으로 녹화 실행
 // OPFS(Origin Private File System)에 실시간 저장
 
@@ -240,6 +240,74 @@ function getRecordingStatus() {
   };
 }
 
+// ===== 다운로드 처리 =====
+
+async function downloadFromOpfs(fileName) {
+  console.log('[Offscreen] 다운로드 요청:', fileName);
+
+  try {
+    // OPFS에서 파일 읽기
+    const folder = await getOpfsFolder();
+
+    let fileHandle;
+    try {
+      fileHandle = await folder.getFileHandle(fileName);
+    } catch (e) {
+      console.error('[Offscreen] 파일을 찾을 수 없음:', fileName);
+      return { success: false, error: '파일을 찾을 수 없습니다: ' + fileName };
+    }
+
+    const file = await fileHandle.getFile();
+    console.log('[Offscreen] 파일 읽기 성공:', file.size, 'bytes');
+
+    // Blob URL 생성
+    const blob = new Blob([await file.arrayBuffer()], { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+
+    // Background에 다운로드 요청
+    const response = await chrome.runtime.sendMessage({
+      type: 'TRIGGER_DOWNLOAD',
+      url: url,
+      fileName: fileName
+    });
+
+    if (response?.success) {
+      console.log('[Offscreen] 다운로드 시작됨, ID:', response.downloadId);
+
+      // 다운로드 완료 대기 후 정리 (Background에서 알려줌)
+      // URL은 Background에서 revoke하지 못하므로 여기서 일정 시간 후 정리
+      setTimeout(() => {
+        URL.revokeObjectURL(url);
+        console.log('[Offscreen] Blob URL 해제됨');
+      }, 60000); // 60초 후 정리
+
+      return { success: true, downloadId: response.downloadId };
+    } else {
+      URL.revokeObjectURL(url);
+      return { success: false, error: response?.error || '다운로드 실패' };
+    }
+
+  } catch (error) {
+    console.error('[Offscreen] 다운로드 처리 오류:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function deleteFromOpfs(fileName) {
+  console.log('[Offscreen] 파일 삭제 요청:', fileName);
+
+  try {
+    const folder = await getOpfsFolder();
+    await folder.removeEntry(fileName);
+    console.log('[Offscreen] 파일 삭제 완료:', fileName);
+    return { success: true };
+  } catch (error) {
+    // 파일이 없으면 무시
+    console.log('[Offscreen] 파일 삭제 실패 (무시):', error.message);
+    return { success: true };
+  }
+}
+
 // ===== 메시지 리스너 =====
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -258,14 +326,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       stopAllRecordings().then(sendResponse);
       return true;
 
+    case 'DOWNLOAD_FILE':
+      downloadFromOpfs(message.fileName).then(sendResponse);
+      return true;
+
+    case 'DELETE_FILE':
+      deleteFromOpfs(message.fileName).then(sendResponse);
+      return true;
+
     case 'GET_RECORDING_STATUS':
       sendResponse(getRecordingStatus());
-      return;  // 동기 응답
+      return;
 
     case 'PING':
       sendResponse({ success: true, message: 'pong' });
-      return;  // 동기 응답
+      return;
   }
 });
 
-console.log('[Offscreen] 숲토킹 녹화 모듈 v3.0.1 로드됨');
+console.log('[Offscreen] 숲토킹 녹화 모듈 v3.0.2 로드됨');

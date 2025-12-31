@@ -1,35 +1,5 @@
-// ===== 숲토킹 v3.0.1 - Background Service Worker =====
+// ===== 숲토킹 v3.0.2 - Background Service Worker =====
 // Offscreen Document 기반 안정적 녹화
-
-// ===== OPFS 접근 (Background에서 다운로드용) =====
-const OPFS_FOLDER = 'SOOPtalking';
-
-async function getOpfsFolder() {
-  const root = await navigator.storage.getDirectory();
-  return root.getDirectoryHandle(OPFS_FOLDER, { create: true });
-}
-
-async function readOpfsFile(fileName) {
-  try {
-    const folder = await getOpfsFolder();
-    const fileHandle = await folder.getFileHandle(fileName);
-    const file = await fileHandle.getFile();
-    return file;
-  } catch (error) {
-    console.error('[숲토킹] OPFS 파일 읽기 실패:', error);
-    return null;
-  }
-}
-
-async function deleteOpfsFile(fileName) {
-  try {
-    const folder = await getOpfsFolder();
-    await folder.removeEntry(fileName);
-    console.log('[숲토킹] OPFS 파일 삭제됨:', fileName);
-  } catch (error) {
-    // 파일이 없으면 무시
-  }
-}
 
 // ===== 상수 =====
 const CHECK_INTERVAL = 30000;  // 스트리머 체크 주기 (30초)
@@ -429,44 +399,27 @@ function broadcastToSidepanel(message) {
   chrome.runtime.sendMessage(message).catch(() => {});
 }
 
-// ===== 다운로드 처리 =====
+// ===== 다운로드 처리 (Offscreen에 요청) =====
 
 async function downloadRecording(fileName) {
-  try {
-    console.log('[숲토킹] 다운로드 시작:', fileName);
+  console.log('[숲토킹] 다운로드 요청 (Offscreen으로):', fileName);
 
-    // OPFS에서 파일 읽기
-    const file = await readOpfsFile(fileName);
-    if (!file) {
-      return { success: false, error: 'OPFS 파일을 찾을 수 없습니다' };
+  try {
+    // Offscreen이 준비되어 있는지 확인
+    const ready = await ensureOffscreen();
+    if (!ready) {
+      return { success: false, error: 'Offscreen Document가 없습니다' };
     }
 
-    // Blob URL 생성
-    const url = URL.createObjectURL(file);
-
-    // 다운로드 실행
-    const downloadId = await chrome.downloads.download({
-      url: url,
-      filename: `SOOPtalking/${fileName}`,
-      saveAs: false
+    // Offscreen에 다운로드 요청
+    const response = await chrome.runtime.sendMessage({
+      type: 'DOWNLOAD_FILE',
+      fileName: fileName
     });
 
-    console.log('[숲토킹] 다운로드 ID:', downloadId);
-
-    // 다운로드 완료 후 정리
-    chrome.downloads.onChanged.addListener(function listener(delta) {
-      if (delta.id === downloadId && delta.state?.current === 'complete') {
-        chrome.downloads.onChanged.removeListener(listener);
-        URL.revokeObjectURL(url);
-
-        // OPFS 파일 삭제
-        deleteOpfsFile(fileName);
-      }
-    });
-
-    return { success: true, downloadId };
+    return response;
   } catch (error) {
-    console.error('[숲토킹] 다운로드 실패:', error);
+    console.error('[숲토킹] 다운로드 요청 실패:', error);
     return { success: false, error: error.message };
   }
 }
@@ -608,6 +561,40 @@ async function handleMessage(message, sender, sendResponse) {
       });
       break;
 
+    // ===== Offscreen → Background: 실제 다운로드 실행 =====
+
+    case 'TRIGGER_DOWNLOAD':
+      try {
+        const downloadId = await chrome.downloads.download({
+          url: message.url,
+          filename: `SOOPtalking/${message.fileName}`,
+          saveAs: false
+        });
+
+        console.log('[숲토킹] 다운로드 시작됨:', downloadId);
+
+        // 다운로드 완료 감지하여 OPFS 파일 삭제
+        const listener = (delta) => {
+          if (delta.id === downloadId && delta.state?.current === 'complete') {
+            chrome.downloads.onChanged.removeListener(listener);
+            console.log('[숲토킹] 다운로드 완료:', message.fileName);
+
+            // Offscreen에 파일 삭제 요청
+            chrome.runtime.sendMessage({
+              type: 'DELETE_FILE',
+              fileName: message.fileName
+            }).catch(() => {});
+          }
+        };
+        chrome.downloads.onChanged.addListener(listener);
+
+        sendResponse({ success: true, downloadId });
+      } catch (error) {
+        console.error('[숲토킹] 다운로드 실행 실패:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+      break;
+
     default:
       sendResponse({ success: false, error: '알 수 없는 메시지 타입' });
   }
@@ -623,4 +610,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.0.1 로드됨');
+console.log('[숲토킹] Background Service Worker v3.0.2 로드됨');
