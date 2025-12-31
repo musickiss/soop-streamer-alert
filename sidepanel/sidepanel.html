@@ -83,17 +83,23 @@
               <div class="stream-title" id="currentStreamTitle">-</div>
             </div>
           </div>
-          <div class="download-controls">
-            <button class="download-btn start" id="downloadBtn">
-              <span class="rec-icon"></span>
-              <span data-i18n="startDownload">지금부터 다운로드</span>
-            </button>
-            <select class="quality-select" id="qualitySelect">
-              <option value="original" data-i18n="qualityOriginal">원본</option>
-              <option value="1080p">1080p</option>
-              <option value="720p">720p</option>
-              <option value="540p">540p</option>
-            </select>
+          <!-- 녹화 컨트롤 섹션 -->
+          <div class="recording-controls" id="recordingControls">
+            <div class="recording-row">
+              <button class="recording-btn start" id="startRecordingBtn">
+                <span class="rec-dot"></span>
+                <span>녹화 시작</span>
+              </button>
+              <button class="recording-btn stop" id="stopRecordingBtn" style="display: none;">
+                <span class="stop-icon"></span>
+                <span>녹화 중지</span>
+              </button>
+            </div>
+            <div class="recording-status" id="recordingStatus" style="display: none;">
+              <span class="recording-indicator"></span>
+              <span class="recording-time" id="recordingTime">00:00:00</span>
+              <span class="recording-size" id="recordingSize">0 MB</span>
+            </div>
           </div>
         </div>
 

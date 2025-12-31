@@ -1154,3 +1154,114 @@ body {
 .streamer-card.dragging .drag-handle {
   cursor: grabbing;
 }
+
+/* ===== 녹화 컨트롤 ===== */
+.recording-controls {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-default);
+}
+
+.recording-row {
+  display: flex;
+  gap: 6px;
+}
+
+.recording-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.recording-btn.start {
+  background: linear-gradient(135deg, #FF6B6B 0%, #EE5A5A 100%);
+  color: white;
+  box-shadow: 0 3px 10px rgba(255, 107, 107, 0.3);
+}
+
+.recording-btn.start:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(255, 107, 107, 0.4);
+}
+
+.recording-btn.stop {
+  background: var(--bg-tertiary);
+  color: var(--record-red);
+  border: 1px solid var(--record-red);
+}
+
+.recording-btn.stop:hover {
+  background: var(--record-red);
+  color: white;
+}
+
+.recording-btn.save {
+  background: var(--soop-primary);
+  color: white;
+}
+
+.recording-btn.save:hover {
+  background: var(--soop-primary-light);
+}
+
+.recording-btn .rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.recording-btn .stop-icon {
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+  border-radius: 1px;
+}
+
+.recording-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: rgba(255, 71, 87, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(255, 71, 87, 0.2);
+}
+
+.recording-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--record-red);
+  animation: recBlink 1s ease-in-out infinite;
+}
+
+@keyframes recBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.9); }
+}
+
+.recording-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--record-red);
+  flex: 1;
+}
+
+.recording-size {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+}

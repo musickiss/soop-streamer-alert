@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "__MSG_extDescription__",
   "default_locale": "ko",
 
@@ -38,6 +38,12 @@
   },
 
   "content_scripts": [
+    {
+      "matches": ["https://play.sooplive.co.kr/*"],
+      "js": ["audio-hook.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
     {
       "matches": ["https://play.sooplive.co.kr/*"],
       "js": ["content-main.js"],

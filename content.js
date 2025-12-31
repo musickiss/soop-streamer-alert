@@ -1,18 +1,156 @@
-// ===== 숲토킹 v2.0 - Content Script =====
-// SOOP API를 직접 호출하여 m3u8 URL 획득
-// 사용자의 로그인 세션(쿠키)을 그대로 활용
+// ===== 숲토킹 v2.1 - Content Script (ISOLATED World) =====
+// chrome API 사용 가능, content-main.js로부터 postMessage 수신
 
 (function() {
   'use strict';
 
-  // ===== 상태 =====
-  let cachedStreamInfo = null;
-  let lastFetchTime = 0;
-  const CACHE_DURATION = 30000; // 30초 캐시
+  // 중복 주입 방지
+  if (window.__soopContentScriptInstalled) {
+    console.log('[숲토킹 Content] 이미 설치됨, 스킵');
+    return;
+  }
+  window.__soopContentScriptInstalled = true;
+
+  // ===== Extension context 유효성 검사 =====
+  function isExtensionContextValid() {
+    try {
+      // chrome.runtime.id가 존재하면 유효
+      return !!chrome.runtime?.id;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // 안전한 메시지 전송 함수
+  function safeSendMessage(message) {
+    if (!isExtensionContextValid()) {
+      console.warn('[숲토킹 Content] Extension context가 무효화됨. 페이지를 새로고침해주세요.');
+      return Promise.reject(new Error('Extension context invalidated. 페이지를 새로고침해주세요.'));
+    }
+    return chrome.runtime.sendMessage(message);
+  }
+
+  // 캡처된 m3u8 URL 저장
+  let capturedM3u8Url = null;
+  let capturedBaseUrl = null;
+
+  // window 객체에 콜백 저장하여 중복 주입 시에도 공유
+  if (typeof window.__soopPendingCallback === 'undefined') {
+    window.__soopPendingCallback = null;
+  }
+
+  // ===== MAIN World에서 보낸 메시지 수신 =====
+  window.addEventListener('message', (event) => {
+    if (event.source !== window) return;
+
+    // content-main.js에서 보낸 m3u8 캡처 메시지
+    if (event.data && event.data.type === 'SOOPTALKING_M3U8_CAPTURED') {
+      const url = event.data.url;
+      console.log('[숲토킹 Content] Main에서 m3u8 수신:', url.substring(0, 80), '(via', event.data.source + ')');
+
+      capturedM3u8Url = url;
+      capturedBaseUrl = url.substring(0, url.lastIndexOf('/') + 1);
+
+      // Background로 전달
+      safeSendMessage({
+        type: 'M3U8_URL_FROM_HOOK',
+        data: {
+          m3u8Url: url,
+          baseUrl: capturedBaseUrl,
+          streamerId: extractStreamerIdFromUrl(),
+          broadNo: extractBroadNoFromUrl(),
+          source: event.data.source
+        }
+      }).then(() => {
+        console.log('[숲토킹 Content] Background로 m3u8 URL 전송 완료');
+      }).catch((e) => {
+        console.error('[숲토킹 Content] Background 전송 실패:', e.message);
+      });
+    }
+
+    // 이전 버전 호환성 (SOOP_M3U8_CAPTURED)
+    if (event.data && event.data.type === 'SOOP_M3U8_CAPTURED') {
+      const url = event.data.url;
+      console.log('[숲토킹 Content] 레거시 m3u8 수신:', url);
+
+      capturedM3u8Url = url;
+      capturedBaseUrl = url.substring(0, url.lastIndexOf('/') + 1);
+
+      safeSendMessage({
+        type: 'M3U8_URL_FROM_HOOK',
+        data: {
+          m3u8Url: url,
+          baseUrl: capturedBaseUrl,
+          streamerId: extractStreamerIdFromUrl(),
+          broadNo: extractBroadNoFromUrl(),
+          source: event.data.source || 'legacy'
+        }
+      }).catch(() => {});
+    }
+
+    // ===== 최종 녹화 파일 저장 요청 =====
+    if (event.data && event.data.type === 'SOOPTALKING_SAVE_FINAL_RECORDING') {
+      console.log('[숲토킹 Content] 최종 녹화 저장 요청:', event.data.filename);
+      console.log('[숲토킹 Content] 크기:', (event.data.size / 1024 / 1024).toFixed(2), 'MB');
+      safeSendMessage({
+        type: 'SAVE_FINAL_RECORDING',
+        data: {
+          filename: event.data.filename,
+          size: event.data.size,
+          blobUrl: event.data.blobUrl,
+          streamerId: event.data.streamerId,
+          recordingId: event.data.recordingId,
+          duration: event.data.duration
+        }
+      }).catch(e => {
+        console.error('[숲토킹 Content] 최종 녹화 저장 요청 실패:', e.message);
+        // 사용자에게 알림 (Extension context 무효화 시)
+        if (e.message.includes('invalidated')) {
+          alert('녹화 파일 저장 실패: 페이지를 새로고침한 후 다시 시도해주세요.');
+        }
+      });
+    }
+
+    // ===== 녹화 완료 메시지 =====
+    if (event.data && event.data.type === 'SOOPTALKING_RECORDING_COMPLETE') {
+      console.log('[숲토킹 Content] 녹화 완료:',
+                  (event.data.totalBytes / 1024 / 1024).toFixed(2), 'MB,',
+                  event.data.duration?.toFixed(1) || 0, '초');
+      safeSendMessage({
+        type: 'RECORDING_COMPLETE',
+        data: {
+          streamerId: event.data.streamerId,
+          recordingId: event.data.recordingId,
+          totalBytes: event.data.totalBytes,
+          duration: event.data.duration,
+          saved: event.data.saved
+        }
+      }).catch(() => {});
+    }
+
+    // ===== 녹화 에러 메시지 =====
+    if (event.data && event.data.type === 'SOOPTALKING_RECORDING_ERROR') {
+      console.error('[숲토킹 Content] 녹화 에러:', event.data.error);
+      safeSendMessage({
+        type: 'RECORDING_ERROR',
+        data: {
+          error: event.data.error
+        }
+      }).catch(() => {});
+    }
+
+    // ===== 녹화 명령 결과 =====
+    if (event.data && event.data.type === 'SOOPTALKING_RECORDER_RESULT') {
+      console.log('[숲토킹 Content] 녹화 명령 결과:', event.data.command, event.data.result);
+      if (window.__soopPendingCallback) {
+        window.__soopPendingCallback(event.data.result);
+        window.__soopPendingCallback = null;
+      }
+    }
+  });
 
   // ===== URL에서 정보 추출 =====
   function extractStreamerIdFromUrl() {
-    // URL: https://play.sooplive.co.kr/{streamerId}/{broadNo}
     const match = window.location.pathname.match(/^\/([^\/]+)/);
     return match ? match[1] : null;
   }
@@ -22,331 +160,230 @@
     return match ? match[1] : null;
   }
 
-  // ===== SOOP API 직접 호출로 스트림 URL 획득 =====
-  async function getStreamUrl(forceRefresh = false) {
-    const streamerId = extractStreamerIdFromUrl();
-    const broadNo = extractBroadNoFromUrl();
-
-    if (!streamerId) {
-      console.error('[숲토킹] 스트리머 ID를 찾을 수 없음');
-      return null;
-    }
-
-    // 캐시 확인 (강제 새로고침이 아닌 경우)
-    if (!forceRefresh && cachedStreamInfo && (Date.now() - lastFetchTime < CACHE_DURATION)) {
-      console.log('[숲토킹] 캐시된 스트림 정보 사용');
-      return cachedStreamInfo;
-    }
-
-    try {
-      // 1단계: player_live_api.php 호출
-      console.log('[숲토킹] 1단계: player_live_api.php 호출');
-      const playerApiResponse = await fetch('https://live.sooplive.co.kr/afreeca/player_live_api.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          bid: streamerId,
-          bno: broadNo || '',
-          type: 'live',
-          confirm_adult: 'false',
-          player_type: 'html5',
-          mode: 'landing',
-          from_api: '0',
-          pwd: '',
-          stream_type: 'common',
-          quality: 'HD'
-        }),
-        credentials: 'include'
-      });
-
-      const playerData = await playerApiResponse.json();
-      console.log('[숲토킹] player_live_api 응답:', playerData);
-
-      if (!playerData.CHANNEL || playerData.CHANNEL.RESULT !== 1) {
-        console.error('[숲토킹] 방송 중이 아니거나 접근 불가');
-        // 캐시 무효화
-        cachedStreamInfo = null;
-        return null;
-      }
-
-      const channel = playerData.CHANNEL;
-      const bno = channel.BNO;
-      const cdnType = channel.CDN || 'gcp_cdn';
-      const quality = channel.QUALITY || 'hd';
-
-      // 2단계: broad_stream_assign.html 호출
-      console.log('[숲토킹] 2단계: broad_stream_assign.html 호출');
-      const returnType = cdnType === 'gs_cdn_pc_web' ? 'gs_cdn_pc_web' : 'gcp_cdn';
-
-      const streamAssignResponse = await fetch('https://livestream-manager.sooplive.co.kr/broad_stream_assign.html', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          return_type: returnType,
-          broad_key: `${bno}-common-${quality}-hls`,
-          use_cors: 'true',
-          cors_origin_url: 'play.sooplive.co.kr'
-        }),
-        credentials: 'include'
-      });
-
-      const streamData = await streamAssignResponse.json();
-      console.log('[숲토킹] stream_assign 응답:', streamData);
-
-      let m3u8Url = null;
-
-      // view_url 확인
-      if (streamData.view_url) {
-        m3u8Url = streamData.view_url;
-      }
-      // 대안: 다른 CDN 구조
-      else if (streamData.cdn_url) {
-        m3u8Url = streamData.cdn_url;
-      }
-      else if (streamData.stream_url) {
-        m3u8Url = streamData.stream_url;
-      }
-
-      if (m3u8Url) {
-        console.log('[숲토킹] m3u8 URL 획득 성공:', m3u8Url);
-
-        const result = {
-          m3u8Url: m3u8Url,
-          baseUrl: m3u8Url.substring(0, m3u8Url.lastIndexOf('/') + 1),
-          streamerId: streamerId,
-          broadNo: bno,
-          nickname: channel.BJNICK || streamerId,
-          title: channel.TITLE || '',
-          quality: quality,
-          isLive: true
-        };
-
-        // 캐시 저장
-        cachedStreamInfo = result;
-        lastFetchTime = Date.now();
-
-        // Background에 알림
-        chrome.runtime.sendMessage({
-          type: 'M3U8_CAPTURED',
-          data: result
-        }).catch(() => {});
-
-        return result;
-      }
-
-      console.error('[숲토킹] m3u8 URL을 찾을 수 없음');
-      return null;
-
-    } catch (error) {
-      console.error('[숲토킹] API 호출 오류:', error);
-      return null;
-    }
-  }
-
-  // ===== 방송 정보만 가져오기 (m3u8 없이) =====
-  async function getBroadcastInfo() {
-    const streamerId = extractStreamerIdFromUrl();
-
-    if (!streamerId) {
-      return { success: false, error: '스트리머 ID를 찾을 수 없습니다.' };
-    }
-
-    try {
-      const response = await fetch('https://live.sooplive.co.kr/afreeca/player_live_api.php', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          bid: streamerId,
-          bno: extractBroadNoFromUrl() || '',
-          type: 'live',
-          confirm_adult: 'false',
-          player_type: 'html5',
-          mode: 'landing',
-          from_api: '0'
-        }),
-        credentials: 'include'
-      });
-
-      const data = await response.json();
-
-      if (data.CHANNEL && data.CHANNEL.RESULT === 1) {
-        return {
-          success: true,
-          data: {
-            streamerId: streamerId,
-            broadNo: data.CHANNEL.BNO,
-            title: data.CHANNEL.TITLE,
-            nickname: data.CHANNEL.BJNICK,
-            isLive: true
-          }
-        };
-      } else {
-        return {
-          success: false,
-          error: '방송 중이 아닙니다.',
-          streamerId: streamerId
-        };
-      }
-    } catch (error) {
-      return { success: false, error: error.message };
-    }
-  }
-
-  // ===== 페이지에서 정보 추출 (fallback) =====
-  function extractBroadcastInfoFromPage() {
+  // ===== 페이지에서 정보 추출 =====
+  function extractPageInfo() {
     const streamerId = extractStreamerIdFromUrl();
     const broadNo = extractBroadNoFromUrl();
 
     let nickname = streamerId;
     let title = document.title || '';
 
-    // SOOP 페이지 구조에 맞는 선택자들
-    const nicknameSelectors = [
-      '.nickname', '.bj-name', '[class*="nickname"]',
-      '.player-bj-name', '.broadcast-bj-name', '.streamer-name'
-    ];
-    for (const selector of nicknameSelectors) {
-      const el = document.querySelector(selector);
-      if (el && el.textContent.trim()) {
-        nickname = el.textContent.trim();
-        break;
+    // DOM이 준비됐을 때만 선택자 시도
+    if (document.body) {
+      const nicknameSelectors = [
+        '.nickname', '.bj-name', '[class*="nickname"]',
+        '.player-bj-name', '.broadcast-bj-name', '.streamer-name'
+      ];
+      for (const selector of nicknameSelectors) {
+        try {
+          const el = document.querySelector(selector);
+          if (el && el.textContent.trim()) {
+            nickname = el.textContent.trim();
+            break;
+          }
+        } catch (e) {}
+      }
+
+      const titleSelectors = [
+        '.title', '.broadcast-title', '[class*="title"]',
+        '.player-title', '.stream-title'
+      ];
+      for (const selector of titleSelectors) {
+        try {
+          const el = document.querySelector(selector);
+          if (el && el.textContent.trim()) {
+            title = el.textContent.trim();
+            break;
+          }
+        } catch (e) {}
       }
     }
 
-    const titleSelectors = [
-      '.title', '.broadcast-title', '[class*="title"]',
-      '.player-title', '.stream-title'
-    ];
-    for (const selector of titleSelectors) {
-      const el = document.querySelector(selector);
-      if (el && el.textContent.trim()) {
-        title = el.textContent.trim();
-        break;
-      }
-    }
-
-    return { streamerId, broadNo, nickname, title, isLive: true };
+    return {
+      streamerId,
+      broadNo,
+      nickname,
+      title,
+      url: window.location.href,
+      capturedM3u8Url,
+      capturedBaseUrl
+    };
   }
 
   // ===== 메시지 핸들러 =====
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    // Extension context 유효성 검사
+    if (!isExtensionContextValid()) {
+      console.warn('[숲토킹 Content] Extension context 무효화됨, 메시지 무시');
+      return false;
+    }
+
     console.log('[숲토킹 Content] 메시지 수신:', message.type);
 
-    (async () => {
-      try {
-        switch (message.type) {
-          case 'PING':
-            // 연결 확인용
-            sendResponse({ success: true, message: 'pong' });
-            break;
+    switch (message.type) {
+      case 'PING':
+        sendResponse({ success: true, message: 'pong' });
+        return true;
 
-          case 'GET_BROADCAST_INFO':
-            // 먼저 API로 시도
-            let info = await getBroadcastInfo();
-            if (!info.success) {
-              // API 실패 시 페이지에서 추출
-              info = { success: true, data: extractBroadcastInfoFromPage() };
-            }
-            sendResponse(info);
-            break;
+      case 'GET_PAGE_INFO':
+        const pageInfo = extractPageInfo();
+        sendResponse({
+          success: true,
+          ...pageInfo
+        });
+        return true;
 
-          case 'GET_M3U8_URL':
-            // SOOP API 직접 호출
-            const streamInfo = await getStreamUrl(message.forceRefresh);
+      case 'GET_CAPTURED_M3U8':
+        if (capturedM3u8Url) {
+          sendResponse({
+            success: true,
+            m3u8Url: capturedM3u8Url,
+            baseUrl: capturedBaseUrl
+          });
+        } else {
+          sendResponse({
+            success: false,
+            error: 'm3u8 URL이 아직 캡처되지 않았습니다.'
+          });
+        }
+        return true;
 
-            if (streamInfo) {
-              sendResponse({
-                success: true,
-                m3u8Url: streamInfo.m3u8Url,
-                baseUrl: streamInfo.baseUrl,
-                streamerId: streamInfo.streamerId,
-                broadNo: streamInfo.broadNo,
-                nickname: streamInfo.nickname,
-                title: streamInfo.title,
-                quality: streamInfo.quality
-              });
-            } else {
-              sendResponse({
-                success: false,
-                error: 'API에서 스트림 URL을 가져올 수 없습니다. 방송 중인지 확인하세요.'
-              });
-            }
-            break;
-
-          case 'CHECK_PAGE_STATUS':
-            const status = await getBroadcastInfo();
+      case 'GET_BROADCAST_INFO':
+        const info = extractPageInfo();
+        safeSendMessage({
+          type: 'FETCH_STREAM_INFO',
+          streamerId: info.streamerId,
+          broadNo: info.broadNo
+        }).then(response => {
+          if (response && response.success) {
             sendResponse({
               success: true,
-              isLive: status.success && status.data?.isLive,
-              streamerId: extractStreamerIdFromUrl(),
-              broadNo: extractBroadNoFromUrl(),
-              hasCachedStream: !!cachedStreamInfo
+              data: {
+                streamerId: response.streamerId,
+                broadNo: response.broadNo,
+                nickname: response.nickname,
+                title: response.title,
+                isLive: true
+              }
             });
-            break;
-
-          case 'FORCE_SEARCH_M3U8':
-            // 캐시 무효화 후 강제 검색
-            cachedStreamInfo = null;
-            lastFetchTime = 0;
-            const result = await getStreamUrl(true);
+          } else {
             sendResponse({
-              success: !!result,
-              m3u8Url: result?.m3u8Url,
-              baseUrl: result?.baseUrl
+              success: true,
+              data: {
+                streamerId: info.streamerId,
+                broadNo: info.broadNo,
+                nickname: info.nickname || info.streamerId,
+                title: info.title,
+                isLive: true
+              }
             });
-            break;
+          }
+        }).catch(() => {
+          sendResponse({
+            success: true,
+            data: {
+              streamerId: info.streamerId,
+              broadNo: info.broadNo,
+              nickname: info.nickname || info.streamerId,
+              title: info.title,
+              isLive: true
+            }
+          });
+        });
+        return true;
 
-          default:
-            sendResponse({ success: false, error: '알 수 없는 메시지' });
+      case 'GET_M3U8_URL':
+        if (capturedM3u8Url) {
+          sendResponse({
+            success: true,
+            m3u8Url: capturedM3u8Url,
+            baseUrl: capturedBaseUrl
+          });
+          return true;
         }
-      } catch (error) {
-        console.error('[숲토킹] 메시지 처리 오류:', error);
-        sendResponse({ success: false, error: error.message });
-      }
-    })();
-    return true; // 비동기 응답을 위해 true 반환
+
+        // 캡처된 URL이 없으면 Background에서 시도
+        const streamInfo = extractPageInfo();
+        safeSendMessage({
+          type: 'FETCH_STREAM_URL',
+          streamerId: streamInfo.streamerId,
+          broadNo: streamInfo.broadNo
+        }).then(response => {
+          sendResponse(response);
+        }).catch(error => {
+          sendResponse({ success: false, error: error.message });
+        });
+        return true;
+
+      case 'RECORDING_COMMAND':
+        // sidepanel/background에서 온 녹화 명령을 MAIN world로 전달
+        const { command: recCommand, params: recParams } = message;
+        console.log('[숲토킹 Content] 녹화 명령 수신:', recCommand);
+
+        // 응답 완료 플래그 (중복 호출 방지)
+        let hasResponded = false;
+
+        // 콜백 설정하여 MAIN world 응답 대기 (window 객체에 저장)
+        window.__soopPendingCallback = (result) => {
+          if (!hasResponded) {
+            hasResponded = true;
+            window.__soopPendingCallback = null;
+            sendResponse({ success: true, result: result });
+          }
+        };
+
+        // MAIN world (audio-hook.js)로 명령 전달
+        window.postMessage({
+          type: 'SOOPTALKING_RECORDER_COMMAND',
+          command: recCommand,
+          params: recParams
+        }, '*');
+
+        // 타임아웃 설정 (5초)
+        setTimeout(() => {
+          if (!hasResponded) {
+            hasResponded = true;
+            window.__soopPendingCallback = null;
+            sendResponse({ success: false, error: '응답 시간 초과' });
+          }
+        }, 5000);
+
+        return true;
+
+      default:
+        sendResponse({ success: false, error: '알 수 없는 메시지' });
+        return true;
+    }
   });
 
   // ===== 초기화 =====
   function init() {
-    console.log('[숲토킹] Content Script 로드됨 - URL:', window.location.href);
-    console.log('[숲토킹] 스트리머 ID:', extractStreamerIdFromUrl());
-    console.log('[숲토킹] 방송 번호:', extractBroadNoFromUrl());
+    console.log('[숲토킹 Content] Content script 로드됨 (document_start)');
+    console.log('[숲토킹 Content] URL:', window.location.href);
 
-    // 페이지 로드 후 방송 정보 확인 (지연)
-    setTimeout(async () => {
-      const info = await getBroadcastInfo();
-      if (info.success) {
-        console.log('[숲토킹] 방송 정보:', info.data);
-      } else {
-        console.log('[숲토킹] 방송 정보 조회 실패:', info.error);
-      }
-    }, 1000);
+    // DOM이 준비되면 추가 정보 로깅
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        const info = extractPageInfo();
+        console.log('[숲토킹 Content] 스트리머 ID:', info.streamerId);
+        console.log('[숲토킹 Content] 방송 번호:', info.broadNo);
 
-    // 페이지 변경 감지 (SPA 대응)
-    let lastUrl = window.location.href;
-    const urlObserver = new MutationObserver(() => {
-      if (window.location.href !== lastUrl) {
-        lastUrl = window.location.href;
-        console.log('[숲토킹] URL 변경 감지:', lastUrl);
-        // 캐시 무효화
-        cachedStreamInfo = null;
-        lastFetchTime = 0;
-      }
-    });
-    urlObserver.observe(document.body, { childList: true, subtree: true });
+        safeSendMessage({
+          type: 'CONTENT_LOADED',
+          data: info
+        }).catch(() => {});
+      });
+    } else {
+      const info = extractPageInfo();
+      console.log('[숲토킹 Content] 스트리머 ID:', info.streamerId);
+      console.log('[숲토킹 Content] 방송 번호:', info.broadNo);
+
+      safeSendMessage({
+        type: 'CONTENT_LOADED',
+        data: info
+      }).catch(() => {});
+    }
   }
 
-  // DOM 로드 후 초기화
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  init();
 })();

@@ -15,7 +15,13 @@
     notificationEnabled: true,
     endNotificationEnabled: false,
     autoCloseOfflineTabs: true,
-    filter: 'all'
+    filter: 'all',
+    // 녹화 상태 (메모리 누적 + 단일 파일 저장)
+    isRecording: false,
+    recordingTabId: null,
+    recordingStartTime: null,
+    recordingTimerInterval: null,
+    recordingTotalBytes: 0
   };
 
   // ===== DOM 요소 =====
@@ -39,8 +45,6 @@
     currentStreamTitle: document.getElementById('currentStreamTitle'),
     currentAvatar: document.getElementById('currentAvatar'),
     currentAvatarText: document.getElementById('currentAvatarText'),
-    downloadBtn: document.getElementById('downloadBtn'),
-    qualitySelect: document.getElementById('qualitySelect'),
 
     // 다운로드
     downloadList: document.getElementById('downloadList'),
@@ -60,6 +64,13 @@
     // 저장 공간
     storageValue: document.getElementById('storageValue'),
     storageProgressFill: document.getElementById('storageProgressFill'),
+
+    // 녹화 (메모리 누적 + 단일 파일 저장)
+    startRecordingBtn: document.getElementById('startRecordingBtn'),
+    stopRecordingBtn: document.getElementById('stopRecordingBtn'),
+    recordingStatus: document.getElementById('recordingStatus'),
+    recordingTime: document.getElementById('recordingTime'),
+    recordingSize: document.getElementById('recordingSize'),
 
     // 기타
     toast: document.getElementById('toast'),
@@ -248,65 +259,55 @@
         return;
       }
 
-      const match = soopTab.url.match(/play\.sooplive\.co\.kr\/([^\/]+)/);
+      const match = soopTab.url.match(/play\.sooplive\.co\.kr\/([^\/]+)(?:\/(\d+))?/);
       if (!match) {
         showNotWatching();
         return;
       }
 
       const streamerId = match[1];
+      const broadNo = match[2] || '';
 
-      // Content script 로드 확인 및 주입
-      const isLoaded = await ensureContentScriptLoaded(soopTab.id);
-
-      if (isLoaded) {
-        // Content script에서 방송 정보 가져오기
-        try {
-          const response = await chrome.tabs.sendMessage(soopTab.id, { type: 'GET_BROADCAST_INFO' });
-          if (response && response.success && response.data) {
-            showCurrentStream(response.data);
-            return;
-          }
-        } catch (e) {
-          console.log('[사이드패널] 방송 정보 요청 실패:', e.message);
-        }
-      }
-
-      // Fallback 1: 저장된 방송 상태에서 정보 가져오기
+      // 1순위: 저장된 방송 상태에서 정보 가져오기
       const status = state.broadcastStatus[streamerId];
       if (status && status.isLive) {
         showCurrentStream({
           streamerId,
           nickname: status.nickname || streamerId,
           title: status.title || '',
-          broadNo: status.broadNo
+          broadNo: status.broadNo || broadNo
         });
         return;
       }
 
-      // Fallback 2: background에서 직접 API 조회
+      // 2순위: Background를 통해 API 조회 (CORS 우회)
       try {
         const apiResponse = await sendMessage({
-          type: 'GET_BROADCAST_STATUS',
-          data: streamerId
+          type: 'FETCH_STREAM_INFO',
+          streamerId,
+          broadNo
         });
-        if (apiResponse && apiResponse.data && apiResponse.data.isLive) {
+
+        if (apiResponse && apiResponse.success) {
           showCurrentStream({
             streamerId,
-            nickname: apiResponse.data.nickname || streamerId,
-            title: apiResponse.data.title || '',
-            broadNo: apiResponse.data.broadNo
+            nickname: apiResponse.nickname || streamerId,
+            title: apiResponse.title || '',
+            broadNo: apiResponse.broadNo || broadNo
           });
           return;
         }
-      } catch (e) {}
+      } catch (e) {
+        console.log('[사이드패널] 방송 정보 API 조회 실패:', e.message);
+      }
 
-      // Fallback 3: URL에서 추출한 정보만으로 표시 (방송 중으로 간주)
+      // 3순위: URL에서 추출한 정보만으로 표시 (방송 중으로 간주)
       // SOOP 방송 페이지에 있으면 일단 방송 중으로 표시
       showCurrentStream({
         streamerId,
         nickname: streamerId,
-        title: '방송 중'
+        title: '방송 중',
+        broadNo
       });
 
     } catch (error) {
@@ -322,16 +323,6 @@
     elements.currentStreamerName.textContent = info.nickname || info.streamerId;
     elements.currentStreamTitle.textContent = info.title || '';
     elements.currentAvatarText.textContent = getFirstChar(info.nickname || info.streamerId);
-
-    // 다운로드 중인지 확인
-    const isDownloading = state.downloads.some(d => d.streamerId === info.streamerId && d.isRunning);
-    if (isDownloading) {
-      elements.downloadBtn.className = 'download-btn stop';
-      elements.downloadBtn.innerHTML = '<span class="rec-icon"></span><span>다운로드 중지</span>';
-    } else {
-      elements.downloadBtn.className = 'download-btn start';
-      elements.downloadBtn.innerHTML = '<span class="rec-icon"></span><span>지금부터 다운로드</span>';
-    }
   }
 
   function showNotWatching() {
@@ -695,86 +686,6 @@
     updateQuickSettings();
   }
 
-  async function startDownload() {
-    // 다운로드 중인지 확인 (현재 스트림이 있는 경우)
-    if (state.currentStream) {
-      const existingDownload = state.downloads.find(
-        d => d.streamerId === state.currentStream.streamerId && d.isRunning
-      );
-
-      if (existingDownload) {
-        // 중지
-        await stopDownload(existingDownload.sessionId);
-        return;
-      }
-    }
-
-    try {
-      // 1. SOOP 탭 찾기
-      const soopTab = await findSoopTab();
-
-      if (!soopTab) {
-        showToast('SOOP 방송 탭을 찾을 수 없습니다.', 'error');
-        return;
-      }
-
-      console.log('[사이드패널] SOOP 탭 발견:', soopTab.id, soopTab.url);
-
-      // 2. Content script 로드 확인 및 주입
-      const isLoaded = await ensureContentScriptLoaded(soopTab.id);
-      if (!isLoaded) {
-        showToast('페이지에 연결할 수 없습니다. 새로고침 후 다시 시도해주세요.', 'error');
-        return;
-      }
-
-      // 3. m3u8 URL 요청
-      console.log('[사이드패널] m3u8 URL 요청...');
-      const m3u8Response = await chrome.tabs.sendMessage(soopTab.id, { type: 'GET_M3U8_URL' });
-
-      console.log('[사이드패널] m3u8 응답:', m3u8Response);
-
-      if (!m3u8Response || !m3u8Response.success) {
-        showToast(m3u8Response?.error || 'm3u8 URL을 가져올 수 없습니다.', 'error');
-        return;
-      }
-
-      // 4. 다운로드 시작
-      const quality = elements.qualitySelect.value;
-
-      const result = await sendMessage({
-        type: 'START_DOWNLOAD',
-        options: {
-          streamerId: m3u8Response.streamerId || state.currentStream?.streamerId,
-          broadNo: m3u8Response.broadNo || state.currentStream?.broadNo,
-          nickname: m3u8Response.nickname || state.currentStream?.nickname,
-          title: m3u8Response.title || state.currentStream?.title,
-          m3u8Url: m3u8Response.m3u8Url,
-          baseUrl: m3u8Response.baseUrl,
-          quality,
-          isBackgroundDownload: false,
-          tabId: soopTab.id
-        }
-      });
-
-      if (result && result.success) {
-        showToast('다운로드가 시작되었습니다!', 'success');
-        await refreshDownloads();
-        updateCurrentStream();
-      } else {
-        showToast(result?.error || '다운로드 시작 실패', 'error');
-      }
-
-    } catch (error) {
-      console.error('[사이드패널] 다운로드 시작 오류:', error);
-
-      if (error.message && error.message.includes('Could not establish connection')) {
-        showToast('페이지에 연결할 수 없습니다. SOOP 탭을 새로고침해주세요.', 'error');
-      } else {
-        showToast('다운로드 시작 중 오류가 발생했습니다.', 'error');
-      }
-    }
-  }
-
   async function stopDownload(sessionId) {
     try {
       const result = await sendMessage({
@@ -785,7 +696,6 @@
       if (result.success) {
         showToast('다운로드가 중지되고 저장되었습니다.', 'success');
         await refreshDownloads();
-        updateCurrentStream();
       } else {
         showToast(result.error || '다운로드 중지 실패', 'error');
       }
@@ -971,6 +881,206 @@
     }
   }
 
+  // ===== 녹화 기능 (이벤트 기반) =====
+  async function startRecording() {
+    if (state.isRecording) {
+      showToast('이미 녹화 중입니다.', 'error');
+      return;
+    }
+
+    try {
+      // SOOP 탭 찾기
+      const soopTab = await findSoopTab();
+      if (!soopTab) {
+        showToast('SOOP 방송 탭을 찾을 수 없습니다.', 'error');
+        return;
+      }
+
+      // 버튼 비활성화 & 로딩 상태
+      if (elements.startRecordingBtn) {
+        elements.startRecordingBtn.disabled = true;
+        elements.startRecordingBtn.innerHTML = '<span class="rec-dot"></span><span>시작 중...</span>';
+      }
+
+      // 탭 ID 임시 저장 (이벤트에서 사용)
+      state.pendingRecordingTabId = soopTab.id;
+
+      showToast('녹화 시작 중...', 'info');
+
+      // 명령 전송 (응답은 이벤트로 받음)
+      await sendMessage({
+        type: 'SIDEPANEL_RECORDING_COMMAND',
+        tabId: soopTab.id,
+        command: 'START_RECORDING',
+        params: { streamerId: state.currentStream?.streamerId }
+      });
+
+      // 5초 타임아웃 설정 (이벤트가 오지 않으면 복구)
+      setTimeout(() => {
+        if (!state.isRecording && elements.startRecordingBtn) {
+          elements.startRecordingBtn.disabled = false;
+          elements.startRecordingBtn.innerHTML = '<span class="rec-dot"></span><span>녹화 시작</span>';
+        }
+      }, 5000);
+
+    } catch (error) {
+      console.error('[사이드패널] 녹화 시작 오류:', error);
+      showToast('녹화 시작 실패: ' + error.message, 'error');
+
+      if (elements.startRecordingBtn) {
+        elements.startRecordingBtn.disabled = false;
+        elements.startRecordingBtn.innerHTML = '<span class="rec-dot"></span><span>녹화 시작</span>';
+      }
+    }
+  }
+
+  async function stopRecording() {
+    if (!state.isRecording) {
+      showToast('녹화 중이 아닙니다.', 'error');
+      return;
+    }
+
+    try {
+      // 버튼 비활성화 & 로딩 상태
+      if (elements.stopRecordingBtn) {
+        elements.stopRecordingBtn.disabled = true;
+        elements.stopRecordingBtn.innerHTML = '<span class="stop-icon"></span><span>중지 중...</span>';
+      }
+
+      showToast('녹화 중지 중...', 'info');
+
+      // 명령 전송 (응답은 이벤트로 받음)
+      await sendMessage({
+        type: 'SIDEPANEL_RECORDING_COMMAND',
+        tabId: state.recordingTabId,
+        command: 'STOP_RECORDING'
+      });
+
+    } catch (error) {
+      console.error('[사이드패널] 녹화 중지 오류:', error);
+      showToast('녹화 중지 실패: ' + error.message, 'error');
+
+      if (elements.stopRecordingBtn) {
+        elements.stopRecordingBtn.disabled = false;
+        elements.stopRecordingBtn.innerHTML = '<span class="stop-icon"></span><span>녹화 중지</span>';
+      }
+    }
+  }
+
+  function startRecordingTimer() {
+    // 기존 타이머 정리
+    if (state.recordingTimerInterval) {
+      clearInterval(state.recordingTimerInterval);
+    }
+
+    // 1초마다 시간 업데이트
+    state.recordingTimerInterval = setInterval(() => {
+      if (state.isRecording && state.recordingStartTime) {
+        const elapsed = Date.now() - state.recordingStartTime;
+        elements.recordingTime.textContent = formatDuration(elapsed);
+
+        // 녹화 상태 조회 (크기 및 세그먼트 수 업데이트)
+        updateRecordingStatus();
+      }
+    }, 1000);
+  }
+
+  function stopRecordingTimer() {
+    if (state.recordingTimerInterval) {
+      clearInterval(state.recordingTimerInterval);
+      state.recordingTimerInterval = null;
+    }
+  }
+
+  async function updateRecordingStatus() {
+    if (!state.recordingTabId) return;
+
+    try {
+      // 상태 조회 명령 전송 (응답은 RECORDING_STATUS 이벤트로 받음)
+      await sendMessage({
+        type: 'SIDEPANEL_RECORDING_COMMAND',
+        tabId: state.recordingTabId,
+        command: 'GET_STATUS'
+      });
+    } catch (e) {
+      // 상태 조회 실패 무시
+    }
+  }
+
+  function resetRecordingState() {
+    state.isRecording = false;
+    state.recordingTabId = null;
+    state.recordingStartTime = null;
+    state.recordingTotalBytes = 0;
+    stopRecordingTimer();
+  }
+
+  function updateRecordingUI() {
+    if (!elements.startRecordingBtn) return;
+
+    if (state.isRecording) {
+      // 녹화 중
+      elements.startRecordingBtn.style.display = 'none';
+      elements.stopRecordingBtn.style.display = 'flex';
+      elements.recordingStatus.style.display = 'flex';
+    } else {
+      // 대기 상태
+      elements.startRecordingBtn.style.display = 'flex';
+      elements.stopRecordingBtn.style.display = 'none';
+      elements.recordingStatus.style.display = 'none';
+      elements.recordingTime.textContent = '00:00:00';
+      elements.recordingSize.textContent = '0 MB';
+    }
+  }
+
+  // 사이드패널 재열림 시 녹화 상태 복원
+  async function restoreRecordingState() {
+    try {
+      // SOOP 탭 찾기
+      const soopTab = await findSoopTab();
+      if (!soopTab) {
+        console.log('[사이드패널] SOOP 탭 없음, 녹화 상태 복원 스킵');
+        return;
+      }
+
+      // 해당 탭의 녹화 상태 확인
+      const result = await sendMessage({
+        type: 'SIDEPANEL_RECORDING_COMMAND',
+        tabId: soopTab.id,
+        command: 'GET_STATUS'
+      });
+
+      console.log('[사이드패널] 녹화 상태 복원 확인:', result);
+
+      if (result && result.success && result.result) {
+        const status = result.result;
+
+        if (status.isRecording) {
+          // 녹화 중인 경우 상태 복원
+          state.isRecording = true;
+          state.recordingTabId = soopTab.id;
+
+          // 녹화 시작 시간 추정 (현재 시간 - 녹화 시간)
+          const durationSeconds = parseFloat(status.duration) || 0;
+          state.recordingStartTime = Date.now() - (durationSeconds * 1000);
+
+          // 타이머 시작
+          startRecordingTimer();
+
+          // 크기 업데이트
+          if (elements.recordingSize) {
+            elements.recordingSize.textContent = (status.totalMB || '0') + ' MB';
+          }
+
+          console.log('[사이드패널] 녹화 상태 복원됨 - 녹화 중');
+        }
+      }
+    } catch (error) {
+      console.log('[사이드패널] 녹화 상태 복원 실패 (정상):', error.message);
+      // 실패해도 무시 (새 탭이거나 녹화 안 함)
+    }
+  }
+
   // ===== 내보내기/가져오기 =====
   function exportStreamers() {
     if (state.favoriteStreamers.length === 0) {
@@ -1104,8 +1214,13 @@
     elements.endNotificationChip.addEventListener('click', () => toggleQuickSetting('endNotification'));
     elements.autoCloseChip.addEventListener('click', () => toggleQuickSetting('autoClose'));
 
-    // 다운로드 버튼
-    elements.downloadBtn.addEventListener('click', startDownload);
+    // 녹화 버튼
+    if (elements.startRecordingBtn) {
+      elements.startRecordingBtn.addEventListener('click', startRecording);
+    }
+    if (elements.stopRecordingBtn) {
+      elements.stopRecordingBtn.addEventListener('click', stopRecording);
+    }
 
     // 필터
     elements.filterSelect.addEventListener('change', (e) => {
@@ -1166,6 +1281,103 @@
           updateStreamerList();
           updateMonitoringUI();
           break;
+
+        // ===== 이벤트 기반 녹화 핸들러 =====
+        case 'RECORDING_STARTED':
+          console.log('[사이드패널] 🔴 녹화 시작됨:', message.data);
+          state.isRecording = true;
+          state.recordingTabId = message.data.tabId || state.pendingRecordingTabId;
+          state.recordingStartTime = Date.now();
+          state.recordingTotalBytes = 0;
+
+          updateRecordingUI();
+          startRecordingTimer();
+          showToast('🔴 녹화가 시작되었습니다!', 'success');
+          break;
+
+        case 'RECORDING_STOPPED':
+          console.log('[사이드패널] ⏹ 녹화 중지됨:', message.data);
+          stopRecordingTimer();
+
+          const stoppedTotalMB = message.data.totalBytes
+            ? (message.data.totalBytes / 1024 / 1024).toFixed(2)
+            : '0';
+          showToast(`✅ 녹화 완료! ${stoppedTotalMB} MB 저장됨`, 'success');
+
+          resetRecordingState();
+          updateRecordingUI();
+          break;
+
+        case 'RECORDING_STATUS':
+          console.log('[사이드패널] 녹화 상태:', message.data);
+          if (message.data.isRecording && !state.isRecording) {
+            // 녹화 중인데 상태가 안 맞으면 복원
+            state.isRecording = true;
+            state.recordingTabId = message.data.tabId;
+            state.recordingStartTime = Date.now() - ((parseFloat(message.data.duration) || 0) * 1000);
+            updateRecordingUI();
+            startRecordingTimer();
+          }
+          if (elements.recordingSize && message.data.totalMB) {
+            elements.recordingSize.textContent = message.data.totalMB + ' MB';
+          }
+          break;
+
+        case 'RECORDING_ERROR':
+          // 녹화 에러
+          console.error('[사이드패널] ❌ 녹화 에러:', message.data);
+          showToast('녹화 오류: ' + (message.data.error || '알 수 없는 오류'), 'error');
+
+          // 버튼 복구
+          if (elements.startRecordingBtn) {
+            elements.startRecordingBtn.disabled = false;
+            elements.startRecordingBtn.innerHTML = '<span class="rec-dot"></span><span>녹화 시작</span>';
+          }
+          if (elements.stopRecordingBtn) {
+            elements.stopRecordingBtn.disabled = false;
+            elements.stopRecordingBtn.innerHTML = '<span class="stop-icon"></span><span>녹화 중지</span>';
+          }
+
+          // START_RECORDING 실패 시 상태 리셋
+          if (message.data.command === 'START_RECORDING') {
+            resetRecordingState();
+            updateRecordingUI();
+          }
+          break;
+
+        case 'RECORDING_COMPLETED':
+          // 녹화 완료 (방송 종료 등으로 인한 자동 완료)
+          console.log('[사이드패널] 녹화 완료:', message.data);
+          stopRecordingTimer();
+          resetRecordingState();
+          updateRecordingUI();
+          if (message.data && message.data.totalBytes) {
+            const sizeMB = (message.data.totalBytes / 1024 / 1024).toFixed(2);
+            const durationMin = message.data.duration ? (message.data.duration / 60).toFixed(1) : '0';
+            showToast(`녹화 완료! ${durationMin}분, ${sizeMB} MB 저장됨`, 'success');
+          } else {
+            showToast('녹화가 완료되었습니다.', 'success');
+          }
+          break;
+
+        case 'RECORDING_STATUS_CHANGED':
+          // 레거시 녹화 상태 업데이트 (호환성)
+          const recordingData = message.data;
+          console.log('[사이드패널] 녹화 상태 변경:', recordingData);
+
+          if (recordingData.status === 'complete') {
+            // 녹화 완료
+            stopRecordingTimer();
+            resetRecordingState();
+            updateRecordingUI();
+            showToast('녹화가 완료되었습니다.', 'success');
+          } else if (recordingData.status === 'error') {
+            // 녹화 에러
+            resetRecordingState();
+            updateRecordingUI();
+            showToast('녹화 오류: ' + (recordingData.error || '알 수 없는 오류'), 'error');
+          }
+          break;
       }
     });
 
@@ -1208,6 +1420,11 @@
     updateQuickSettings();
     updateCurrentStream();
     updateStreamerList();
+
+    // 녹화 상태 복원 (사이드패널 재열림 시)
+    await restoreRecordingState();
+
+    updateRecordingUI();
     await refreshDownloads();
     await updateStorageInfo();
 
