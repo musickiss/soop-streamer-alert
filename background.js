@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.1.1 - Background Service Worker =====
+// ===== 숲토킹 v3.1.2 - Background Service Worker =====
 // tabCapture 원터치 녹화 + 5초/30초 분리 모니터링
 
 // ===== 상수 =====
@@ -35,7 +35,7 @@ const state = {
 // ===== 초기화 =====
 
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[숲토킹] v3.1.0 설치됨');
+  console.log('[숲토킹] v3.1.2 설치됨');
   await loadSettings();
 });
 
@@ -639,6 +639,27 @@ chrome.action.onClicked.addListener(async (tab) => {
 
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
+// ===== 탭 닫힘 감지 =====
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  // 해당 탭에서 녹화 중인 세션 찾기
+  for (const [sessionId, recording] of state.recordings.entries()) {
+    if (recording.tabId === tabId) {
+      console.log('[숲토킹] 녹화 중인 탭이 닫힘, 녹화 중지:', sessionId);
+      stopRecording(sessionId);
+    }
+  }
+});
+
+// ===== 초기 설정 로드 =====
+
+loadSettings().then(() => {
+  console.log('[숲토킹] 초기 설정 로드 완료');
+  if (state.isMonitoring) {
+    startMonitoring();
+  }
+});
+
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.1.1 로드됨');
+console.log('[숲토킹] Background Service Worker v3.1.2 로드됨');
