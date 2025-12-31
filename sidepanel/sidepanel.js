@@ -1207,12 +1207,21 @@
   }
 
   // ===== 녹화 중 목록 관리 =====
+  let isUpdatingRecordingList = false;  // 동시 호출 방지 플래그
+
   // 녹화 중 목록 업데이트
   async function updateActiveRecordingList() {
+    // 이미 업데이트 중이면 스킵
+    if (isUpdatingRecordingList) return;
+    isUpdatingRecordingList = true;
+
     try {
       const result = await sendMessage({ type: 'GET_ALL_RECORDINGS' });
 
-      if (!elements.activeRecordingList) return;
+      if (!elements.activeRecordingList) {
+        isUpdatingRecordingList = false;
+        return;
+      }
 
       const recordings = result?.success ? (result.data || []) : [];
 
@@ -1239,6 +1248,7 @@
 
       // 중지 버튼 이벤트 연결
       recordings.forEach(rec => {
+        if (typeof rec.tabId !== 'number' || rec.tabId <= 0) return;
         const stopBtn = document.getElementById(`stop-recording-${rec.tabId}`);
         if (stopBtn) {
           stopBtn.addEventListener('click', () => stopRecordingByTabId(rec.tabId));
@@ -1247,11 +1257,19 @@
 
     } catch (error) {
       console.error('[사이드패널] 녹화 목록 업데이트 오류:', error);
+    } finally {
+      isUpdatingRecordingList = false;  // 플래그 해제
     }
   }
 
   // 녹화 카드 HTML 생성
   function createRecordingCardHTML(recording) {
+    // tabId 검증 - 숫자가 아니면 무시
+    const tabId = typeof recording.tabId === 'number' && recording.tabId > 0
+      ? recording.tabId
+      : null;
+    if (!tabId) return '';
+
     const duration = recording.startTime
       ? Math.floor((Date.now() - recording.startTime) / 1000)
       : 0;
@@ -1269,7 +1287,7 @@
     const displayName = escapeHtml(recording.nickname || recording.streamerId || '알 수 없음');
 
     return `
-      <div class="recording-card" data-tab-id="${recording.tabId}">
+      <div class="recording-card" data-tab-id="${tabId}">
         <div class="recording-card-header">
           <span class="recording-indicator"></span>
           <span class="recording-streamer-name" title="${displayName}">${displayName}</span>
@@ -1277,14 +1295,14 @@
         <div class="recording-card-stats">
           <div class="recording-stat">
             <span>⏱️</span>
-            <span class="recording-stat-value recording-time" data-tab-id="${recording.tabId}">${timeStr}</span>
+            <span class="recording-stat-value recording-time" data-tab-id="${tabId}">${timeStr}</span>
           </div>
           <div class="recording-stat">
             <span>💾</span>
-            <span class="recording-stat-value recording-size" data-tab-id="${recording.tabId}">${sizeStr}</span>
+            <span class="recording-stat-value recording-size" data-tab-id="${tabId}">${sizeStr}</span>
           </div>
         </div>
-        <button class="recording-stop-btn" id="stop-recording-${recording.tabId}">
+        <button class="recording-stop-btn" id="stop-recording-${tabId}">
           <span>⏹</span>
           <span>녹화 중지</span>
         </button>
@@ -1294,6 +1312,12 @@
 
   // 특정 탭의 녹화 중지
   async function stopRecordingByTabId(tabId) {
+    // tabId 검증
+    if (typeof tabId !== 'number' || tabId <= 0) {
+      console.error('[사이드패널] 유효하지 않은 tabId:', tabId);
+      return;
+    }
+
     const stopBtn = document.getElementById(`stop-recording-${tabId}`);
     if (stopBtn) {
       stopBtn.disabled = true;
@@ -1335,14 +1359,20 @@
 
       if (timeEl) {
         // 현재 표시된 시간에서 1초 증가
-        const currentTime = timeEl.textContent;
+        const currentTime = timeEl.textContent || '00:00';
         const parts = currentTime.split(':').map(Number);
+
+        // NaN 방지
+        if (parts.some(isNaN)) return;
+
         let totalSeconds;
 
         if (parts.length === 3) {
           totalSeconds = parts[0] * 3600 + parts[1] * 60 + parts[2] + 1;
-        } else {
+        } else if (parts.length === 2) {
           totalSeconds = parts[0] * 60 + parts[1] + 1;
+        } else {
+          return; // 잘못된 형식
         }
 
         const hours = Math.floor(totalSeconds / 3600);

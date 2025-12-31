@@ -1796,8 +1796,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           const stopTabId = message.tabId;
           console.log('[숲토킹] STOP_RECORDING 요청, tabId:', stopTabId);
 
-          if (!stopTabId) {
-            sendResponse({ success: false, error: '탭 ID가 없습니다.' });
+          // tabId 타입 및 범위 검증
+          if (typeof stopTabId !== 'number' || stopTabId <= 0) {
+            sendResponse({ success: false, error: '유효하지 않은 탭 ID입니다.' });
             break;
           }
 
