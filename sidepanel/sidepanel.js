@@ -286,11 +286,24 @@
     showToast('녹화 시작 중...', 'info');
 
     try {
+      // ⭐ Side Panel에서 직접 tabCapture 호출 (사용자 제스처 컨텍스트 유지)
+      const streamId = await chrome.tabCapture.getMediaStreamId({
+        targetTabId: tabId
+      });
+
+      if (!streamId) {
+        throw new Error('tabCapture streamId 획득 실패');
+      }
+
+      console.log('[사이드패널] tabCapture streamId 획득 성공');
+
+      // Background에 streamId와 함께 녹화 시작 요청
       const result = await sendMessage({
         type: 'START_RECORDING_REQUEST',
         tabId,
         streamerId,
-        nickname
+        nickname,
+        streamId  // ⭐ streamId 전달
       });
 
       if (result?.success) {
@@ -309,7 +322,15 @@
       }
     } catch (error) {
       console.error('[사이드패널] 녹화 시작 오류:', error);
-      showToast('녹화 시작 실패: ' + (error.message || '알 수 없는 오류'), 'error');
+
+      let errorMsg = error.message || '알 수 없는 오류';
+
+      // 사용자 친화적 에러 메시지
+      if (errorMsg.includes('activeTab') || errorMsg.includes('invoked')) {
+        errorMsg = '녹화할 탭을 먼저 클릭해주세요.';
+      }
+
+      showToast('녹화 시작 실패: ' + errorMsg, 'error');
 
       if (elements.startRecordingBtn) {
         elements.startRecordingBtn.disabled = false;

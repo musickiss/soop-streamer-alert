@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.1.0 - Offscreen Document =====
+// ===== 숲토킹 v3.1.1 - Offscreen Document =====
 // tabCapture 기반 원터치 녹화
 // OPFS(Origin Private File System)에 실시간 저장
 
@@ -18,9 +18,10 @@ async function getOpfsFolder() {
 
 function getBestMimeType() {
   const codecs = [
-    { mime: 'video/webm;codecs=vp9,opus', name: 'VP9' },
-    { mime: 'video/webm;codecs=vp8,opus', name: 'VP8' },
-    { mime: 'video/webm', name: 'WebM' }
+    { mime: 'video/webm;codecs=av1,opus', name: 'AV1' },   // ⭐ AV1 1순위
+    { mime: 'video/webm;codecs=vp9,opus', name: 'VP9' },   // VP9 2순위
+    { mime: 'video/webm;codecs=vp8,opus', name: 'VP8' },   // VP8 3순위
+    { mime: 'video/webm', name: 'WebM' }                    // 폴백
   ];
 
   for (const { mime, name } of codecs) {
@@ -326,4 +327,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-console.log('[Offscreen] 숲토킹 녹화 모듈 v3.1.0 로드됨');
+console.log('[Offscreen] 숲토킹 녹화 모듈 v3.1.1 로드됨');

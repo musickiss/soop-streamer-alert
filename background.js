@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.1.0 - Background Service Worker =====
+// ===== 숲토킹 v3.1.1 - Background Service Worker =====
 // tabCapture 원터치 녹화 + 5초/30초 분리 모니터링
 
 // ===== 상수 =====
@@ -125,8 +125,13 @@ async function ensureOffscreen() {
 
 // ===== 녹화 관리 (tabCapture 기반) =====
 
-async function startRecording(tabId, streamerId, nickname, quality) {
+async function startRecording(tabId, streamerId, nickname, quality, streamId) {
   console.log('[숲토킹] 녹화 시작 요청:', streamerId, 'tabId:', tabId);
+
+  // ⭐ streamId가 없으면 에러
+  if (!streamId) {
+    return { success: false, error: 'streamId가 필요합니다. Side Panel에서 tabCapture를 호출해주세요.' };
+  }
 
   const ready = await ensureOffscreen();
   if (!ready) {
@@ -134,12 +139,7 @@ async function startRecording(tabId, streamerId, nickname, quality) {
   }
 
   try {
-    // tabCapture API로 streamId 획득 (다이얼로그 없음!)
-    const streamId = await chrome.tabCapture.getMediaStreamId({
-      targetTabId: tabId
-    });
-
-    console.log('[숲토킹] tabCapture streamId 획득:', streamId.substring(0, 20) + '...');
+    console.log('[숲토킹] streamId 수신됨:', streamId.substring(0, 20) + '...');
 
     // Offscreen에 녹화 시작 요청
     const response = await chrome.runtime.sendMessage({
@@ -476,7 +476,8 @@ async function handleMessage(message, sender, sendResponse) {
         message.tabId,
         message.streamerId,
         message.nickname,
-        message.quality
+        message.quality,
+        message.streamId  // ⭐ streamId 추가
       );
       sendResponse(startResult);
       break;
@@ -640,4 +641,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.1.0 로드됨');
+console.log('[숲토킹] Background Service Worker v3.1.1 로드됨');
