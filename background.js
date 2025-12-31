@@ -107,8 +107,8 @@ let state = {
   endNotificationEnabled: false,
   autoCloseOfflineTabs: true,
 
-  // 녹화 상태 중앙 관리 (단일 진실 소스)
-  activeRecording: null  // { tabId, streamerId, nickname, startTime, totalBytes }
+  // 녹화 상태 중앙 관리 - 탭별 다중 녹화 지원
+  activeRecordings: new Map()  // Map<tabId, { streamerId, nickname, startTime, totalBytes }>
 };
 
 // 타이머 ID
@@ -363,6 +363,22 @@ chrome.tabs.onRemoved.addListener((tabId) => {
       state.runningTabs[streamerId] = false;
       break;
     }
+  }
+
+  // 녹화 중인 탭이 닫히면 녹화 상태 정리
+  if (state.activeRecordings.has(tabId)) {
+    console.log('[숲토킹] 녹화 중인 탭 닫힘, 상태 정리:', tabId);
+    const recordingInfo = state.activeRecordings.get(tabId);
+    state.activeRecordings.delete(tabId);
+
+    chrome.runtime.sendMessage({
+      type: 'RECORDING_STOPPED',
+      data: {
+        tabId,
+        ...recordingInfo,
+        reason: 'tab_closed'
+      }
+    }).catch(() => {});
   }
 });
 
@@ -1413,24 +1429,39 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
 
         case 'SIDEPANEL_RECORDING_COMMAND':
-          // Sidepanel에서 녹화 명령어 - Background 중앙 상태 관리
-          console.log('[숲토킹] SIDEPANEL_RECORDING_COMMAND:', message.command);
+          // Sidepanel에서 녹화 명령어 - 탭별 다중 녹화 지원
+          console.log('[숲토킹] SIDEPANEL_RECORDING_COMMAND:', message.command, 'tabId:', message.tabId);
 
-          // GET_STATUS는 Background 상태에서 직접 응답 (폴링 최적화!)
+          // GET_STATUS - 특정 탭의 녹화 상태 반환
           if (message.command === 'GET_STATUS') {
+            const tabRecording = message.tabId ? state.activeRecordings.get(message.tabId) : null;
             sendResponse({
               success: true,
-              result: state.activeRecording ? {
+              result: tabRecording ? {
                 isRecording: true,
-                streamerId: state.activeRecording.streamerId,
-                nickname: state.activeRecording.nickname,
-                tabId: state.activeRecording.tabId,
-                duration: Date.now() - state.activeRecording.startTime,
-                totalBytes: state.activeRecording.totalBytes || 0
+                streamerId: tabRecording.streamerId,
+                nickname: tabRecording.nickname,
+                tabId: message.tabId,
+                duration: Date.now() - tabRecording.startTime,
+                totalBytes: tabRecording.totalBytes || 0
               } : {
                 isRecording: false
               }
             });
+            break;
+          }
+
+          // GET_ALL_RECORDINGS - 모든 녹화 상태 반환
+          if (message.command === 'GET_ALL_RECORDINGS') {
+            const allRecordings = [];
+            state.activeRecordings.forEach((recording, tabId) => {
+              allRecordings.push({
+                tabId,
+                ...recording,
+                duration: Date.now() - recording.startTime
+              });
+            });
+            sendResponse({ success: true, recordings: allRecordings });
             break;
           }
 
@@ -1439,38 +1470,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             break;
           }
 
+          const targetTabId = message.tabId;
+
           // START_RECORDING
           if (message.command === 'START_RECORDING') {
-            // 이미 녹화 중인지 확인
-            if (state.activeRecording) {
+            // 이 탭에서 이미 녹화 중인지 확인
+            if (state.activeRecordings.has(targetTabId)) {
+              const existing = state.activeRecordings.get(targetTabId);
               sendResponse({
                 success: false,
-                error: `이미 ${state.activeRecording.nickname || state.activeRecording.streamerId} 녹화 중입니다.`
+                error: `이 탭에서 이미 ${existing.nickname || existing.streamerId} 녹화 중입니다.`
               });
               break;
             }
 
-            // 녹화 상태 먼저 설정 (낙관적 업데이트)
-            state.activeRecording = {
-              tabId: message.tabId,
+            // 녹화 상태 설정
+            const newRecording = {
               streamerId: message.params?.streamerId || 'unknown',
               nickname: message.params?.nickname || message.params?.streamerId || 'unknown',
               startTime: Date.now(),
               totalBytes: 0
             };
+            state.activeRecordings.set(targetTabId, newRecording);
 
             // 즉시 성공 응답
             sendResponse({ success: true, message: '녹화 시작 요청됨' });
 
             // 비동기로 실제 명령 전달 (Content Script 주입 포함)
             (async () => {
-              const targetTabId = message.tabId;
               let retryCount = 0;
               const maxRetries = 2;
 
               while (retryCount <= maxRetries) {
                 try {
-                  console.log(`[숲토킹] START_RECORDING 시도 ${retryCount + 1}/${maxRetries + 1}`);
+                  console.log(`[숲토킹] START_RECORDING 시도 ${retryCount + 1}/${maxRetries + 1}, tabId:`, targetTabId);
 
                   await chrome.tabs.sendMessage(targetTabId, {
                     type: 'RECORDING_COMMAND',
@@ -1479,10 +1512,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                   });
 
                   // 성공 이벤트 브로드캐스트
-                  console.log('[숲토킹] ✅ START_RECORDING 성공');
+                  console.log('[숲토킹] ✅ START_RECORDING 성공, tabId:', targetTabId);
                   chrome.runtime.sendMessage({
                     type: 'RECORDING_STARTED',
-                    data: state.activeRecording
+                    data: { tabId: targetTabId, ...newRecording }
                   }).catch(() => {});
                   return;  // 성공 시 종료
 
@@ -1496,19 +1529,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                     if (retryCount < maxRetries) {
                       console.log('[숲토킹] Content Script 주입 시도...');
                       try {
-                        // content.js 주입 (ISOLATED world - 기본값)
                         await chrome.scripting.executeScript({
                           target: { tabId: targetTabId },
                           files: ['content.js']
                         });
-
-                        // audio-hook.js 주입 (MAIN world)
                         await chrome.scripting.executeScript({
                           target: { tabId: targetTabId },
                           files: ['audio-hook.js'],
                           world: 'MAIN'
                         });
-
                         console.log('[숲토킹] Content Script 주입 완료, 1초 대기...');
                         await new Promise(r => setTimeout(r, 1000));
                         retryCount++;
@@ -1522,11 +1551,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
                   // 최종 실패
                   console.error('[숲토킹] START_RECORDING 최종 실패');
-                  state.activeRecording = null;  // 롤백
+                  state.activeRecordings.delete(targetTabId);  // 롤백
 
                   chrome.runtime.sendMessage({
                     type: 'RECORDING_ERROR',
-                    data: { error: '녹화 시작 실패: 페이지를 새로고침한 후 다시 시도해주세요.' }
+                    data: {
+                      tabId: targetTabId,
+                      error: '녹화 시작 실패: 페이지를 새로고침한 후 다시 시도해주세요.'
+                    }
                   }).catch(() => {});
                   return;
                 }
@@ -1537,12 +1569,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
           // STOP_RECORDING
           if (message.command === 'STOP_RECORDING') {
-            if (!state.activeRecording) {
-              sendResponse({ success: false, error: '녹화 중이 아닙니다.' });
+            // 이 탭에서 녹화 중인지 확인
+            if (!state.activeRecordings.has(targetTabId)) {
+              sendResponse({ success: false, error: '이 탭에서 녹화 중이 아닙니다.' });
               break;
             }
 
-            const recordingInfo = { ...state.activeRecording };
+            const recordingInfo = { tabId: targetTabId, ...state.activeRecordings.get(targetTabId) };
 
             // 즉시 성공 응답
             sendResponse({ success: true, message: '녹화 중지 요청됨' });
@@ -1550,7 +1583,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             // 비동기로 실제 명령 전달
             (async () => {
               try {
-                await chrome.tabs.sendMessage(recordingInfo.tabId, {
+                await chrome.tabs.sendMessage(targetTabId, {
                   type: 'RECORDING_COMMAND',
                   command: 'STOP_RECORDING'
                 });
@@ -1558,14 +1591,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
               } catch (error) {
                 console.error('[숲토킹] STOP_RECORDING 전달 실패:', error.message);
                 // 에러여도 상태 초기화 (녹화 탭이 닫혔을 수 있음)
-                state.activeRecording = null;
+                state.activeRecordings.delete(targetTabId);
 
                 chrome.runtime.sendMessage({
                   type: 'RECORDING_STOPPED',
-                  data: {
-                    ...recordingInfo,
-                    error: error.message
-                  }
+                  data: { ...recordingInfo, error: error.message }
                 }).catch(() => {});
               }
             })();
@@ -1576,24 +1606,40 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           break;
 
         case 'GET_RECORDING_STATE':
-          // sidepanel 초기화용 - 현재 녹화 상태 반환
-          sendResponse({
-            success: true,
-            data: state.activeRecording
-          });
+          // sidepanel 초기화용 - 특정 탭 또는 전체 녹화 상태 반환
+          if (message.tabId) {
+            const tabRec = state.activeRecordings.get(message.tabId);
+            sendResponse({
+              success: true,
+              data: tabRec ? { tabId: message.tabId, ...tabRec } : null
+            });
+          } else {
+            // 모든 녹화 상태
+            const all = [];
+            state.activeRecordings.forEach((rec, tid) => {
+              all.push({ tabId: tid, ...rec });
+            });
+            sendResponse({ success: true, data: all.length > 0 ? all : null });
+          }
           break;
 
         case 'RECORDING_STOPPED_FROM_HOOK':
           // audio-hook에서 녹화 완료 이벤트
           console.log('[숲토킹] 녹화 완료 이벤트:', message.data);
 
-          const completedRecording = state.activeRecording;
-          state.activeRecording = null;  // 상태 초기화
+          // sender.tab.id로 어느 탭에서 왔는지 확인
+          const stoppedTabId = sender.tab?.id || message.data?.tabId;
+          const completedRecording = stoppedTabId ? state.activeRecordings.get(stoppedTabId) : null;
+
+          if (stoppedTabId) {
+            state.activeRecordings.delete(stoppedTabId);  // 상태 초기화
+          }
 
           // sidepanel에 브로드캐스트
           chrome.runtime.sendMessage({
             type: 'RECORDING_STOPPED',
             data: {
+              tabId: stoppedTabId,
               ...completedRecording,
               ...message.data
             }
@@ -1604,12 +1650,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         case 'RECORDING_PROGRESS_FROM_HOOK':
           // audio-hook에서 진행 상황 업데이트 (10초마다)
-          if (state.activeRecording) {
-            state.activeRecording.totalBytes = message.data.totalBytes || 0;
+          const progressTabId = sender.tab?.id;
+          if (progressTabId && state.activeRecordings.has(progressTabId)) {
+            const rec = state.activeRecordings.get(progressTabId);
+            rec.totalBytes = message.data.totalBytes || 0;
+
             // sidepanel에 진행 상황 브로드캐스트
             chrome.runtime.sendMessage({
               type: 'RECORDING_PROGRESS',
               data: {
+                tabId: progressTabId,
                 totalBytes: message.data.totalBytes,
                 duration: message.data.duration
               }
@@ -1621,11 +1671,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'RECORDING_ERROR_FROM_HOOK':
           // audio-hook에서 에러 발생
           console.error('[숲토킹] 녹화 에러:', message.data);
-          state.activeRecording = null;
+          const errorTabId = sender.tab?.id || message.data?.tabId;
+
+          if (errorTabId) {
+            state.activeRecordings.delete(errorTabId);
+          }
 
           chrome.runtime.sendMessage({
             type: 'RECORDING_ERROR',
-            data: message.data
+            data: { tabId: errorTabId, ...message.data }
           }).catch(() => {});
 
           sendResponse({ success: true });

@@ -16,7 +16,7 @@
     endNotificationEnabled: false,
     autoCloseOfflineTabs: true,
     filter: 'all',
-    // 녹화 상태 (Background 중앙 관리와 동기화)
+    // 녹화 상태 - 현재 보고 있는 탭 기준
     isRecording: false,
     recordingTabId: null,
     recordingStreamerId: null,
@@ -24,7 +24,8 @@
     recordingStartTime: null,
     recordingTimerInterval: null,
     recordingTotalBytes: 0,
-    pendingRecordingTabId: null
+    // 현재 보고 있는 SOOP 탭 ID
+    currentSoopTabId: null
   };
 
   // ===== DOM 요소 =====
@@ -235,13 +236,19 @@
       const soopTab = await findSoopTab();
 
       if (!soopTab) {
+        state.currentSoopTabId = null;
         showNotWatching();
+        updateRecordingUIForCurrentTab();
         return;
       }
+
+      // 현재 탭 ID 저장
+      state.currentSoopTabId = soopTab.id;
 
       const match = soopTab.url.match(/play\.sooplive\.co\.kr\/([^\/]+)(?:\/(\d+))?/);
       if (!match) {
         showNotWatching();
+        updateRecordingUIForCurrentTab();
         return;
       }
 
@@ -257,6 +264,8 @@
           title: status.title || '',
           broadNo: status.broadNo || broadNo
         });
+        // 이 탭의 녹화 상태 확인
+        await checkRecordingStatusForTab(soopTab.id);
         return;
       }
 
@@ -275,6 +284,7 @@
             title: apiResponse.title || '',
             broadNo: apiResponse.broadNo || broadNo
           });
+          await checkRecordingStatusForTab(soopTab.id);
           return;
         }
       } catch (e) {
@@ -290,9 +300,53 @@
         broadNo
       });
 
+      // 이 탭의 녹화 상태 확인
+      await checkRecordingStatusForTab(soopTab.id);
+
     } catch (error) {
       console.error('[사이드패널] 현재 스트림 확인 오류:', error);
       showNotWatching();
+    }
+  }
+
+  // 특정 탭의 녹화 상태 확인
+  async function checkRecordingStatusForTab(tabId) {
+    try {
+      const result = await sendMessage({
+        type: 'SIDEPANEL_RECORDING_COMMAND',
+        tabId: tabId,
+        command: 'GET_STATUS'
+      });
+
+      if (result?.success && result?.result?.isRecording) {
+        // 이 탭에서 녹화 중
+        state.isRecording = true;
+        state.recordingTabId = tabId;
+        state.recordingStreamerId = result.result.streamerId;
+        state.recordingNickname = result.result.nickname;
+        state.recordingStartTime = Date.now() - (result.result.duration || 0);
+        state.recordingTotalBytes = result.result.totalBytes || 0;
+
+        startRecordingTimer();
+      } else {
+        // 이 탭에서는 녹화 중 아님
+        if (state.recordingTabId === tabId) {
+          resetRecordingState();
+        }
+      }
+
+      updateRecordingUI();
+    } catch (e) {
+      console.log('[사이드패널] 녹화 상태 확인 실패:', e.message);
+    }
+  }
+
+  // 현재 탭 기준 녹화 UI 업데이트
+  function updateRecordingUIForCurrentTab() {
+    // 현재 탭이 녹화 중인 탭이 아니면 UI 초기화
+    if (state.recordingTabId !== state.currentSoopTabId) {
+      // 다른 탭에서 녹화 중일 수 있으므로 완전 리셋하지 않음
+      updateRecordingUI();
     }
   }
 
@@ -861,21 +915,22 @@
     }
   }
 
-  // ===== 녹화 기능 (이벤트 기반) =====
+  // ===== 녹화 기능 (이벤트 기반, 탭별 다중 녹화 지원) =====
   async function startRecording() {
-    if (state.isRecording) {
-      showToast('이미 녹화 중입니다.', 'error');
+    // 현재 보고 있는 SOOP 탭에서 녹화 시작
+    const soopTab = await findSoopTab();
+    if (!soopTab) {
+      showToast('SOOP 방송 탭을 찾을 수 없습니다.', 'error');
+      return;
+    }
+
+    // 이 탭에서 이미 녹화 중인지 확인 (로컬 상태)
+    if (state.isRecording && state.recordingTabId === soopTab.id) {
+      showToast('이미 이 탭에서 녹화 중입니다.', 'error');
       return;
     }
 
     try {
-      // SOOP 탭 찾기
-      const soopTab = await findSoopTab();
-      if (!soopTab) {
-        showToast('SOOP 방송 탭을 찾을 수 없습니다.', 'error');
-        return;
-      }
-
       // 스트리머 정보 추출
       const match = soopTab.url.match(/play\.sooplive\.co\.kr\/([^\/]+)/);
       const streamerId = match ? match[1] : 'unknown';
@@ -887,12 +942,9 @@
         elements.startRecordingBtn.innerHTML = '<span class="rec-dot"></span><span>시작 중...</span>';
       }
 
-      // 탭 ID 임시 저장 (이벤트에서 사용)
-      state.pendingRecordingTabId = soopTab.id;
-
       showToast('녹화 시작 중...', 'info');
 
-      // 명령 전송 (응답은 이벤트로 받음)
+      // 명령 전송
       const result = await sendMessage({
         type: 'SIDEPANEL_RECORDING_COMMAND',
         tabId: soopTab.id,
@@ -904,13 +956,18 @@
         throw new Error(result?.error || '녹화 시작 실패');
       }
 
-      // 5초 타임아웃 설정 (이벤트가 오지 않으면 복구)
-      setTimeout(() => {
-        if (!state.isRecording && elements.startRecordingBtn) {
-          elements.startRecordingBtn.disabled = false;
-          elements.startRecordingBtn.innerHTML = '<span class="rec-dot"></span><span>녹화 시작</span>';
-        }
-      }, 5000);
+      // 로컬 상태 미리 업데이트 (RECORDING_STARTED 이벤트 전에)
+      state.isRecording = true;
+      state.recordingTabId = soopTab.id;
+      state.recordingStreamerId = streamerId;
+      state.recordingNickname = nickname;
+      state.recordingStartTime = Date.now();
+      state.recordingTotalBytes = 0;
+
+      updateRecordingUI();
+      startRecordingTimer();
+
+      console.log('[사이드패널] 녹화 시작 요청 성공, tabId:', soopTab.id);
 
     } catch (error) {
       console.error('[사이드패널] 녹화 시작 오류:', error);
@@ -925,8 +982,9 @@
   }
 
   async function stopRecording() {
-    if (!state.isRecording) {
-      showToast('녹화 중이 아닙니다.', 'error');
+    // 현재 보고 있는 탭의 녹화 중지
+    if (!state.isRecording || !state.recordingTabId) {
+      showToast('이 탭에서 녹화 중이 아닙니다.', 'error');
       return;
     }
 
@@ -937,14 +995,18 @@
         elements.stopRecordingBtn.innerHTML = '<span class="stop-icon"></span><span>중지 중...</span>';
       }
 
-      showToast('녹화 중지 중...', 'info');
+      showToast('녹화 중지 중... 파일 저장 대기', 'info');
 
-      // 명령 전송 (응답은 이벤트로 받음)
-      await sendMessage({
+      // 명령 전송 (녹화 중인 탭 ID 사용)
+      const result = await sendMessage({
         type: 'SIDEPANEL_RECORDING_COMMAND',
         tabId: state.recordingTabId,
         command: 'STOP_RECORDING'
       });
+
+      if (!result?.success) {
+        throw new Error(result?.error || '녹화 중지 실패');
+      }
 
     } catch (error) {
       console.error('[사이드패널] 녹화 중지 오류:', error);
@@ -989,15 +1051,17 @@
     state.recordingNickname = null;
     state.recordingStartTime = null;
     state.recordingTotalBytes = 0;
-    state.pendingRecordingTabId = null;
     stopRecordingTimer();
   }
 
   function updateRecordingUI() {
     if (!elements.startRecordingBtn) return;
 
-    if (state.isRecording) {
-      // 녹화 중
+    // 현재 보고 있는 탭에서 녹화 중인지 확인
+    const isRecordingThisTab = state.isRecording && state.recordingTabId === state.currentSoopTabId;
+
+    if (isRecordingThisTab) {
+      // 이 탭에서 녹화 중
       elements.startRecordingBtn.style.display = 'none';
       elements.stopRecordingBtn.style.display = 'flex';
       elements.stopRecordingBtn.disabled = false;
@@ -1008,11 +1072,11 @@
       if (elements.recordingInfo) {
         const displayName = state.recordingNickname || state.recordingStreamerId;
         if (displayName) {
-          elements.recordingInfo.textContent = `${displayName} 녹화 중`;
+          elements.recordingInfo.textContent = `📹 ${displayName} 녹화 중`;
         }
       }
     } else {
-      // 대기 상태
+      // 이 탭에서 녹화 안 함 (다른 탭에서 녹화 중일 수 있음)
       elements.startRecordingBtn.style.display = 'flex';
       elements.startRecordingBtn.disabled = false;
       elements.startRecordingBtn.innerHTML = '<span class="rec-dot"></span><span>녹화 시작</span>';
@@ -1028,18 +1092,24 @@
     }
   }
 
-  // 사이드패널 재열림 시 녹화 상태 복원 (Background 중앙 상태에서)
+  // 사이드패널 재열림 시 녹화 상태 복원 (현재 탭 기준)
   async function restoreRecordingState() {
+    // 현재 SOOP 탭이 없으면 복원할 필요 없음
+    if (!state.currentSoopTabId) return;
+
     try {
-      // Background에서 녹화 상태 확인
-      const result = await sendMessage({ type: 'GET_RECORDING_STATE' });
+      // 현재 탭의 녹화 상태 확인
+      const result = await sendMessage({
+        type: 'GET_RECORDING_STATE',
+        tabId: state.currentSoopTabId
+      });
 
       console.log('[사이드패널] 녹화 상태 복원 확인:', result);
 
       if (result?.success && result?.data) {
         const data = result.data;
 
-        // 녹화 중인 경우 상태 복원
+        // 현재 탭에서 녹화 중인 경우 상태 복원
         state.isRecording = true;
         state.recordingTabId = data.tabId;
         state.recordingStreamerId = data.streamerId;
@@ -1059,7 +1129,6 @@
       }
     } catch (error) {
       console.log('[사이드패널] 녹화 상태 없음 (정상)');
-      // 실패해도 무시 (녹화 안 함)
     }
   }
 
@@ -1264,24 +1333,35 @@
           updateMonitoringUI();
           break;
 
-        // ===== 이벤트 기반 녹화 핸들러 =====
+        // ===== 이벤트 기반 녹화 핸들러 (탭별 처리) =====
         case 'RECORDING_STARTED':
           console.log('[사이드패널] 🔴 녹화 시작됨:', message.data);
-          state.isRecording = true;
-          state.recordingTabId = message.data.tabId || state.pendingRecordingTabId;
-          state.recordingStreamerId = message.data.streamerId;
-          state.recordingNickname = message.data.nickname;
-          state.recordingStartTime = message.data.startTime || Date.now();
-          state.recordingTotalBytes = 0;
 
-          updateRecordingUI();
-          startRecordingTimer();
+          // 현재 보고 있는 탭의 녹화인 경우만 UI 업데이트
+          if (message.data.tabId === state.currentSoopTabId) {
+            state.isRecording = true;
+            state.recordingTabId = message.data.tabId;
+            state.recordingStreamerId = message.data.streamerId;
+            state.recordingNickname = message.data.nickname;
+            state.recordingStartTime = message.data.startTime || Date.now();
+            state.recordingTotalBytes = 0;
+
+            updateRecordingUI();
+            startRecordingTimer();
+          }
+
           showToast(`🔴 ${message.data.nickname || message.data.streamerId} 녹화 시작!`, 'success');
           break;
 
         case 'RECORDING_STOPPED':
-          console.log('[사이드패널] ⏹ 녹화 중지됨:', message.data);
-          stopRecordingTimer();
+          console.log('[사이드패널] ⏹ 녹화 완료:', message.data);
+
+          // 현재 보고 있는 탭의 녹화인 경우 UI 업데이트
+          if (message.data.tabId === state.recordingTabId) {
+            stopRecordingTimer();
+            resetRecordingState();
+            updateRecordingUI();
+          }
 
           const stoppedTotalMB = message.data.totalBytes
             ? (message.data.totalBytes / 1024 / 1024).toFixed(2)
@@ -1289,15 +1369,17 @@
           const stoppedDuration = message.data.duration
             ? (message.data.duration / 60).toFixed(1)
             : '0';
-          showToast(`✅ 녹화 완료! ${stoppedDuration}분, ${stoppedTotalMB} MB`, 'success');
 
-          resetRecordingState();
-          updateRecordingUI();
+          if (message.data.reason === 'tab_closed') {
+            showToast(`탭 닫힘으로 녹화 종료`, 'info');
+          } else {
+            showToast(`✅ 녹화 완료! ${stoppedDuration}분, ${stoppedTotalMB} MB`, 'success');
+          }
           break;
 
         case 'RECORDING_PROGRESS':
-          // 10초마다 진행 상황 업데이트 (폴링 없이 push로 받음)
-          if (state.isRecording && message.data.totalBytes) {
+          // 현재 탭의 진행 상황인 경우만 업데이트
+          if (message.data.tabId === state.recordingTabId) {
             state.recordingTotalBytes = message.data.totalBytes;
             if (elements.recordingSize) {
               elements.recordingSize.textContent = (message.data.totalBytes / 1024 / 1024).toFixed(2) + ' MB';
@@ -1308,23 +1390,24 @@
         case 'RECORDING_ERROR':
           // 녹화 에러
           console.error('[사이드패널] ❌ 녹화 에러:', message.data);
-          showToast('녹화 오류: ' + (message.data.error || '알 수 없는 오류'), 'error');
 
-          // 버튼 복구
-          if (elements.startRecordingBtn) {
-            elements.startRecordingBtn.disabled = false;
-            elements.startRecordingBtn.innerHTML = '<span class="rec-dot"></span><span>녹화 시작</span>';
-          }
-          if (elements.stopRecordingBtn) {
-            elements.stopRecordingBtn.disabled = false;
-            elements.stopRecordingBtn.innerHTML = '<span class="stop-icon"></span><span>녹화 중지</span>';
-          }
-
-          // START_RECORDING 실패 시 상태 리셋
-          if (message.data.command === 'START_RECORDING') {
+          // 현재 탭 관련 에러인 경우 UI 업데이트
+          if (message.data.tabId === state.recordingTabId || message.data.tabId === state.currentSoopTabId) {
             resetRecordingState();
             updateRecordingUI();
+
+            // 버튼 복구
+            if (elements.startRecordingBtn) {
+              elements.startRecordingBtn.disabled = false;
+              elements.startRecordingBtn.innerHTML = '<span class="rec-dot"></span><span>녹화 시작</span>';
+            }
+            if (elements.stopRecordingBtn) {
+              elements.stopRecordingBtn.disabled = false;
+              elements.stopRecordingBtn.innerHTML = '<span class="stop-icon"></span><span>녹화 중지</span>';
+            }
           }
+
+          showToast('녹화 오류: ' + (message.data.error || '알 수 없는 오류'), 'error');
           break;
 
       }
