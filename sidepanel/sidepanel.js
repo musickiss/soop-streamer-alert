@@ -238,9 +238,14 @@
       if (!soopTab) {
         state.currentSoopTabId = null;
         showNotWatching();
-        updateRecordingUIForCurrentTab();
+
+        // SOOP 탭이 없으면 녹화 UI만 업데이트 (다른 탭 녹화 상태는 유지)
+        updateRecordingUI();
         return;
       }
+
+      // 이전 탭 ID 저장 (탭 변경 감지용)
+      const previousTabId = state.currentSoopTabId;
 
       // 현재 탭 ID 저장
       state.currentSoopTabId = soopTab.id;
@@ -248,7 +253,7 @@
       const match = soopTab.url.match(/play\.sooplive\.co\.kr\/([^\/]+)(?:\/(\d+))?/);
       if (!match) {
         showNotWatching();
-        updateRecordingUIForCurrentTab();
+        updateRecordingUI();
         return;
       }
 
@@ -264,48 +269,103 @@
           title: status.title || '',
           broadNo: status.broadNo || broadNo
         });
-        // 이 탭의 녹화 상태 확인
-        await checkRecordingStatusForTab(soopTab.id);
-        return;
-      }
+      } else {
+        // 2순위: Background를 통해 API 조회 (CORS 우회)
+        try {
+          const apiResponse = await sendMessage({
+            type: 'FETCH_STREAM_INFO',
+            streamerId,
+            broadNo
+          });
 
-      // 2순위: Background를 통해 API 조회 (CORS 우회)
-      try {
-        const apiResponse = await sendMessage({
-          type: 'FETCH_STREAM_INFO',
-          streamerId,
-          broadNo
-        });
-
-        if (apiResponse && apiResponse.success) {
+          if (apiResponse && apiResponse.success) {
+            showCurrentStream({
+              streamerId,
+              nickname: apiResponse.nickname || streamerId,
+              title: apiResponse.title || '',
+              broadNo: apiResponse.broadNo || broadNo
+            });
+          } else {
+            // 3순위: URL에서 추출한 정보만으로 표시
+            showCurrentStream({
+              streamerId,
+              nickname: streamerId,
+              title: '방송 중',
+              broadNo
+            });
+          }
+        } catch (e) {
+          console.log('[사이드패널] 방송 정보 API 조회 실패:', e.message);
           showCurrentStream({
             streamerId,
-            nickname: apiResponse.nickname || streamerId,
-            title: apiResponse.title || '',
-            broadNo: apiResponse.broadNo || broadNo
+            nickname: streamerId,
+            title: '방송 중',
+            broadNo
           });
-          await checkRecordingStatusForTab(soopTab.id);
-          return;
         }
-      } catch (e) {
-        console.log('[사이드패널] 방송 정보 API 조회 실패:', e.message);
       }
 
-      // 3순위: URL에서 추출한 정보만으로 표시 (방송 중으로 간주)
-      // SOOP 방송 페이지에 있으면 일단 방송 중으로 표시
-      showCurrentStream({
-        streamerId,
-        nickname: streamerId,
-        title: '방송 중',
-        broadNo
-      });
-
-      // 이 탭의 녹화 상태 확인
-      await checkRecordingStatusForTab(soopTab.id);
+      // 탭이 변경되었거나 처음 로드 시 녹화 상태 확인
+      if (previousTabId !== state.currentSoopTabId || !previousTabId) {
+        console.log('[사이드패널] 탭 변경 감지:', previousTabId, '->', state.currentSoopTabId);
+        await checkAndRestoreRecordingState(soopTab.id);
+      }
 
     } catch (error) {
       console.error('[사이드패널] 현재 스트림 확인 오류:', error);
       showNotWatching();
+    }
+  }
+
+  // 탭 변경 시 녹화 상태 확인 및 복원
+  async function checkAndRestoreRecordingState(tabId) {
+    try {
+      const result = await sendMessage({
+        type: 'GET_RECORDING_STATE',
+        tabId: tabId
+      });
+
+      console.log('[사이드패널] 탭', tabId, '녹화 상태 확인:', result);
+
+      if (result?.success && result?.data) {
+        const recording = result.data;
+
+        // 이 탭에서 녹화 중인 경우
+        state.isRecording = true;
+        state.recordingTabId = recording.tabId || tabId;
+        state.recordingStreamerId = recording.streamerId;
+        state.recordingNickname = recording.nickname;
+        state.recordingStartTime = recording.startTime;
+        state.recordingTotalBytes = recording.totalBytes || 0;
+
+        startRecordingTimer();
+        updateRecordingUI();
+
+        if (elements.recordingSize && recording.totalBytes) {
+          elements.recordingSize.textContent = (recording.totalBytes / 1024 / 1024).toFixed(2) + ' MB';
+        }
+
+        console.log('[사이드패널] 녹화 상태 복원됨:', recording.nickname || recording.streamerId);
+        return;
+      }
+
+      // 이 탭에서 녹화 중이 아닌 경우
+      // 현재 녹화 중인 탭이 다른 탭이면 그 상태 유지
+      if (state.isRecording && state.recordingTabId !== tabId) {
+        // 다른 탭에서 녹화 중이므로 UI만 업데이트 (녹화 시작 버튼 표시)
+        updateRecordingUI();
+      } else if (state.recordingTabId === tabId) {
+        // 이 탭에서 녹화했던 기록이 있지만 현재는 안 하고 있음
+        resetRecordingState();
+        updateRecordingUI();
+      } else {
+        // 녹화 중이 아님
+        updateRecordingUI();
+      }
+
+    } catch (error) {
+      console.log('[사이드패널] 녹화 상태 확인 실패:', error.message);
+      updateRecordingUI();
     }
   }
 
