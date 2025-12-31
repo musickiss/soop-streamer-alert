@@ -1605,7 +1605,7 @@
           }
 
           // 녹화 목록 즉시 업데이트
-          await updateActiveRecordingList();
+          updateActiveRecordingList();
 
           showToast(`🔴 ${message.data.nickname || message.data.streamerId} 녹화 시작!`, 'success');
           break;
@@ -1631,7 +1631,7 @@
           }
 
           // 녹화 목록 즉시 업데이트
-          await updateActiveRecordingList();
+          updateActiveRecordingList();
 
           const stoppedTotalMB = message.data.totalBytes
             ? (message.data.totalBytes / 1024 / 1024).toFixed(2)
@@ -1685,7 +1685,7 @@
           }
 
           // 녹화 목록 업데이트
-          await updateActiveRecordingList();
+          updateActiveRecordingList();
 
           showToast('녹화 오류: ' + (message.data.error || '알 수 없는 오류'), 'error');
           break;
