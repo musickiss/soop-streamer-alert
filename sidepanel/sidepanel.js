@@ -914,7 +914,8 @@
 
     } catch (error) {
       console.error('[사이드패널] 녹화 시작 오류:', error);
-      showToast('녹화 시작 실패: ' + error.message, 'error');
+      const errorMsg = error?.message || (typeof error === 'string' ? error : '알 수 없는 오류');
+      showToast('녹화 시작 실패: ' + errorMsg, 'error');
 
       if (elements.startRecordingBtn) {
         elements.startRecordingBtn.disabled = false;
@@ -947,7 +948,8 @@
 
     } catch (error) {
       console.error('[사이드패널] 녹화 중지 오류:', error);
-      showToast('녹화 중지 실패: ' + error.message, 'error');
+      const errorMsg = error?.message || (typeof error === 'string' ? error : '알 수 없는 오류');
+      showToast('녹화 중지 실패: ' + errorMsg, 'error');
 
       if (elements.stopRecordingBtn) {
         elements.stopRecordingBtn.disabled = false;

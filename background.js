@@ -1462,29 +1462,74 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             // 즉시 성공 응답
             sendResponse({ success: true, message: '녹화 시작 요청됨' });
 
-            // 비동기로 실제 명령 전달
+            // 비동기로 실제 명령 전달 (Content Script 주입 포함)
             (async () => {
-              try {
-                await chrome.tabs.sendMessage(message.tabId, {
-                  type: 'RECORDING_COMMAND',
-                  command: 'START_RECORDING',
-                  params: message.params
-                });
+              const targetTabId = message.tabId;
+              let retryCount = 0;
+              const maxRetries = 2;
 
-                // 성공 이벤트 브로드캐스트
-                chrome.runtime.sendMessage({
-                  type: 'RECORDING_STARTED',
-                  data: state.activeRecording
-                }).catch(() => {});
+              while (retryCount <= maxRetries) {
+                try {
+                  console.log(`[숲토킹] START_RECORDING 시도 ${retryCount + 1}/${maxRetries + 1}`);
 
-              } catch (error) {
-                console.error('[숲토킹] START_RECORDING 전달 실패:', error.message);
-                state.activeRecording = null;  // 롤백
+                  await chrome.tabs.sendMessage(targetTabId, {
+                    type: 'RECORDING_COMMAND',
+                    command: 'START_RECORDING',
+                    params: message.params
+                  });
 
-                chrome.runtime.sendMessage({
-                  type: 'RECORDING_ERROR',
-                  data: { error: '녹화 시작 실패: ' + error.message }
-                }).catch(() => {});
+                  // 성공 이벤트 브로드캐스트
+                  console.log('[숲토킹] ✅ START_RECORDING 성공');
+                  chrome.runtime.sendMessage({
+                    type: 'RECORDING_STARTED',
+                    data: state.activeRecording
+                  }).catch(() => {});
+                  return;  // 성공 시 종료
+
+                } catch (error) {
+                  console.error(`[숲토킹] START_RECORDING 시도 ${retryCount + 1} 실패:`, error.message);
+
+                  // Content Script가 없는 경우 주입 시도
+                  if (error.message?.includes('Receiving end does not exist') ||
+                      error.message?.includes('Could not establish connection')) {
+
+                    if (retryCount < maxRetries) {
+                      console.log('[숲토킹] Content Script 주입 시도...');
+                      try {
+                        // content.js 주입 (ISOLATED world - 기본값)
+                        await chrome.scripting.executeScript({
+                          target: { tabId: targetTabId },
+                          files: ['content.js']
+                        });
+
+                        // audio-hook.js 주입 (MAIN world)
+                        await chrome.scripting.executeScript({
+                          target: { tabId: targetTabId },
+                          files: ['audio-hook.js'],
+                          world: 'MAIN'
+                        });
+
+                        console.log('[숲토킹] Content Script 주입 완료, 1초 대기...');
+                        await new Promise(r => setTimeout(r, 1000));
+                        retryCount++;
+                        continue;  // 재시도
+
+                      } catch (injectError) {
+                        console.error('[숲토킹] Script 주입 실패:', injectError.message);
+                      }
+                    }
+                  }
+
+                  // 최종 실패
+                  console.error('[숲토킹] START_RECORDING 최종 실패');
+                  state.activeRecording = null;  // 롤백
+
+                  chrome.runtime.sendMessage({
+                    type: 'RECORDING_ERROR',
+                    data: { error: '녹화 시작 실패: 페이지를 새로고침한 후 다시 시도해주세요.' }
+                  }).catch(() => {});
+                  return;
+                }
               }
             })();
             break;
