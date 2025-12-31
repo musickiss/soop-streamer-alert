@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.2.0 - 사이드패널 =====
+// ===== 숲토킹 v3.2.1 - 사이드패널 =====
 // video.captureStream 기반 녹화, Background와 메시지 통신
 
 (function() {
@@ -418,6 +418,32 @@
 
     } catch (error) {
       console.error('[사이드패널] 녹화 목록 업데이트 오류:', error);
+    }
+  }
+
+  // 현재 탭 녹화 상태 동기화
+  async function syncCurrentTabRecordingState() {
+    try {
+      const result = await sendMessage({ type: 'GET_ALL_RECORDINGS' });
+      const recordings = result?.success && Array.isArray(result.data) ? result.data : [];
+
+      // 현재 탭에서 녹화 중인지 확인
+      const currentRecording = recordings.find(rec => rec.tabId === state.currentSoopTabId);
+
+      if (currentRecording) {
+        state.currentTabRecording = {
+          tabId: currentRecording.tabId,
+          streamerId: currentRecording.streamerId,
+          nickname: currentRecording.nickname,
+          startTime: currentRecording.startTime
+        };
+      } else {
+        state.currentTabRecording = null;
+      }
+
+      updateRecordingButton();
+    } catch (error) {
+      console.error('[사이드패널] 녹화 상태 동기화 오류:', error);
     }
   }
 
@@ -968,6 +994,8 @@
     updateStreamerList();
     await updateCurrentStream();
     await updateActiveRecordingList();
+    // 현재 탭 녹화 상태 동기화
+    await syncCurrentTabRecordingState();
     await updateStorageInfo();
 
     // 이벤트 바인딩

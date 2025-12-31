@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.2.0 - Background Service Worker =====
+// ===== 숲토킹 v3.2.1 - Background Service Worker =====
 // video.captureStream 기반 녹화 + 5초/30초 분리 모니터링
 
 // ===== 상수 =====
@@ -32,7 +32,7 @@ const state = {
 // ===== 초기화 =====
 
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[숲토킹] v3.2.0 설치됨');
+  console.log('[숲토킹] v3.2.1 설치됨');
   await loadSettings();
 });
 
@@ -237,6 +237,25 @@ async function checkSlowStreamers() {
   });
 }
 
+// 탭 로드 완료 대기 함수
+async function waitForTabComplete(tabId, timeout = 15000) {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      if (tab.status === 'complete') {
+        return true;
+      }
+    } catch {
+      return false;
+    }
+    await new Promise(r => setTimeout(r, 500));
+  }
+
+  return true; // 타임아웃 시에도 시도
+}
+
 async function checkAndProcessStreamer(streamer) {
   try {
     const status = await checkStreamerStatus(streamer.id);
@@ -257,10 +276,30 @@ async function checkAndProcessStreamer(streamer) {
 
         // 자동 녹화
         if (streamer.autoRecord && tab?.id) {
-          // 페이지 로드 대기 후 녹화 시작
-          setTimeout(() => {
-            startRecording(tab.id, streamer.id, streamer.nickname || streamer.id);
-          }, 3000);
+          // 탭 로드 완료 대기
+          await waitForTabComplete(tab.id, 15000);
+
+          // 비디오 요소 로드 대기 (추가 2초)
+          await new Promise(r => setTimeout(r, 2000));
+
+          // 녹화 시작 (최대 3회 재시도)
+          let retryCount = 0;
+          const maxRetries = 3;
+
+          const tryStartRecording = async () => {
+            const result = await startRecording(tab.id, streamer.id, streamer.nickname || streamer.id);
+
+            if (!result.success && retryCount < maxRetries) {
+              retryCount++;
+              console.log('[숲토킹] 자동 녹화 재시도:', retryCount);
+              await new Promise(r => setTimeout(r, 2000));
+              return tryStartRecording();
+            }
+
+            return result;
+          };
+
+          tryStartRecording();
         }
       }
     }
@@ -419,6 +458,26 @@ async function downloadRecording(blobUrl, fileName) {
     });
 
     console.log('[숲토킹] 다운로드 시작:', downloadId);
+
+    // 다운로드 완료 감지 및 정리
+    const listener = (delta) => {
+      if (delta.id === downloadId) {
+        if (delta.state?.current === 'complete') {
+          chrome.downloads.onChanged.removeListener(listener);
+          console.log('[숲토킹] 다운로드 완료:', fileName);
+        } else if (delta.state?.current === 'interrupted') {
+          chrome.downloads.onChanged.removeListener(listener);
+          console.error('[숲토킹] 다운로드 중단:', fileName);
+        }
+      }
+    };
+    chrome.downloads.onChanged.addListener(listener);
+
+    // 5분 후 리스너 자동 정리 (안전장치)
+    setTimeout(() => {
+      chrome.downloads.onChanged.removeListener(listener);
+    }, 300000);
+
     return { success: true, downloadId };
   } catch (error) {
     console.error('[숲토킹] 다운로드 실패:', error);
@@ -621,4 +680,4 @@ loadSettings().then(() => {
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.2.0 로드됨');
+console.log('[숲토킹] Background Service Worker v3.2.1 로드됨');

@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.2.0 - MAIN World 녹화 모듈 =====
+// ===== 숲토킹 v3.2.1 - MAIN World 녹화 모듈 =====
 // video.captureStream() 기반 다이얼로그 없는 녹화
 
 (function() {
@@ -75,10 +75,22 @@
         return { success: false, error: '이미 녹화 중입니다.' };
       }
 
-      // 비디오 요소 찾기
-      const video = document.querySelector('video');
+      // 비디오 요소 찾기 (여러 선택자 시도)
+      let video = document.querySelector('video#webplayer-video');
+      if (!video) {
+        video = document.querySelector('video[src]');
+      }
+      if (!video) {
+        video = document.querySelector('video');
+      }
+
       if (!video) {
         return { success: false, error: '비디오 요소를 찾을 수 없습니다.' };
+      }
+
+      // readyState 확인 (HAVE_CURRENT_DATA 이상)
+      if (video.readyState < 2) {
+        return { success: false, error: '비디오가 아직 로드되지 않았습니다. 잠시 후 다시 시도해주세요.' };
       }
 
       if (video.paused || video.ended) {
@@ -314,5 +326,5 @@
     }, '*');
   });
 
-  console.log('[숲토킹 Recorder] v3.2.0 MAIN world 모듈 로드됨');
+  console.log('[숲토킹 Recorder] v3.2.1 MAIN world 모듈 로드됨');
 })();
