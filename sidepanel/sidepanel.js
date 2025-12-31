@@ -1092,43 +1092,57 @@
     }
   }
 
-  // 사이드패널 재열림 시 녹화 상태 복원 (현재 탭 기준)
+  // 사이드패널 재열림 시 녹화 상태 복원 (모든 녹화 확인 후 현재 탭 매칭)
   async function restoreRecordingState() {
-    // 현재 SOOP 탭이 없으면 복원할 필요 없음
-    if (!state.currentSoopTabId) return;
-
     try {
-      // 현재 탭의 녹화 상태 확인
+      // 모든 녹화 상태 조회 (tabId 없이)
       const result = await sendMessage({
-        type: 'GET_RECORDING_STATE',
-        tabId: state.currentSoopTabId
+        type: 'GET_RECORDING_STATE'
+        // tabId 생략 → 전체 조회
       });
 
       console.log('[사이드패널] 녹화 상태 복원 확인:', result);
 
       if (result?.success && result?.data) {
-        const data = result.data;
+        // 배열 또는 단일 객체 처리
+        const recordings = Array.isArray(result.data) ? result.data : [result.data];
 
-        // 현재 탭에서 녹화 중인 경우 상태 복원
-        state.isRecording = true;
-        state.recordingTabId = data.tabId;
-        state.recordingStreamerId = data.streamerId;
-        state.recordingNickname = data.nickname;
-        state.recordingStartTime = data.startTime;
-        state.recordingTotalBytes = data.totalBytes || 0;
-
-        // 타이머 시작
-        startRecordingTimer();
-
-        // 크기 업데이트
-        if (elements.recordingSize && data.totalBytes) {
-          elements.recordingSize.textContent = (data.totalBytes / 1024 / 1024).toFixed(2) + ' MB';
+        if (recordings.length === 0) {
+          console.log('[사이드패널] 진행 중인 녹화 없음');
+          return;
         }
 
-        console.log('[사이드패널] 녹화 상태 복원됨 - 녹화 중:', data.nickname || data.streamerId);
+        // 현재 탭의 녹화가 있는지 확인
+        const currentTabRecording = state.currentSoopTabId
+          ? recordings.find(r => r.tabId === state.currentSoopTabId)
+          : null;
+
+        if (currentTabRecording) {
+          // 현재 탭에서 녹화 중
+          state.isRecording = true;
+          state.recordingTabId = currentTabRecording.tabId;
+          state.recordingStreamerId = currentTabRecording.streamerId;
+          state.recordingNickname = currentTabRecording.nickname;
+          state.recordingStartTime = currentTabRecording.startTime;
+          state.recordingTotalBytes = currentTabRecording.totalBytes || 0;
+
+          startRecordingTimer();
+
+          if (elements.recordingSize && currentTabRecording.totalBytes) {
+            elements.recordingSize.textContent =
+              (currentTabRecording.totalBytes / 1024 / 1024).toFixed(2) + ' MB';
+          }
+
+          console.log('[사이드패널] 현재 탭 녹화 복원됨:',
+            currentTabRecording.nickname || currentTabRecording.streamerId);
+        } else if (recordings.length > 0) {
+          // 다른 탭에서 녹화 중 (로그만)
+          console.log('[사이드패널] 다른 탭에서 녹화 중:',
+            recordings.map(r => r.nickname || r.streamerId).join(', '));
+        }
       }
     } catch (error) {
-      console.log('[사이드패널] 녹화 상태 없음 (정상)');
+      console.log('[사이드패널] 녹화 상태 조회 실패:', error.message);
     }
   }
 
@@ -1361,6 +1375,16 @@
             stopRecordingTimer();
             resetRecordingState();
             updateRecordingUI();
+
+            // 버튼 상태 명시적으로 복구
+            if (elements.startRecordingBtn) {
+              elements.startRecordingBtn.disabled = false;
+              elements.startRecordingBtn.innerHTML = '<span class="rec-dot"></span><span>녹화 시작</span>';
+            }
+            if (elements.stopRecordingBtn) {
+              elements.stopRecordingBtn.disabled = false;
+              elements.stopRecordingBtn.innerHTML = '<span class="stop-icon"></span><span>녹화 중지</span>';
+            }
           }
 
           const stoppedTotalMB = message.data.totalBytes
@@ -1450,10 +1474,12 @@
     // UI 초기화
     updateMonitoringUI();
     updateQuickSettings();
-    updateCurrentStream();
     updateStreamerList();
 
-    // 녹화 상태 복원 (사이드패널 재열림 시)
+    // 먼저 현재 스트림 확인 (currentSoopTabId 설정)
+    await updateCurrentStream();
+
+    // 그 다음 녹화 상태 복원 (currentSoopTabId 필요)
     await restoreRecordingState();
 
     updateRecordingUI();
@@ -1469,7 +1495,7 @@
       await updateStorageInfo();
     }, 5000);
 
-    // 방송 상태 주기적 업데이트
+    // 방송 상태 주기적 업데이트 (10초 - 성능 최적화)
     setInterval(async () => {
       try {
         const response = await sendMessage({ type: 'GET_STATE' });
@@ -1481,7 +1507,7 @@
           updateStreamerList();
         }
       } catch (e) {}
-    }, 3000);
+    }, 10000);
   }
 
   init();

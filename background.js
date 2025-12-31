@@ -86,6 +86,33 @@ function i18n(key, substitutions = []) {
 
 // ===== 상수 정의 =====
 const FAST_CHECK_INTERVAL = 5000;    // 자동참여/자동다운로드 스트리머 체크 주기 (5초)
+
+// ===== 보안: 허용된 도메인 목록 =====
+const ALLOWED_DOMAINS = [
+  'sooplive.co.kr',
+  'afreecatv.com',
+  'livestream-manager.sooplive.co.kr'
+];
+
+// 도메인 검증 함수
+function isAllowedDomain(url) {
+  try {
+    const hostname = new URL(url).hostname;
+    return ALLOWED_DOMAINS.some(domain => hostname.endsWith(domain));
+  } catch {
+    return false;
+  }
+}
+
+// 파일명 sanitization 함수
+function sanitizeFilename(filename) {
+  if (!filename) return 'unknown';
+  return filename
+    .replace(/[\/\\:*?"<>|]/g, '_')
+    .replace(/\.\./g, '_')
+    .replace(/\s+/g, '_')
+    .substring(0, 200);
+}
 const SLOW_CHECK_INTERVAL = 30000;   // 알림만 스트리머 체크 주기 (30초)
 const TAB_CHECK_INTERVAL = 30000;    // 탭 실행 상태 점검 주기 (30초)
 const REQUEST_DELAY = 300;           // 각 API 요청 사이 딜레이 (ms)
@@ -1415,9 +1442,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           }
           // 브라우저 다운로드 트리거
           if (message.data.blobUrl) {
+            // 🔒 보안: 파일명 sanitization
+            const safeDownloadName = sanitizeFilename(message.data.fileName);
             chrome.downloads.download({
               url: message.data.blobUrl,
-              filename: `SOOPtalking/${message.data.fileName}`,
+              filename: `SOOPtalking/${safeDownloadName}`,
               saveAs: false
             }).catch(e => console.error('[숲토킹] 다운로드 오류:', e));
           }
@@ -1695,14 +1724,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             const recordingData = message.data;
 
             // blob URL을 사용하여 다운로드
+            // 🔒 보안: 파일명 sanitization
+            const safeFilename = sanitizeFilename(recordingData.filename);
+
             if (recordingData.blobUrl) {
               await chrome.downloads.download({
                 url: recordingData.blobUrl,
-                filename: `SOOPtalking/${recordingData.filename}`,
+                filename: `SOOPtalking/${safeFilename}`,
                 saveAs: false
               });
 
-              console.log('[숲토킹] ✅ 녹화 파일 저장 완료:', recordingData.filename);
+              console.log('[숲토킹] ✅ 녹화 파일 저장 완료:', safeFilename);
             }
 
             sendResponse({ success: true });
@@ -1766,7 +1798,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case 'PROXY_FETCH':
           // Offscreen 대신 Background에서 fetch 수행 (DNS 문제 우회)
           try {
+            // 🔒 보안: 도메인 화이트리스트 검증
+            if (!message.url || !isAllowedDomain(message.url)) {
+              console.warn('[숲토킹] PROXY_FETCH 차단 - 허용되지 않은 도메인:', message.url);
+              sendResponse({ success: false, error: '허용되지 않은 도메인입니다.' });
+              break;
+            }
+
             console.log('[숲토킹] PROXY_FETCH 요청:', message.url.substring(0, 80));
+
             const proxyResponse = await fetch(message.url, {
               credentials: 'include',
               headers: {

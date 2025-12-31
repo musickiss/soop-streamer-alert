@@ -1,6 +1,6 @@
-// ===== 숲토킹 v2.4 - 녹화 시스템 (MAIN World) =====
-// MediaRecorder + 메모리 누적 방식 (녹화 종료 시 단일 파일 저장)
-// v2.4: timeslice 제거, 이벤트 push 방식으로 최적화
+// ===== 숲토킹 v2.5 - 녹화 시스템 (MAIN World) =====
+// MediaRecorder + timeslice 30초 + 이벤트 기반 상태 관리
+// v2.5: 보안 강화, 진행 상황 정확도 개선, origin 검증 추가
 
 (function() {
   'use strict';
@@ -12,14 +12,35 @@
   }
   window.__soopRecorderInstalled = true;
 
-  console.log('[숲토킹 Recorder] 녹화 시스템 시작 v2.4');
+  console.log('[숲토킹 Recorder] 녹화 시스템 시작 v2.5');
+
+  // ===== 보안: 허용된 origin =====
+  const ALLOWED_ORIGINS = [
+    'https://play.sooplive.co.kr',
+    'https://sooplive.co.kr'
+  ];
+
+  function isAllowedOrigin(origin) {
+    return ALLOWED_ORIGINS.some(allowed => origin === allowed || origin.endsWith('.sooplive.co.kr'));
+  }
 
   // ===== 설정 =====
   const CONFIG = {
     VIDEO_BITRATE: 4000000,            // 4Mbps
     AUDIO_BITRATE: 128000,             // 128kbps
+    TIMESLICE: 30000,                  // 30초마다 데이터 수집 (진행 상황 정확도)
     PROGRESS_INTERVAL: 10000           // 10초마다 진행 상황 전송
   };
+
+  // ===== 파일명 sanitization =====
+  function sanitizeForFilename(str) {
+    if (!str) return 'unknown';
+    return str
+      .replace(/[\/\\:*?"<>|]/g, '_')
+      .replace(/\.\./g, '_')
+      .replace(/\s+/g, '_')
+      .substring(0, 100);
+  }
 
   // ===== 전역 상태 =====
   window.__soopRecorder = {
@@ -63,19 +84,21 @@
     // ===== 스트리머 ID 추출 =====
     getStreamerId: function() {
       const match = window.location.pathname.match(/^\/([^\/]+)/);
-      return match ? match[1] : 'unknown';
+      return match ? sanitizeForFilename(match[1]) : 'unknown';
     },
 
     // ===== 녹화 ID 생성 =====
     generateRecordingId: function() {
       const now = new Date();
       const timestamp = now.toISOString().slice(0, 19).replace(/[-:T]/g, '');
-      return `${this.streamerId}_${timestamp}`;
+      const safeStreamerId = sanitizeForFilename(this.streamerId);
+      return `${safeStreamerId}_${timestamp}`;
     },
 
     // ===== 최종 파일명 생성 =====
     getFinalFilename: function() {
-      return `soop_${this.recordingId}.webm`;
+      const safeRecordingId = sanitizeForFilename(this.recordingId);
+      return `soop_${safeRecordingId}.webm`;
     },
 
     // ===== 녹화 시작 =====
@@ -99,7 +122,7 @@
 
       try {
         // 초기화
-        this.streamerId = options.streamerId || this.getStreamerId();
+        this.streamerId = options.streamerId ? sanitizeForFilename(options.streamerId) : this.getStreamerId();
         this.recordingId = this.generateRecordingId();
         this.recordedChunks = [];
         this.totalBytes = 0;
@@ -115,12 +138,14 @@
           audioBitsPerSecond: CONFIG.AUDIO_BITRATE
         });
 
-        // 데이터 수신 (메모리에 누적) - stop() 시에만 호출됨
+        // 데이터 수신 (30초마다 + stop 시)
         this.mediaRecorder.ondataavailable = (event) => {
           if (event.data && event.data.size > 0) {
             this.recordedChunks.push(event.data);
             this.totalBytes += event.data.size;
-            console.log('[숲토킹 Recorder] 데이터 수신:', (event.data.size / 1024 / 1024).toFixed(2), 'MB');
+            console.log('[숲토킹 Recorder] 데이터 청크:',
+              (event.data.size / 1024 / 1024).toFixed(2), 'MB, 총:',
+              (this.totalBytes / 1024 / 1024).toFixed(2), 'MB');
           }
         };
 
@@ -155,23 +180,23 @@
           this.stopRecording();
         };
 
-        // 녹화 시작 - timeslice 제거! (성능 최적화)
-        // stop() 호출 시에만 ondataavailable 발생
-        this.mediaRecorder.start();
+        // 녹화 시작 - 30초마다 데이터 수집 (진행 상황 정확도 + 메모리 관리)
+        this.mediaRecorder.start(CONFIG.TIMESLICE);
         this.isRecording = true;
         this.recordingStartTime = Date.now();
 
-        // 10초마다 진행 상황 전송 (폴링 대신 push)
+        // 10초마다 진행 상황 전송
         this.startProgressInterval();
 
         // 방송 종료 감지
         video.addEventListener('ended', this.handleVideoEnded.bind(this));
         video.addEventListener('error', this.handleVideoError.bind(this));
 
-        console.log('[숲토킹 Recorder] ▶️ 녹화 시작 (timeslice 없음)');
+        console.log('[숲토킹 Recorder] ▶️ 녹화 시작');
         console.log('[숲토킹 Recorder] 스트리머:', this.streamerId);
         console.log('[숲토킹 Recorder] 녹화 ID:', this.recordingId);
         console.log('[숲토킹 Recorder] 코덱:', this.mimeType);
+        console.log('[숲토킹 Recorder] Timeslice:', CONFIG.TIMESLICE / 1000, '초');
 
         return {
           success: true,
@@ -194,7 +219,7 @@
         if (this.isRecording) {
           const duration = (Date.now() - this.recordingStartTime) / 1000;
 
-          // Background로 진행 상황 전송
+          // Background로 진행 상황 전송 (실제 totalBytes 사용)
           window.postMessage({
             type: 'SOOPTALKING_RECORDING_PROGRESS',
             totalBytes: this.totalBytes,
@@ -202,7 +227,9 @@
             streamerId: this.streamerId
           }, '*');
 
-          console.log('[숲토킹 Recorder] 진행:', duration.toFixed(0), '초');
+          console.log('[숲토킹 Recorder] 진행:',
+            duration.toFixed(0), '초,',
+            (this.totalBytes / 1024 / 1024).toFixed(2), 'MB');
         }
       }, CONFIG.PROGRESS_INTERVAL);
     },
@@ -314,11 +341,13 @@
       }, 3000);
     },
 
-    // ===== 녹화 상태 조회 (최소화) =====
+    // ===== 녹화 상태 조회 =====
     getStatus: function() {
       return {
         isRecording: this.isRecording,
-        streamerId: this.streamerId
+        streamerId: this.streamerId,
+        totalBytes: this.totalBytes,
+        duration: this.recordingStartTime ? (Date.now() - this.recordingStartTime) / 1000 : 0
       };
     }
   };
@@ -329,19 +358,17 @@
     stop: () => window.__soopRecorder.stopRecording(),
     status: () => {
       const s = window.__soopRecorder.getStatus();
-      const duration = window.__soopRecorder.isRecording
-        ? ((Date.now() - window.__soopRecorder.recordingStartTime) / 1000).toFixed(1)
-        : 0;
       console.log('[숲토킹 Recorder] 상태:');
       console.log('  녹화 중:', s.isRecording);
       console.log('  스트리머:', s.streamerId);
-      console.log('  경과 시간:', duration, '초');
+      console.log('  경과 시간:', s.duration.toFixed(1), '초');
+      console.log('  파일 크기:', (s.totalBytes / 1024 / 1024).toFixed(2), 'MB');
       return s;
     },
     help: () => {
       console.log(`
 ╔════════════════════════════════════════════════════╗
-║        🎬 숲토킹 녹화 시스템 v2.4                   ║
+║        🎬 숲토킹 녹화 시스템 v2.5                   ║
 ╠════════════════════════════════════════════════════╣
 ║  soopRec.start()   - 녹화 시작                     ║
 ║  soopRec.stop()    - 녹화 중지 (파일 저장)         ║
@@ -350,15 +377,23 @@
 ║  📁 파일 저장 위치: 기본 다운로드 폴더             ║
 ║  📦 파일명: soop_스트리머_날짜시간.webm            ║
 ║  💾 녹화 종료 시 단일 파일로 저장                  ║
+║  ⏱️ 30초마다 데이터 수집 (진행 상황 정확)          ║
 ╚════════════════════════════════════════════════════╝
       `);
     }
   };
 
-  // ===== Content Script 통신 =====
+  // ===== Content Script 통신 (origin 검증 추가) =====
   window.addEventListener('message', (event) => {
+    // 🔒 보안: origin 검증
     if (event.source !== window) return;
     if (!event.data || event.data.type !== 'SOOPTALKING_RECORDER_COMMAND') return;
+
+    // origin 검증 (같은 페이지에서만 허용)
+    if (event.origin && !isAllowedOrigin(event.origin)) {
+      console.warn('[숲토킹 Recorder] 🔒 차단된 origin:', event.origin);
+      return;
+    }
 
     const { command, params } = event.data;
     let result = null;
@@ -382,7 +417,7 @@
     }, '*');
   });
 
-  console.log('[숲토킹 Recorder] ✅ 설치 완료 v2.4');
+  console.log('[숲토킹 Recorder] ✅ 설치 완료 v2.5');
   console.log('[숲토킹 Recorder] 📖 사용법: soopRec.help()');
 
 })();

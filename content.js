@@ -1,5 +1,6 @@
-// ===== 숲토킹 v2.1 - Content Script (ISOLATED World) =====
+// ===== 숲토킹 v2.5 - Content Script (ISOLATED World) =====
 // chrome API 사용 가능, content-main.js로부터 postMessage 수신
+// v2.5: 보안 강화, origin 검증 추가
 
 (function() {
   'use strict';
@@ -11,10 +12,22 @@
   }
   window.__soopContentScriptInstalled = true;
 
+  // ===== 보안: 허용된 origin =====
+  const ALLOWED_ORIGINS = [
+    'https://play.sooplive.co.kr',
+    'https://sooplive.co.kr'
+  ];
+
+  function isAllowedOrigin(origin) {
+    if (!origin) return true;  // 같은 페이지 내 postMessage
+    return ALLOWED_ORIGINS.some(allowed =>
+      origin === allowed || origin.endsWith('.sooplive.co.kr')
+    );
+  }
+
   // ===== Extension context 유효성 검사 =====
   function isExtensionContextValid() {
     try {
-      // chrome.runtime.id가 존재하면 유효
       return !!chrome.runtime?.id;
     } catch (e) {
       return false;
@@ -34,9 +47,14 @@
   let capturedM3u8Url = null;
   let capturedBaseUrl = null;
 
-  // ===== MAIN World에서 보낸 메시지 수신 =====
+  // ===== MAIN World에서 보낸 메시지 수신 (origin 검증 추가) =====
   window.addEventListener('message', (event) => {
+    // 🔒 보안: source 및 origin 검증
     if (event.source !== window) return;
+    if (!isAllowedOrigin(event.origin)) {
+      console.warn('[숲토킹 Content] 🔒 차단된 origin:', event.origin);
+      return;
+    }
 
     // content-main.js에서 보낸 m3u8 캡처 메시지
     if (event.data && event.data.type === 'SOOPTALKING_M3U8_CAPTURED') {
@@ -99,9 +117,8 @@
         }
       }).catch(e => {
         console.error('[숲토킹 Content] 최종 녹화 저장 요청 실패:', e.message);
-        // 사용자에게 알림 (Extension context 무효화 시)
         if (e.message.includes('invalidated')) {
-          alert('녹화 파일 저장 실패: 페이지를 새로고침한 후 다시 시도해주세요.');
+          console.error('[숲토킹 Content] Extension이 업데이트됨. 페이지 새로고침 필요.');
         }
       });
     }
@@ -136,7 +153,6 @@
 
     // ===== 녹화 진행 상황 (10초마다 push) =====
     if (event.data && event.data.type === 'SOOPTALKING_RECORDING_PROGRESS') {
-      // Background로 진행 상황 전달
       safeSendMessage({
         type: 'RECORDING_PROGRESS_FROM_HOOK',
         data: {
@@ -183,7 +199,6 @@
     let nickname = streamerId;
     let title = document.title || '';
 
-    // DOM이 준비됐을 때만 선택자 시도
     if (document.body) {
       const nicknameSelectors = [
         '.nickname', '.bj-name', '[class*="nickname"]',
@@ -227,7 +242,6 @@
 
   // ===== 메시지 핸들러 =====
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    // Extension context 유효성 검사
     if (!isExtensionContextValid()) {
       console.warn('[숲토킹 Content] Extension context 무효화됨, 메시지 무시');
       return false;
@@ -317,7 +331,6 @@
           return true;
         }
 
-        // 캡처된 URL이 없으면 Background에서 시도
         const streamInfo = extractPageInfo();
         safeSendMessage({
           type: 'FETCH_STREAM_URL',
@@ -354,10 +367,9 @@
 
   // ===== 초기화 =====
   function init() {
-    console.log('[숲토킹 Content] Content script 로드됨 (document_start)');
+    console.log('[숲토킹 Content] Content script 로드됨 v2.5');
     console.log('[숲토킹 Content] URL:', window.location.href);
 
-    // DOM이 준비되면 추가 정보 로깅
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
         const info = extractPageInfo();
