@@ -1,5 +1,5 @@
-// ===== 숲토킹 v3.1.2 - Background Service Worker =====
-// tabCapture 원터치 녹화 + 5초/30초 분리 모니터링
+// ===== 숲토킹 v3.2.0 - Background Service Worker =====
+// video.captureStream 기반 녹화 + 5초/30초 분리 모니터링
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -13,11 +13,8 @@ const state = {
   favoriteStreamers: [],  // [{id, nickname, autoJoin, autoRecord}]
   broadcastStatus: {},    // streamerId -> {isLive, title, ...}
 
-  // 녹화 세션
-  recordings: new Map(),  // sessionId -> {tabId, streamerId, nickname, fileName, startTime, totalBytes}
-
-  // Offscreen 상태
-  offscreenReady: false,
+  // 녹화 세션 (tabId 기반)
+  recordings: new Map(),  // tabId -> {streamerId, nickname, startTime, totalBytes}
 
   // 모니터링 인터벌 ID
   fastIntervalId: null,
@@ -35,7 +32,7 @@ const state = {
 // ===== 초기화 =====
 
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[숲토킹] v3.1.2 설치됨');
+  console.log('[숲토킹] v3.2.0 설치됨');
   await loadSettings();
 });
 
@@ -85,116 +82,79 @@ async function saveSettings() {
   }
 }
 
-// ===== Offscreen Document 관리 =====
+// ===== 녹화 관리 =====
 
-async function ensureOffscreen() {
-  if (state.offscreenReady) {
-    try {
-      const contexts = await chrome.runtime.getContexts({
-        contextTypes: ['OFFSCREEN_DOCUMENT']
-      });
-      if (contexts.length > 0) {
-        return true;
-      }
-    } catch (e) {}
-    state.offscreenReady = false;
-  }
-
-  try {
-    const contexts = await chrome.runtime.getContexts({
-      contextTypes: ['OFFSCREEN_DOCUMENT']
-    });
-
-    if (contexts.length === 0) {
-      console.log('[숲토킹] Offscreen Document 생성 중...');
-      await chrome.offscreen.createDocument({
-        url: 'offscreen.html',
-        reasons: [chrome.offscreen.Reason.USER_MEDIA],
-        justification: '방송 녹화를 위해 MediaRecorder 사용'
-      });
-    }
-
-    state.offscreenReady = true;
-    console.log('[숲토킹] Offscreen Document 준비됨');
-    return true;
-  } catch (error) {
-    console.error('[숲토킹] Offscreen Document 생성 실패:', error);
-    return false;
-  }
-}
-
-// ===== 녹화 관리 (tabCapture 기반) =====
-
-async function startRecording(tabId, streamerId, nickname, quality, streamId) {
+async function startRecording(tabId, streamerId, nickname) {
   console.log('[숲토킹] 녹화 시작 요청:', streamerId, 'tabId:', tabId);
 
-  // ⭐ streamId가 없으면 에러
-  if (!streamId) {
-    return { success: false, error: 'streamId가 필요합니다. Side Panel에서 tabCapture를 호출해주세요.' };
+  if (!tabId) {
+    return { success: false, error: 'tabId가 필요합니다.' };
   }
 
-  const ready = await ensureOffscreen();
-  if (!ready) {
-    return { success: false, error: 'Offscreen Document 생성 실패' };
+  // 이미 녹화 중인지 확인
+  if (state.recordings.has(tabId)) {
+    return { success: false, error: '이미 녹화 중입니다.' };
   }
 
   try {
-    console.log('[숲토킹] streamId 수신됨:', streamId.substring(0, 20) + '...');
+    // 탭 확인
+    const tab = await chrome.tabs.get(tabId);
+    if (!tab.url?.includes('play.sooplive.co.kr')) {
+      return { success: false, error: 'SOOP 방송 페이지가 아닙니다.' };
+    }
 
-    // Offscreen에 녹화 시작 요청
-    const response = await chrome.runtime.sendMessage({
+    // Content Script에 녹화 시작 명령 전송
+    const response = await chrome.tabs.sendMessage(tabId, {
       type: 'START_RECORDING',
-      streamId,
-      tabId,
-      streamerId,
-      nickname,
-      quality: quality || {
-        resolution: '1080p',
-        frameRate: 30,
-        videoBitrate: 4000,
-        audioBitrate: 128
-      }
+      streamerId: streamerId,
+      nickname: nickname
     });
 
     if (response?.success) {
-      state.recordings.set(response.sessionId, {
-        sessionId: response.sessionId,
+      // 녹화 상태 저장 (실제 시작 알림은 RECORDING_STARTED_FROM_PAGE에서 처리)
+      state.recordings.set(tabId, {
         tabId,
         streamerId,
         nickname,
-        fileName: response.fileName,
         startTime: Date.now(),
         totalBytes: 0
       });
       updateBadge();
-      console.log('[숲토킹] 녹화 시작됨:', response.sessionId);
+      return { success: true, tabId, streamerId, nickname };
+    } else {
+      return { success: false, error: response?.error || '녹화 시작 실패' };
     }
 
-    return response;
   } catch (error) {
     console.error('[숲토킹] 녹화 시작 실패:', error);
+
+    // Content Script 없으면 주입 시도
+    if (error.message?.includes('Receiving end') || error.message?.includes('Could not establish')) {
+      return { success: false, error: '페이지를 새로고침 후 다시 시도해주세요.' };
+    }
+
     return { success: false, error: error.message };
   }
 }
 
-async function stopRecording(sessionId) {
-  console.log('[숲토킹] 녹화 중지 요청:', sessionId);
+async function stopRecording(tabId) {
+  console.log('[숲토킹] 녹화 중지 요청:', tabId);
+
+  if (!state.recordings.has(tabId)) {
+    return { success: false, error: '녹화 중인 세션이 없습니다.' };
+  }
 
   try {
-    const response = await chrome.runtime.sendMessage({
-      type: 'STOP_RECORDING',
-      sessionId
+    await chrome.tabs.sendMessage(tabId, {
+      type: 'STOP_RECORDING'
     });
-
-    if (response?.success) {
-      state.recordings.delete(sessionId);
-      updateBadge();
-    }
-
-    return response;
+    return { success: true };
   } catch (error) {
     console.error('[숲토킹] 녹화 중지 실패:', error);
-    return { success: false, error: error.message };
+    // 탭이 닫혔을 수 있음 - 상태만 정리
+    state.recordings.delete(tabId);
+    updateBadge();
+    return { success: true, message: '세션 정리됨' };
   }
 }
 
@@ -249,24 +209,32 @@ async function checkFastStreamers() {
   const fastStreamers = state.favoriteStreamers.filter(s => s.autoJoin);
   if (fastStreamers.length === 0) return;
 
-  console.log('[숲토킹] 빠른 체크 (자동참여 ON):', fastStreamers.length, '명');
-
   for (const streamer of fastStreamers) {
     await checkAndProcessStreamer(streamer);
     await new Promise(r => setTimeout(r, 200));
   }
+
+  // 상태 업데이트 브로드캐스트
+  broadcastToSidepanel({
+    type: 'BROADCAST_STATUS_UPDATED',
+    data: state.broadcastStatus
+  });
 }
 
 async function checkSlowStreamers() {
   const slowStreamers = state.favoriteStreamers.filter(s => !s.autoJoin);
   if (slowStreamers.length === 0) return;
 
-  console.log('[숲토킹] 느린 체크 (자동참여 OFF):', slowStreamers.length, '명');
-
   for (const streamer of slowStreamers) {
     await checkAndProcessStreamer(streamer);
     await new Promise(r => setTimeout(r, 200));
   }
+
+  // 상태 업데이트 브로드캐스트
+  broadcastToSidepanel({
+    type: 'BROADCAST_STATUS_UPDATED',
+    data: state.broadcastStatus
+  });
 }
 
 async function checkAndProcessStreamer(streamer) {
@@ -285,7 +253,15 @@ async function checkAndProcessStreamer(streamer) {
 
       // 자동 참여
       if (streamer.autoJoin) {
-        openStreamerTab(streamer.id);
+        const tab = await openStreamerTab(streamer.id);
+
+        // 자동 녹화
+        if (streamer.autoRecord && tab?.id) {
+          // 페이지 로드 대기 후 녹화 시작
+          setTimeout(() => {
+            startRecording(tab.id, streamer.id, streamer.nickname || streamer.id);
+          }, 3000);
+        }
       }
     }
 
@@ -309,12 +285,6 @@ async function checkAndProcessStreamer(streamer) {
   } catch (error) {
     console.error('[숲토킹] 스트리머 체크 실패:', streamer.id, error);
   }
-
-  // 사이드패널에 상태 업데이트 전송
-  broadcastToSidepanel({
-    type: 'BROADCAST_STATUS_UPDATED',
-    data: state.broadcastStatus
-  });
 }
 
 async function checkStreamerStatus(streamerId) {
@@ -372,9 +342,10 @@ chrome.notifications.onClicked.addListener((notificationId) => {
   }
 });
 
-function openStreamerTab(streamerId) {
+async function openStreamerTab(streamerId) {
   const url = `https://play.sooplive.co.kr/${streamerId}`;
-  chrome.tabs.create({ url });
+  const tab = await chrome.tabs.create({ url });
+  return tab;
 }
 
 // ===== 스트리머 관리 =====
@@ -435,25 +406,22 @@ function broadcastToSidepanel(message) {
   chrome.runtime.sendMessage(message).catch(() => {});
 }
 
-// ===== 다운로드 처리 (Offscreen에 요청) =====
+// ===== 다운로드 처리 =====
 
-async function downloadRecording(fileName) {
-  console.log('[숲토킹] 다운로드 요청 (Offscreen으로):', fileName);
+async function downloadRecording(blobUrl, fileName) {
+  console.log('[숲토킹] 다운로드 요청:', fileName);
 
   try {
-    const ready = await ensureOffscreen();
-    if (!ready) {
-      return { success: false, error: 'Offscreen Document가 없습니다' };
-    }
-
-    const response = await chrome.runtime.sendMessage({
-      type: 'DOWNLOAD_FILE',
-      fileName: fileName
+    const downloadId = await chrome.downloads.download({
+      url: blobUrl,
+      filename: `SOOPtalking/${fileName}`,
+      saveAs: false
     });
 
-    return response;
+    console.log('[숲토킹] 다운로드 시작:', downloadId);
+    return { success: true, downloadId };
   } catch (error) {
-    console.error('[숲토킹] 다운로드 요청 실패:', error);
+    console.error('[숲토킹] 다운로드 실패:', error);
     return { success: false, error: error.message };
   }
 }
@@ -466,7 +434,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 async function handleMessage(message, sender, sendResponse) {
-  console.log('[숲토킹] 메시지 수신:', message.type);
+  const tabId = sender.tab?.id;
 
   switch (message.type) {
     // ===== 사이드패널 → Background =====
@@ -475,15 +443,13 @@ async function handleMessage(message, sender, sendResponse) {
       const startResult = await startRecording(
         message.tabId,
         message.streamerId,
-        message.nickname,
-        message.quality,
-        message.streamId  // ⭐ streamId 추가
+        message.nickname
       );
       sendResponse(startResult);
       break;
 
     case 'STOP_RECORDING_REQUEST':
-      const stopResult = await stopRecording(message.sessionId);
+      const stopResult = await stopRecording(message.tabId);
       sendResponse(stopResult);
       break;
 
@@ -543,18 +509,42 @@ async function handleMessage(message, sender, sendResponse) {
       sendResponse({ success: true });
       break;
 
-    // ===== Offscreen → Background =====
+    // ===== Content Script (MAIN) → Background =====
 
-    case 'RECORDING_PROGRESS':
-      const rec = state.recordings.get(message.sessionId);
-      if (rec) {
+    case 'CONTENT_SCRIPT_LOADED':
+      console.log('[숲토킹] Content Script 로드됨:', message.streamerId);
+      sendResponse({ success: true });
+      break;
+
+    case 'RECORDING_STARTED_FROM_PAGE':
+      console.log('[숲토킹] 녹화 시작됨 (페이지에서):', message.streamerId);
+      if (tabId && !state.recordings.has(tabId)) {
+        state.recordings.set(tabId, {
+          tabId,
+          streamerId: message.streamerId,
+          nickname: message.nickname,
+          startTime: Date.now(),
+          totalBytes: 0
+        });
+        updateBadge();
+      }
+      broadcastToSidepanel({
+        type: 'RECORDING_STARTED_UPDATE',
+        tabId: tabId,
+        streamerId: message.streamerId,
+        nickname: message.nickname
+      });
+      break;
+
+    case 'RECORDING_PROGRESS_FROM_PAGE':
+      if (tabId && state.recordings.has(tabId)) {
+        const rec = state.recordings.get(tabId);
         rec.totalBytes = message.totalBytes;
         rec.elapsedTime = message.elapsedTime;
       }
       broadcastToSidepanel({
         type: 'RECORDING_PROGRESS_UPDATE',
-        sessionId: message.sessionId,
-        tabId: message.tabId,
+        tabId: tabId,
         streamerId: message.streamerId,
         nickname: message.nickname,
         totalBytes: message.totalBytes,
@@ -562,74 +552,55 @@ async function handleMessage(message, sender, sendResponse) {
       });
       break;
 
-    case 'RECORDING_STOPPED':
-      state.recordings.delete(message.sessionId);
-      updateBadge();
-
-      if (message.fileName) {
-        await downloadRecording(message.fileName);
+    case 'RECORDING_STOPPED_FROM_PAGE':
+      console.log('[숲토킹] 녹화 중지됨 (페이지에서):', message.streamerId);
+      if (tabId) {
+        state.recordings.delete(tabId);
+        updateBadge();
       }
-
       broadcastToSidepanel({
         type: 'RECORDING_STOPPED_UPDATE',
-        sessionId: message.sessionId,
-        tabId: message.tabId,
+        tabId: tabId,
         streamerId: message.streamerId,
         nickname: message.nickname,
-        fileName: message.fileName,
         totalBytes: message.totalBytes,
-        duration: message.duration
+        duration: message.duration,
+        saved: message.saved
       });
       break;
 
-    case 'RECORDING_ERROR':
-      state.recordings.delete(message.sessionId);
-      updateBadge();
-
+    case 'RECORDING_ERROR_FROM_PAGE':
+      console.error('[숲토킹] 녹화 에러 (페이지에서):', message.error);
+      if (tabId) {
+        state.recordings.delete(tabId);
+        updateBadge();
+      }
       broadcastToSidepanel({
         type: 'RECORDING_ERROR_UPDATE',
-        sessionId: message.sessionId,
-        tabId: message.tabId,
+        tabId: tabId,
         error: message.error
       });
       break;
 
-    // ===== Offscreen → Background: 실제 다운로드 실행 =====
-
-    case 'TRIGGER_DOWNLOAD':
-      try {
-        const downloadId = await chrome.downloads.download({
-          url: message.url,
-          filename: `SOOPtalking/${message.fileName}`,
-          saveAs: false
-        });
-
-        console.log('[숲토킹] 다운로드 시작됨:', downloadId);
-
-        const listener = (delta) => {
-          if (delta.id === downloadId && delta.state?.current === 'complete') {
-            chrome.downloads.onChanged.removeListener(listener);
-            console.log('[숲토킹] 다운로드 완료:', message.fileName);
-
-            chrome.runtime.sendMessage({
-              type: 'DELETE_FILE',
-              fileName: message.fileName
-            }).catch(() => {});
-          }
-        };
-        chrome.downloads.onChanged.addListener(listener);
-
-        sendResponse({ success: true, downloadId });
-      } catch (error) {
-        console.error('[숲토킹] 다운로드 실행 실패:', error);
-        sendResponse({ success: false, error: error.message });
-      }
+    case 'SAVE_RECORDING_FROM_PAGE':
+      console.log('[숲토킹] 파일 저장 요청:', message.fileName);
+      await downloadRecording(message.blobUrl, message.fileName);
       break;
 
     default:
       sendResponse({ success: false, error: '알 수 없는 메시지 타입' });
   }
 }
+
+// ===== 탭 닫힘 감지 =====
+
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (state.recordings.has(tabId)) {
+    console.log('[숲토킹] 녹화 중인 탭이 닫힘:', tabId);
+    state.recordings.delete(tabId);
+    updateBadge();
+  }
+});
 
 // ===== 사이드패널 열기 =====
 
@@ -638,18 +609,6 @@ chrome.action.onClicked.addListener(async (tab) => {
 });
 
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
-
-// ===== 탭 닫힘 감지 =====
-
-chrome.tabs.onRemoved.addListener((tabId) => {
-  // 해당 탭에서 녹화 중인 세션 찾기
-  for (const [sessionId, recording] of state.recordings.entries()) {
-    if (recording.tabId === tabId) {
-      console.log('[숲토킹] 녹화 중인 탭이 닫힘, 녹화 중지:', sessionId);
-      stopRecording(sessionId);
-    }
-  }
-});
 
 // ===== 초기 설정 로드 =====
 
@@ -662,4 +621,4 @@ loadSettings().then(() => {
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.1.2 로드됨');
+console.log('[숲토킹] Background Service Worker v3.2.0 로드됨');

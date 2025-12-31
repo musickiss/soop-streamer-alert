@@ -1,20 +1,18 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "3.1.2",
+  "version": "3.2.0",
   "description": "__MSG_extDescription__",
   "default_locale": "ko",
 
   "permissions": [
     "storage",
     "tabs",
-    "tabCapture",
-    "activeTab",
     "alarms",
     "notifications",
     "sidePanel",
-    "offscreen",
-    "downloads"
+    "downloads",
+    "scripting"
   ],
 
   "host_permissions": [
@@ -44,6 +42,12 @@
       "matches": ["https://play.sooplive.co.kr/*"],
       "js": ["content.js"],
       "run_at": "document_start"
+    },
+    {
+      "matches": ["https://play.sooplive.co.kr/*"],
+      "js": ["content-main.js"],
+      "run_at": "document_start",
+      "world": "MAIN"
     }
   ],
 

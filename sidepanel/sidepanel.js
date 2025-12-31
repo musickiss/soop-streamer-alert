@@ -1,5 +1,5 @@
-// ===== 숲토킹 v3.1.2 - 사이드패널 =====
-// Offscreen 기반 녹화, Background와 메시지 통신
+// ===== 숲토킹 v3.2.0 - 사이드패널 =====
+// video.captureStream 기반 녹화, Background와 메시지 통신
 
 (function() {
   'use strict';
@@ -269,7 +269,7 @@
     }
   }
 
-  // ===== 녹화 기능 (Offscreen 기반) =====
+  // ===== 녹화 기능 (video.captureStream 기반) =====
   async function startRecording() {
     if (!state.currentStream || !state.currentSoopTabId) {
       showToast('SOOP 방송 탭을 찾을 수 없습니다.', 'error');
@@ -286,32 +286,19 @@
     showToast('녹화 시작 중...', 'info');
 
     try {
-      // ⭐ Side Panel에서 직접 tabCapture 호출 (사용자 제스처 컨텍스트 유지)
-      const streamId = await chrome.tabCapture.getMediaStreamId({
-        targetTabId: tabId
-      });
-
-      if (!streamId) {
-        throw new Error('tabCapture streamId 획득 실패');
-      }
-
-      console.log('[사이드패널] tabCapture streamId 획득 성공');
-
-      // Background에 streamId와 함께 녹화 시작 요청
+      // Background에 녹화 시작 요청 (tabId 기반)
       const result = await sendMessage({
         type: 'START_RECORDING_REQUEST',
-        tabId,
-        streamerId,
-        nickname,
-        streamId  // ⭐ streamId 전달
+        tabId: tabId,
+        streamerId: streamerId,
+        nickname: nickname
       });
 
       if (result?.success) {
         state.currentTabRecording = {
-          sessionId: result.sessionId,
-          tabId,
-          streamerId,
-          nickname,
+          tabId: tabId,
+          streamerId: streamerId,
+          nickname: nickname,
           startTime: Date.now()
         };
         showToast(`🔴 ${nickname || streamerId} 녹화 시작!`, 'success');
@@ -322,15 +309,7 @@
       }
     } catch (error) {
       console.error('[사이드패널] 녹화 시작 오류:', error);
-
-      let errorMsg = error.message || '알 수 없는 오류';
-
-      // 사용자 친화적 에러 메시지
-      if (errorMsg.includes('activeTab') || errorMsg.includes('invoked')) {
-        errorMsg = '녹화할 탭을 먼저 클릭해주세요.';
-      }
-
-      showToast('녹화 시작 실패: ' + errorMsg, 'error');
+      showToast('녹화 시작 실패: ' + (error.message || '알 수 없는 오류'), 'error');
 
       if (elements.startRecordingBtn) {
         elements.startRecordingBtn.disabled = false;
@@ -339,15 +318,15 @@
     }
   }
 
-  async function stopRecording(sessionId) {
+  async function stopRecording(tabId) {
     try {
       const result = await sendMessage({
         type: 'STOP_RECORDING_REQUEST',
-        sessionId
+        tabId: tabId
       });
 
       if (result?.success) {
-        if (state.currentTabRecording?.sessionId === sessionId) {
+        if (state.currentTabRecording?.tabId === tabId) {
           state.currentTabRecording = null;
         }
         showToast('녹화가 중지되었습니다.', 'success');
@@ -406,7 +385,7 @@
         const displayName = escapeHtml(rec.nickname || rec.streamerId || '알 수 없음');
 
         return `
-          <div class="recording-card" data-session-id="${escapeHtml(rec.sessionId)}">
+          <div class="recording-card" data-tab-id="${rec.tabId}">
             <div class="recording-card-header">
               <span class="recording-indicator"></span>
               <span class="recording-streamer-name">${displayName}</span>
@@ -421,7 +400,7 @@
                 <span class="recording-stat-value recording-size">${sizeStr}</span>
               </div>
             </div>
-            <button class="recording-stop-btn" data-session-id="${escapeHtml(rec.sessionId)}">
+            <button class="recording-stop-btn" data-tab-id="${rec.tabId}">
               <span>⏹</span>
               <span>녹화 중지</span>
             </button>
@@ -429,11 +408,11 @@
         `;
       }).join('');
 
-      // 중지 버튼 이벤트
+      // 중지 버튼 이벤트 (tabId 사용)
       elements.activeRecordingList.querySelectorAll('.recording-stop-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-          const sessionId = btn.dataset.sessionId;
-          if (sessionId) stopRecording(sessionId);
+          const tabId = parseInt(btn.dataset.tabId);
+          if (tabId) stopRecording(tabId);
         });
       });
 
@@ -906,10 +885,23 @@
           updateMonitoringUI();
           break;
 
+        case 'RECORDING_STARTED_UPDATE':
+          if (message.tabId === state.currentSoopTabId) {
+            state.currentTabRecording = {
+              tabId: message.tabId,
+              streamerId: message.streamerId,
+              nickname: message.nickname,
+              startTime: Date.now()
+            };
+          }
+          updateRecordingButton();
+          updateActiveRecordingList();
+          break;
+
         case 'RECORDING_PROGRESS_UPDATE':
-          // 녹화 목록 카드 업데이트
+          // 녹화 목록 카드 업데이트 (tabId 기반)
           const card = document.querySelector(
-            `.recording-card[data-session-id="${message.sessionId}"]`
+            `.recording-card[data-tab-id="${message.tabId}"]`
           );
           if (card) {
             const timeEl = card.querySelector('.recording-time');
@@ -920,16 +912,18 @@
           break;
 
         case 'RECORDING_STOPPED_UPDATE':
-          if (state.currentTabRecording?.sessionId === message.sessionId) {
+          if (state.currentTabRecording?.tabId === message.tabId) {
             state.currentTabRecording = null;
           }
           updateRecordingButton();
           updateActiveRecordingList();
-          showToast(`✅ ${message.nickname || message.streamerId} 녹화 완료!`, 'success');
+          if (message.saved) {
+            showToast(`✅ ${message.nickname || message.streamerId} 녹화 완료!`, 'success');
+          }
           break;
 
         case 'RECORDING_ERROR_UPDATE':
-          if (state.currentTabRecording?.sessionId === message.sessionId) {
+          if (state.currentTabRecording?.tabId === message.tabId) {
             state.currentTabRecording = null;
           }
           updateRecordingButton();
