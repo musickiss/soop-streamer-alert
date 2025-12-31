@@ -1634,6 +1634,112 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ success: false, error: '알 수 없는 명령' });
           break;
 
+        case 'START_RECORDING':
+          // 직접 START_RECORDING 메시지 처리 (재시도용)
+          const startTargetTabId = message.tabId;
+          const startRetryCount = message.retryCount || 0;
+          const START_MAX_RETRIES = 3;
+
+          console.log('[숲토킹] START_RECORDING 시도', startRetryCount + 1, 'tabId:', startTargetTabId);
+
+          if (!startTargetTabId) {
+            sendResponse({ success: false, error: 'tabId가 없습니다.' });
+            break;
+          }
+
+          try {
+            // 탭 확인
+            let startTab;
+            try {
+              startTab = await chrome.tabs.get(startTargetTabId);
+            } catch {
+              sendResponse({ success: false, error: '탭을 찾을 수 없습니다.' });
+              break;
+            }
+
+            if (!startTab.url?.includes('play.sooplive.co.kr')) {
+              sendResponse({ success: false, error: 'SOOP 방송 페이지가 아닙니다.' });
+              break;
+            }
+
+            // Content script에 명령 전달
+            let startResponse;
+            try {
+              startResponse = await chrome.tabs.sendMessage(startTargetTabId, {
+                type: 'RECORDING_COMMAND',
+                command: 'START_RECORDING',
+                params: { streamerId: message.streamerId, nickname: message.nickname }
+              });
+            } catch (msgError) {
+              console.warn('[숲토킹] 메시지 전송 실패:', msgError.message);
+
+              // Content script 없으면 주입 후 재시도
+              if (startRetryCount < START_MAX_RETRIES &&
+                  (msgError.message?.includes('Receiving end') || msgError.message?.includes('Could not establish'))) {
+
+                console.log('[숲토킹] Script 주입 후 재시도...');
+
+                try {
+                  await chrome.scripting.executeScript({
+                    target: { tabId: startTargetTabId },
+                    files: ['content.js']
+                  });
+                  await chrome.scripting.executeScript({
+                    target: { tabId: startTargetTabId },
+                    files: ['audio-hook.js'],
+                    world: 'MAIN'
+                  });
+
+                  await new Promise(r => setTimeout(r, 500));
+
+                  const retryResult = await new Promise(resolve => {
+                    chrome.runtime.sendMessage({
+                      type: 'START_RECORDING',
+                      tabId: startTargetTabId,
+                      streamerId: message.streamerId,
+                      nickname: message.nickname,
+                      retryCount: startRetryCount + 1
+                    }, resolve);
+                  });
+
+                  sendResponse(retryResult);
+                  break;
+                } catch (injectErr) {
+                  sendResponse({ success: false, error: 'Script 주입 실패' });
+                  break;
+                }
+              }
+
+              sendResponse({ success: false, error: '페이지를 새로고침 후 다시 시도해주세요.' });
+              break;
+            }
+
+            // 성공 처리
+            if (startResponse?.success) {
+              const newStartRecording = {
+                tabId: startTargetTabId,
+                streamerId: message.streamerId,
+                nickname: message.nickname,
+                startTime: Date.now(),
+                totalBytes: 0
+              };
+              state.activeRecordings.set(startTargetTabId, newStartRecording);
+
+              chrome.runtime.sendMessage({
+                type: 'RECORDING_STARTED',
+                data: { tabId: startTargetTabId, ...newStartRecording }
+              }).catch(() => {});
+
+              sendResponse({ success: true, data: newStartRecording });
+            } else {
+              sendResponse({ success: false, error: startResponse?.error || '녹화 시작 실패' });
+            }
+          } catch (error) {
+            console.error('[숲토킹] START_RECORDING 오류:', error);
+            sendResponse({ success: false, error: error.message });
+          }
+          break;
+
         case 'GET_RECORDING_STATE':
           // sidepanel 초기화용 - 특정 탭 또는 전체 녹화 상태 반환
           if (message.tabId) {
