@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.0 - Content Script =====
+// ===== 숲토킹 v3.1.0 - Content Script =====
 // 페이지 정보 제공만 담당 (녹화는 Offscreen에서 처리)
 
 (function() {
@@ -53,5 +53,5 @@
     }
   });
 
-  console.log('[숲토킹 Content] v3.0 로드됨');
+  console.log('[숲토킹 Content] v3.1.0 로드됨');
 })();

@@ -1,5 +1,5 @@
-// ===== 숲토킹 v3.0.2 - Offscreen Document =====
-// Side Panel과 독립적으로 녹화 실행
+// ===== 숲토킹 v3.1.0 - Offscreen Document =====
+// tabCapture 기반 원터치 녹화
 // OPFS(Origin Private File System)에 실시간 저장
 
 const OPFS_FOLDER = 'SOOPtalking';
@@ -18,7 +18,6 @@ async function getOpfsFolder() {
 
 function getBestMimeType() {
   const codecs = [
-    { mime: 'video/webm;codecs=av1,opus', name: 'AV1' },
     { mime: 'video/webm;codecs=vp9,opus', name: 'VP9' },
     { mime: 'video/webm;codecs=vp8,opus', name: 'VP8' },
     { mime: 'video/webm', name: 'WebM' }
@@ -33,34 +32,35 @@ function getBestMimeType() {
   return 'video/webm';
 }
 
-// ===== 녹화 시작 =====
+// ===== 녹화 시작 (tabCapture 기반) =====
 
 async function startRecording(data) {
-  const { tabId, streamerId, nickname, quality = {} } = data;
+  const { streamId, tabId, streamerId, nickname, quality = {} } = data;
   const sessionId = crypto.randomUUID();
 
-  console.log('[Offscreen] 녹화 시작 요청:', streamerId);
+  console.log('[Offscreen] 녹화 시작 요청:', streamerId, 'streamId:', streamId?.substring(0, 20) + '...');
 
   try {
-    // 화면 캡처 요청
-    const stream = await navigator.mediaDevices.getDisplayMedia({
-      video: {
-        width: { ideal: quality.resolution === '1440p' ? 2560 : 1920 },
-        height: { ideal: quality.resolution === '1440p' ? 1440 : 1080 },
-        frameRate: { ideal: quality.frameRate || 30 }
-      },
+    // tabCapture streamId를 사용하여 스트림 획득 (다이얼로그 없음!)
+    const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false
+        mandatory: {
+          chromeMediaSource: 'tab',
+          chromeMediaSourceId: streamId
+        }
+      },
+      video: {
+        mandatory: {
+          chromeMediaSource: 'tab',
+          chromeMediaSourceId: streamId,
+          maxWidth: quality.resolution === '1440p' ? 2560 : 1920,
+          maxHeight: quality.resolution === '1440p' ? 1440 : 1080,
+          maxFrameRate: quality.frameRate || 30
+        }
       }
     });
 
-    // 시스템 오디오가 없으면 경고
-    const audioTracks = stream.getAudioTracks();
-    if (audioTracks.length === 0) {
-      console.warn('[Offscreen] 오디오 트랙 없음 - 시스템 오디오 공유 필요');
-    }
+    console.log('[Offscreen] 스트림 획득 성공');
 
     // 파일명 생성
     const timestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
@@ -134,7 +134,7 @@ async function startRecording(data) {
         await writable.close();
         const duration = Math.floor((Date.now() - session.startTime) / 1000);
 
-        // Background에 완료 알림 (다운로드는 Background에서 OPFS 직접 접근)
+        // Background에 완료 알림
         chrome.runtime.sendMessage({
           type: 'RECORDING_STOPPED',
           sessionId,
@@ -167,14 +167,6 @@ async function startRecording(data) {
       }).catch(() => {});
     };
 
-    // 화면 공유 종료 감지
-    stream.getVideoTracks()[0].onended = () => {
-      console.log('[Offscreen] 화면 공유 종료됨');
-      if (recorder.state !== 'inactive') {
-        recorder.stop();
-      }
-    };
-
     // 녹화 시작
     recorder.start(5000); // 5초마다 데이터 청크
 
@@ -184,10 +176,6 @@ async function startRecording(data) {
 
   } catch (error) {
     console.error('[Offscreen] 녹화 시작 실패:', error);
-
-    if (error.name === 'NotAllowedError') {
-      return { success: false, error: '화면 공유가 취소되었습니다' };
-    }
     return { success: false, error: error.message };
   }
 }
@@ -246,7 +234,6 @@ async function downloadFromOpfs(fileName) {
   console.log('[Offscreen] 다운로드 요청:', fileName);
 
   try {
-    // OPFS에서 파일 읽기
     const folder = await getOpfsFolder();
 
     let fileHandle;
@@ -260,11 +247,9 @@ async function downloadFromOpfs(fileName) {
     const file = await fileHandle.getFile();
     console.log('[Offscreen] 파일 읽기 성공:', file.size, 'bytes');
 
-    // Blob URL 생성
     const blob = new Blob([await file.arrayBuffer()], { type: 'video/webm' });
     const url = URL.createObjectURL(blob);
 
-    // Background에 다운로드 요청
     const response = await chrome.runtime.sendMessage({
       type: 'TRIGGER_DOWNLOAD',
       url: url,
@@ -274,12 +259,10 @@ async function downloadFromOpfs(fileName) {
     if (response?.success) {
       console.log('[Offscreen] 다운로드 시작됨, ID:', response.downloadId);
 
-      // 다운로드 완료 대기 후 정리 (Background에서 알려줌)
-      // URL은 Background에서 revoke하지 못하므로 여기서 일정 시간 후 정리
       setTimeout(() => {
         URL.revokeObjectURL(url);
         console.log('[Offscreen] Blob URL 해제됨');
-      }, 60000); // 60초 후 정리
+      }, 60000);
 
       return { success: true, downloadId: response.downloadId };
     } else {
@@ -302,7 +285,6 @@ async function deleteFromOpfs(fileName) {
     console.log('[Offscreen] 파일 삭제 완료:', fileName);
     return { success: true };
   } catch (error) {
-    // 파일이 없으면 무시
     console.log('[Offscreen] 파일 삭제 실패 (무시):', error.message);
     return { success: true };
   }
@@ -344,4 +326,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-console.log('[Offscreen] 숲토킹 녹화 모듈 v3.0.2 로드됨');
+console.log('[Offscreen] 숲토킹 녹화 모듈 v3.1.0 로드됨');

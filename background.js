@@ -1,8 +1,9 @@
-// ===== 숲토킹 v3.0.2 - Background Service Worker =====
-// Offscreen Document 기반 안정적 녹화
+// ===== 숲토킹 v3.1.0 - Background Service Worker =====
+// tabCapture 원터치 녹화 + 5초/30초 분리 모니터링
 
 // ===== 상수 =====
-const CHECK_INTERVAL = 30000;  // 스트리머 체크 주기 (30초)
+const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
+const CHECK_INTERVAL_SLOW = 30000;  // 자동참여 OFF 스트리머 (30초)
 const API_BASE = 'https://api.m.sooplive.co.kr/broad/a/watch';
 
 // ===== 상태 관리 =====
@@ -12,11 +13,15 @@ const state = {
   favoriteStreamers: [],  // [{id, nickname, autoJoin, autoRecord}]
   broadcastStatus: {},    // streamerId -> {isLive, title, ...}
 
-  // 녹화 세션 (Offscreen에서 관리하는 세션 메타데이터)
+  // 녹화 세션
   recordings: new Map(),  // sessionId -> {tabId, streamerId, nickname, fileName, startTime, totalBytes}
 
   // Offscreen 상태
   offscreenReady: false,
+
+  // 모니터링 인터벌 ID
+  fastIntervalId: null,
+  slowIntervalId: null,
 
   // 설정
   settings: {
@@ -30,9 +35,8 @@ const state = {
 // ===== 초기화 =====
 
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[숲토킹] v3.0 설치됨');
+  console.log('[숲토킹] v3.1.0 설치됨');
   await loadSettings();
-  setupAlarms();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
@@ -81,25 +85,10 @@ async function saveSettings() {
   }
 }
 
-// ===== 알람 설정 =====
-
-function setupAlarms() {
-  chrome.alarms.create('checkStreamers', {
-    periodInMinutes: 0.5  // 30초
-  });
-}
-
-chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'checkStreamers' && state.isMonitoring) {
-    checkAllStreamers();
-  }
-});
-
 // ===== Offscreen Document 관리 =====
 
 async function ensureOffscreen() {
   if (state.offscreenReady) {
-    // 실제로 존재하는지 확인
     try {
       const contexts = await chrome.runtime.getContexts({
         contextTypes: ['OFFSCREEN_DOCUMENT']
@@ -134,10 +123,10 @@ async function ensureOffscreen() {
   }
 }
 
-// ===== 녹화 관리 =====
+// ===== 녹화 관리 (tabCapture 기반) =====
 
 async function startRecording(tabId, streamerId, nickname, quality) {
-  console.log('[숲토킹] 녹화 시작 요청:', streamerId);
+  console.log('[숲토킹] 녹화 시작 요청:', streamerId, 'tabId:', tabId);
 
   const ready = await ensureOffscreen();
   if (!ready) {
@@ -145,8 +134,17 @@ async function startRecording(tabId, streamerId, nickname, quality) {
   }
 
   try {
+    // tabCapture API로 streamId 획득 (다이얼로그 없음!)
+    const streamId = await chrome.tabCapture.getMediaStreamId({
+      targetTabId: tabId
+    });
+
+    console.log('[숲토킹] tabCapture streamId 획득:', streamId.substring(0, 20) + '...');
+
+    // Offscreen에 녹화 시작 요청
     const response = await chrome.runtime.sendMessage({
       type: 'START_RECORDING',
+      streamId,
       tabId,
       streamerId,
       nickname,
@@ -208,58 +206,108 @@ function updateBadge() {
   chrome.action.setBadgeBackgroundColor({ color: '#e74c3c' });
 }
 
-// ===== 스트리머 모니터링 =====
+// ===== 스트리머 모니터링 (5초/30초 분리) =====
 
-async function checkAllStreamers() {
-  if (!state.isMonitoring || state.favoriteStreamers.length === 0) {
-    return;
+function startMonitoring() {
+  state.isMonitoring = true;
+  saveSettings();
+
+  // 기존 인터벌 정리
+  if (state.fastIntervalId) clearInterval(state.fastIntervalId);
+  if (state.slowIntervalId) clearInterval(state.slowIntervalId);
+
+  // 즉시 한 번 체크
+  checkFastStreamers();
+  checkSlowStreamers();
+
+  // 자동참여 ON 스트리머: 5초마다
+  state.fastIntervalId = setInterval(checkFastStreamers, CHECK_INTERVAL_FAST);
+
+  // 자동참여 OFF 스트리머: 30초마다
+  state.slowIntervalId = setInterval(checkSlowStreamers, CHECK_INTERVAL_SLOW);
+
+  console.log('[숲토킹] 모니터링 시작 (5초/30초 분리)');
+}
+
+function stopMonitoring() {
+  state.isMonitoring = false;
+  saveSettings();
+
+  if (state.fastIntervalId) {
+    clearInterval(state.fastIntervalId);
+    state.fastIntervalId = null;
+  }
+  if (state.slowIntervalId) {
+    clearInterval(state.slowIntervalId);
+    state.slowIntervalId = null;
   }
 
-  console.log('[숲토킹] 스트리머 상태 체크 중...');
+  console.log('[숲토킹] 모니터링 중지');
+}
 
-  for (const streamer of state.favoriteStreamers) {
-    try {
-      const status = await checkStreamerStatus(streamer.id);
-      const prevStatus = state.broadcastStatus[streamer.id];
+async function checkFastStreamers() {
+  const fastStreamers = state.favoriteStreamers.filter(s => s.autoJoin);
+  if (fastStreamers.length === 0) return;
 
-      // 방송 시작 감지
-      if (status.isLive && (!prevStatus || !prevStatus.isLive)) {
-        console.log('[숲토킹] 방송 시작 감지:', streamer.nickname || streamer.id);
+  console.log('[숲토킹] 빠른 체크 (자동참여 ON):', fastStreamers.length, '명');
 
-        // 알림
-        if (state.settings.notificationEnabled) {
-          showNotification(streamer, status);
-        }
+  for (const streamer of fastStreamers) {
+    await checkAndProcessStreamer(streamer);
+    await new Promise(r => setTimeout(r, 200));
+  }
+}
 
-        // 자동 참여
-        if (streamer.autoJoin) {
-          openStreamerTab(streamer.id);
-        }
+async function checkSlowStreamers() {
+  const slowStreamers = state.favoriteStreamers.filter(s => !s.autoJoin);
+  if (slowStreamers.length === 0) return;
+
+  console.log('[숲토킹] 느린 체크 (자동참여 OFF):', slowStreamers.length, '명');
+
+  for (const streamer of slowStreamers) {
+    await checkAndProcessStreamer(streamer);
+    await new Promise(r => setTimeout(r, 200));
+  }
+}
+
+async function checkAndProcessStreamer(streamer) {
+  try {
+    const status = await checkStreamerStatus(streamer.id);
+    const prevStatus = state.broadcastStatus[streamer.id];
+
+    // 방송 시작 감지
+    if (status.isLive && (!prevStatus || !prevStatus.isLive)) {
+      console.log('[숲토킹] 방송 시작 감지:', streamer.nickname || streamer.id);
+
+      // 알림
+      if (state.settings.notificationEnabled) {
+        showNotification(streamer, status);
       }
 
-      // 방송 종료 감지
-      if (!status.isLive && prevStatus?.isLive) {
-        console.log('[숲토킹] 방송 종료 감지:', streamer.nickname || streamer.id);
-
-        if (state.settings.endNotificationEnabled) {
-          chrome.notifications.create({
-            type: 'basic',
-            iconUrl: 'icons/icon128.png',
-            title: '방송 종료',
-            message: `${streamer.nickname || streamer.id}님의 방송이 종료되었습니다.`,
-            silent: true
-          });
-        }
+      // 자동 참여
+      if (streamer.autoJoin) {
+        openStreamerTab(streamer.id);
       }
-
-      state.broadcastStatus[streamer.id] = status;
-
-      // API 요청 간 딜레이
-      await new Promise(r => setTimeout(r, 300));
-
-    } catch (error) {
-      console.error('[숲토킹] 스트리머 체크 실패:', streamer.id, error);
     }
+
+    // 방송 종료 감지
+    if (!status.isLive && prevStatus?.isLive) {
+      console.log('[숲토킹] 방송 종료 감지:', streamer.nickname || streamer.id);
+
+      if (state.settings.endNotificationEnabled) {
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icons/icon128.png',
+          title: '방송 종료',
+          message: `${streamer.nickname || streamer.id}님의 방송이 종료되었습니다.`,
+          silent: true
+        });
+      }
+    }
+
+    state.broadcastStatus[streamer.id] = status;
+
+  } catch (error) {
+    console.error('[숲토킹] 스트리머 체크 실패:', streamer.id, error);
   }
 
   // 사이드패널에 상태 업데이트 전송
@@ -329,17 +377,6 @@ function openStreamerTab(streamerId) {
   chrome.tabs.create({ url });
 }
 
-function startMonitoring() {
-  state.isMonitoring = true;
-  saveSettings();
-  checkAllStreamers();
-}
-
-function stopMonitoring() {
-  state.isMonitoring = false;
-  saveSettings();
-}
-
 // ===== 스트리머 관리 =====
 
 async function addStreamer(streamerId) {
@@ -348,7 +385,6 @@ async function addStreamer(streamerId) {
     return { success: false, error: '이미 등록된 스트리머입니다.' };
   }
 
-  // 스트리머 정보 가져오기
   const status = await checkStreamerStatus(streamerId);
 
   const streamer = {
@@ -405,13 +441,11 @@ async function downloadRecording(fileName) {
   console.log('[숲토킹] 다운로드 요청 (Offscreen으로):', fileName);
 
   try {
-    // Offscreen이 준비되어 있는지 확인
     const ready = await ensureOffscreen();
     if (!ready) {
       return { success: false, error: 'Offscreen Document가 없습니다' };
     }
 
-    // Offscreen에 다운로드 요청
     const response = await chrome.runtime.sendMessage({
       type: 'DOWNLOAD_FILE',
       fileName: fileName
@@ -503,7 +537,8 @@ async function handleMessage(message, sender, sendResponse) {
       break;
 
     case 'REFRESH_STREAMERS':
-      await checkAllStreamers();
+      await checkFastStreamers();
+      await checkSlowStreamers();
       sendResponse({ success: true });
       break;
 
@@ -515,7 +550,6 @@ async function handleMessage(message, sender, sendResponse) {
         rec.totalBytes = message.totalBytes;
         rec.elapsedTime = message.elapsedTime;
       }
-      // 사이드패널에 진행 상황 전달
       broadcastToSidepanel({
         type: 'RECORDING_PROGRESS_UPDATE',
         sessionId: message.sessionId,
@@ -531,12 +565,10 @@ async function handleMessage(message, sender, sendResponse) {
       state.recordings.delete(message.sessionId);
       updateBadge();
 
-      // Background에서 직접 OPFS 파일 읽어서 다운로드
       if (message.fileName) {
         await downloadRecording(message.fileName);
       }
 
-      // 사이드패널에 완료 알림
       broadcastToSidepanel({
         type: 'RECORDING_STOPPED_UPDATE',
         sessionId: message.sessionId,
@@ -573,13 +605,11 @@ async function handleMessage(message, sender, sendResponse) {
 
         console.log('[숲토킹] 다운로드 시작됨:', downloadId);
 
-        // 다운로드 완료 감지하여 OPFS 파일 삭제
         const listener = (delta) => {
           if (delta.id === downloadId && delta.state?.current === 'complete') {
             chrome.downloads.onChanged.removeListener(listener);
             console.log('[숲토킹] 다운로드 완료:', message.fileName);
 
-            // Offscreen에 파일 삭제 요청
             chrome.runtime.sendMessage({
               type: 'DELETE_FILE',
               fileName: message.fileName
@@ -610,4 +640,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.0.2 로드됨');
+console.log('[숲토킹] Background Service Worker v3.1.0 로드됨');
