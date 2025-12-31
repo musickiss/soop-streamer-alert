@@ -1776,17 +1776,22 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // 모든 활성 녹화 목록 반환
           try {
             const allRecordings = [];
-            for (const [tabId, recording] of state.activeRecordings) {
-              allRecordings.push({
-                tabId: tabId,
-                streamerId: recording.streamerId,
-                nickname: recording.nickname,
-                startTime: recording.startTime,
-                totalBytes: recording.totalBytes || 0
-              });
+            if (state.activeRecordings && state.activeRecordings.size > 0) {
+              for (const [tabId, recording] of state.activeRecordings) {
+                allRecordings.push({
+                  tabId: tabId,
+                  streamerId: recording.streamerId,
+                  nickname: recording.nickname,
+                  startTime: recording.startTime,
+                  totalBytes: recording.totalBytes || 0,
+                  isRecording: true
+                });
+              }
             }
+            console.log('[숲토킹] GET_ALL_RECORDINGS 응답:', allRecordings.length, '개');
             sendResponse({ success: true, data: allRecordings });
           } catch (error) {
+            console.error('[숲토킹] GET_ALL_RECORDINGS 오류:', error);
             sendResponse({ success: false, error: error.message, data: [] });
           }
           break;

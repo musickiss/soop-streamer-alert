@@ -1218,12 +1218,18 @@
     try {
       const result = await sendMessage({ type: 'GET_ALL_RECORDINGS' });
 
+      console.log('[사이드패널] 녹화 목록 조회 결과:', result);
+
       if (!elements.activeRecordingList) {
+        console.warn('[사이드패널] activeRecordingList 요소 없음');
         isUpdatingRecordingList = false;
         return;
       }
 
-      const recordings = result?.success ? (result.data || []) : [];
+      // result.data가 배열인지 확인
+      const recordings = (result?.success && Array.isArray(result.data)) ? result.data : [];
+
+      console.log('[사이드패널] 녹화 목록:', recordings.length, '개');
 
       // 카운트 업데이트
       if (elements.recordingCount) {
@@ -1254,6 +1260,8 @@
           stopBtn.addEventListener('click', () => stopRecordingByTabId(rec.tabId));
         }
       });
+
+      console.log('[사이드패널] 녹화 카드', recordings.length, '개 표시됨');
 
     } catch (error) {
       console.error('[사이드패널] 녹화 목록 업데이트 오류:', error);
@@ -1705,8 +1713,12 @@
     });
 
     // 탭 변경 감지
-    chrome.tabs.onActivated.addListener(() => {
-      setTimeout(updateCurrentStream, 100);
+    chrome.tabs.onActivated.addListener((activeInfo) => {
+      console.log('[사이드패널] 탭 전환:', activeInfo.tabId);
+      setTimeout(() => {
+        updateCurrentStream();
+        updateActiveRecordingList();  // 녹화 목록 업데이트 추가
+      }, 100);
     });
 
     chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
