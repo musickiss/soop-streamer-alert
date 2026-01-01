@@ -1667,6 +1667,16 @@ body {
 
 /* ===== v3.2.6 녹화 정보 툴팁 ===== */
 
+/* 녹화 섹션 헤더 - 툴팁 기준점 */
+.recordings-section .section-header {
+  position: relative;
+}
+
+/* 녹화 섹션 툴팁 래퍼 - static으로 설정 */
+.recordings-section .info-tooltip-wrapper {
+  position: static;
+}
+
 /* 정보 아이콘 래퍼 */
 .info-tooltip-wrapper {
   position: relative;
@@ -1697,10 +1707,11 @@ body {
 .info-tooltip {
   position: absolute;
   top: calc(100% + 8px);
-  left: auto;
-  right: 0;
-  transform: translateX(10px);
-  width: 260px;
+  left: 12px;
+  right: auto;
+  transform: none;
+  width: calc(100% - 24px);
+  max-width: 280px;
   padding: 12px;
   background: #1a1a2e;
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -1717,8 +1728,8 @@ body {
   content: '';
   position: absolute;
   top: -6px;
-  left: auto;
-  right: 12px;
+  left: 72px;
+  right: auto;
   transform: none;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
@@ -1729,8 +1740,8 @@ body {
   content: '';
   position: absolute;
   top: -5px;
-  left: auto;
-  right: 13px;
+  left: 73px;
+  right: auto;
   transform: none;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;

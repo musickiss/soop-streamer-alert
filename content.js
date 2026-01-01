@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.4.2 - Content Script (ISOLATED) =====
+// ===== 숲토킹 v3.4.3 - Content Script (ISOLATED) =====
 // MAIN world와 Background 사이의 메시지 브릿지
 
 (function() {
@@ -159,5 +159,5 @@
     url: window.location.href
   }).catch(() => {});
 
-  console.log('[숲토킹 Content] v3.4.2 ISOLATED 브릿지 로드됨');
+  console.log('[숲토킹 Content] v3.4.3 ISOLATED 브릿지 로드됨');
 })();
