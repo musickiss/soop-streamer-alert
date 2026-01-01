@@ -1698,8 +1698,8 @@ body {
   position: absolute;
   top: calc(100% + 8px);
   left: auto;
-  right: -12px;
-  transform: none;
+  right: 0;
+  transform: translateX(10px);
   width: 260px;
   padding: 12px;
   background: #1a1a2e;
@@ -1718,7 +1718,7 @@ body {
   position: absolute;
   top: -6px;
   left: auto;
-  right: 16px;
+  right: 12px;
   transform: none;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
@@ -1730,7 +1730,7 @@ body {
   position: absolute;
   top: -5px;
   left: auto;
-  right: 17px;
+  right: 13px;
   transform: none;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
