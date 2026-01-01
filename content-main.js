@@ -1,5 +1,5 @@
-// ===== 숲토킹 v3.4.0 - MAIN World 녹화 모듈 =====
-// Downloads API 기반 안정화 버전 (메모리 최적화)
+// ===== 숲토킹 v3.4.5 - MAIN World 녹화 모듈 =====
+// 녹화 성능 최적화: VP9 코덱, 5Mbps, 1초 청크
 
 (function() {
   'use strict';
@@ -20,9 +20,9 @@
 
   // ===== 설정 =====
   const CONFIG = {
-    VIDEO_BITRATE: 8000000,    // 8 Mbps
+    VIDEO_BITRATE: 5000000,    // 5 Mbps (원본 수준, CPU 부하 감소)
     AUDIO_BITRATE: 128000,     // 128 Kbps
-    TIMESLICE: 5000,           // 5초마다 데이터 청크
+    TIMESLICE: 1000,           // 1초마다 데이터 청크 (부하 분산)
     PROGRESS_INTERVAL: 5000,   // 5초마다 진행 상황 보고
     MAX_CHUNK_SIZE: 50 * 1024 * 1024  // 50MB 청크 제한 (메모리 보호)
   };
@@ -55,8 +55,10 @@
 
   // ===== 코덱 선택 =====
   function getBestMimeType() {
+    // AV1 제거: 실시간 인코딩 시 CPU 과부하 발생
+    // VP9: 하드웨어 가속 지원, 좋은 압축률
+    // VP8: 가장 가벼움, 폴백용
     const codecs = [
-      { mime: 'video/webm;codecs=av1,opus', name: 'AV1' },
       { mime: 'video/webm;codecs=vp9,opus', name: 'VP9' },
       { mime: 'video/webm;codecs=vp8,opus', name: 'VP8' },
       { mime: 'video/webm', name: 'WebM' }
@@ -344,5 +346,5 @@
     }
   });
 
-  console.log('[숲토킹 Recorder] v3.4.0 MAIN world 모듈 로드됨 (Downloads API)');
+  console.log('[숲토킹 Recorder] v3.4.5 MAIN world 모듈 로드됨 (VP9 최적화)');
 })();
