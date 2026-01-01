@@ -1,5 +1,5 @@
-// ===== 숲토킹 v3.4.7 - Background Service Worker =====
-// Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 스트리머별 자동종료
+// ===== 숲토킹 v3.4.9 - Background Service Worker =====
+// Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -390,18 +390,40 @@ async function checkAndProcessStreamer(streamer) {
         });
       }
 
-      // 스트리머별 자동 종료 확인
-      if (streamer.autoClose) {
-        console.log('[숲토킹] 자동 종료 활성화됨 - 탭 찾기:', streamer.id);
-        // 해당 스트리머의 탭 찾아서 안전하게 종료
-        try {
-          const tabs = await chrome.tabs.query({ url: `*://play.sooplive.co.kr/${streamer.id}*` });
-          for (const tab of tabs) {
-            await safeCloseTab(tab.id, streamer.id);
+      // 해당 스트리머의 탭 찾기
+      try {
+        const tabs = await chrome.tabs.query({ url: `*://play.sooplive.co.kr/${streamer.id}*` });
+
+        for (const tab of tabs) {
+          // 녹화 중인 탭이면 녹화 안전 저장 (autoClose 여부와 무관)
+          if (state.recordings.has(tab.id)) {
+            console.log('[숲토킹] 방송 종료 - 녹화 안전 저장:', streamer.id, 'tabId:', tab.id);
+            try {
+              await chrome.tabs.sendMessage(tab.id, { type: 'STOP_RECORDING' });
+              // 저장 완료 대기 (5초)
+              await new Promise(r => setTimeout(r, 5000));
+              state.recordings.delete(tab.id);
+              updateBadge();
+              console.log('[숲토킹] 녹화 저장 완료:', streamer.id);
+            } catch (error) {
+              console.error('[숲토킹] 녹화 중지 실패:', error);
+              state.recordings.delete(tab.id);
+              updateBadge();
+            }
           }
-        } catch (error) {
-          console.error('[숲토킹] 자동 종료 실패:', error);
+
+          // 자동 종료가 활성화되어 있으면 탭 종료
+          if (streamer.autoClose) {
+            console.log('[숲토킹] 자동 종료 - 탭 닫기:', streamer.id);
+            try {
+              await chrome.tabs.remove(tab.id);
+            } catch (error) {
+              console.error('[숲토킹] 탭 종료 실패:', error);
+            }
+          }
         }
+      } catch (error) {
+        console.error('[숲토킹] 방송 종료 처리 실패:', error);
       }
     }
 
@@ -828,4 +850,4 @@ loadSettings().then(() => {
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.4.7 로드됨');
+console.log('[숲토킹] Background Service Worker v3.4.9 로드됨');
