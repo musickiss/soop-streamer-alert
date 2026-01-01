@@ -1,10 +1,10 @@
-// ===== 숲토킹 v3.2.2 - Background Service Worker =====
+// ===== 숲토킹 v3.2.3 - Background Service Worker =====
 // video.captureStream 기반 녹화 + 5초/30초 분리 모니터링
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
 const CHECK_INTERVAL_SLOW = 30000;  // 자동참여 OFF 스트리머 (30초)
-const API_BASE = 'https://live.sooplive.co.kr/afreeca/player_live_api.php';
+const API_URL = 'https://live.sooplive.co.kr/afreeca/player_live_api.php';
 
 // ===== 보안 유틸리티 =====
 
@@ -58,7 +58,7 @@ const state = {
 // ===== 초기화 =====
 
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[숲토킹] v3.2.2 설치됨');
+  console.log('[숲토킹] v3.2.3 설치됨');
   await loadSettings();
 });
 
@@ -362,12 +362,23 @@ async function checkAndProcessStreamer(streamer) {
 }
 
 async function checkStreamerStatus(streamerId) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
   try {
-    const response = await fetch(API_BASE, {
+    const response = await fetch(API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `bid=${streamerId}`
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+        'Origin': 'https://play.sooplive.co.kr',
+        'Referer': 'https://play.sooplive.co.kr/'
+      },
+      body: `bid=${encodeURIComponent(streamerId)}`,
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       return { isLive: false };
@@ -381,12 +392,13 @@ async function checkStreamerStatus(streamerId) {
     }
 
     return {
-      isLive: channel.RESULT === 1,
+      isLive: channel && channel.RESULT === 1,
       broadNo: channel.BNO,
       title: channel.TITLE || '',
       nickname: channel.BJNICK || streamerId
     };
   } catch (error) {
+    clearTimeout(timeoutId);
     return { isLive: false };
   }
 }
@@ -739,4 +751,4 @@ loadSettings().then(() => {
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.2.2 로드됨');
+console.log('[숲토킹] Background Service Worker v3.2.3 로드됨');
