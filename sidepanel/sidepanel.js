@@ -147,6 +147,14 @@
     return /[A-Z0-9가-힣]/.test(first) ? first : '📺';
   }
 
+  function getRecordingQualityTooltip() {
+    if (state.recordingQuality === 'high') {
+      return '고사양 모드 (VP9)\n• 화질: 우수\n• CPU 사용량: 높음\n• 권장: 고사양 PC';
+    } else {
+      return '저사양 모드 (VP8)\n• 화질: 양호\n• CPU 사용량: 낮음\n• 권장: 저사양 PC, 노트북';
+    }
+  }
+
   // ===== 상태 로드 =====
   async function loadState() {
     try {
@@ -397,6 +405,7 @@
             <div class="recording-card-header">
               <span class="recording-indicator"></span>
               <span class="recording-streamer-name">${displayName}</span>
+              <span class="recording-quality-info" title="${getRecordingQualityTooltip()}">ⓘ</span>
             </div>
             <div class="recording-card-stats">
               <div class="recording-stat">
@@ -1019,6 +1028,10 @@
       state.recordingQuality = e.target.value;
       chrome.storage.local.set({ recordingQuality: state.recordingQuality });
       showToast(state.recordingQuality === 'high' ? '고사양 녹화 설정됨' : '저사양 녹화 설정됨', 'success');
+      // 녹화 카드의 info 아이콘 툴팁 업데이트
+      document.querySelectorAll('.recording-quality-info').forEach(el => {
+        el.title = getRecordingQualityTooltip();
+      });
     });
 
     // 필터

@@ -1824,3 +1824,18 @@ body {
   color: #fff;
 }
 
+/* ===== 녹화 품질 정보 아이콘 ===== */
+.recording-quality-info {
+  margin-left: auto;
+  color: #888;
+  font-size: 14px;
+  cursor: help;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.recording-quality-info:hover {
+  opacity: 1;
+  color: var(--soop-primary);
+}
+
