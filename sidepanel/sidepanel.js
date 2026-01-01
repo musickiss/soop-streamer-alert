@@ -1,5 +1,5 @@
-// ===== 숲토킹 v3.2.4 - 사이드패널 =====
-// video.captureStream 기반 녹화, Background와 메시지 통신
+// ===== 숲토킹 v3.3.0 - 사이드패널 =====
+// File System API 기반 실시간 디스크 저장, Background와 메시지 통신
 
 (function() {
   'use strict';
@@ -26,6 +26,9 @@
 
   // ===== 아코디언 안정화 (v3.2.4) =====
   let toggleTimeout = null;
+
+  // ===== 녹화 폴더 상태 (v3.3.0) =====
+  let recordingDirectoryHandle = null;
 
   // ===== DOM 요소 =====
   const elements = {};
@@ -956,6 +959,145 @@
     }
   }
 
+  // ===== 녹화 폴더 설정 (v3.3.0) =====
+
+  // IndexedDB에 directoryHandle 저장
+  async function saveDirectoryHandle(dirHandle) {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open('SooptalkingDB', 1);
+
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('settings')) {
+          db.createObjectStore('settings', { keyPath: 'key' });
+        }
+      };
+
+      request.onsuccess = (e) => {
+        const db = e.target.result;
+        const tx = db.transaction('settings', 'readwrite');
+        const store = tx.objectStore('settings');
+        store.put({ key: 'recordingDirectory', value: dirHandle });
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  // IndexedDB에서 directoryHandle 로드
+  async function loadDirectoryHandle() {
+    return new Promise((resolve) => {
+      const request = indexedDB.open('SooptalkingDB', 1);
+
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains('settings')) {
+          db.createObjectStore('settings', { keyPath: 'key' });
+        }
+      };
+
+      request.onsuccess = (e) => {
+        const db = e.target.result;
+        const tx = db.transaction('settings', 'readonly');
+        const store = tx.objectStore('settings');
+        const getReq = store.get('recordingDirectory');
+
+        getReq.onsuccess = () => {
+          resolve(getReq.result?.value || null);
+        };
+        getReq.onerror = () => resolve(null);
+      };
+
+      request.onerror = () => resolve(null);
+    });
+  }
+
+  // 폴더 권한 확인
+  async function verifyDirectoryPermission(dirHandle) {
+    if (!dirHandle) return false;
+
+    try {
+      const options = { mode: 'readwrite' };
+      if (await dirHandle.queryPermission(options) === 'granted') {
+        return true;
+      }
+      // 권한 요청은 사용자 제스처 필요하므로 여기서는 시도하지 않음
+      return false;
+    } catch (err) {
+      console.error('[숲토킹] 권한 확인 오류:', err);
+      return false;
+    }
+  }
+
+  // 폴더 상태 UI 업데이트
+  function updateFolderStatus(folderName) {
+    const statusEl = document.getElementById('folderStatus');
+    const btnEl = document.getElementById('selectFolderBtn');
+    const hintEl = document.getElementById('folderHint');
+
+    if (folderName) {
+      if (statusEl) statusEl.textContent = folderName;
+      if (btnEl) btnEl.classList.add('configured');
+      if (hintEl) {
+        hintEl.textContent = '✅ 원터치 녹화 가능';
+        hintEl.className = 'folder-hint success';
+      }
+    } else {
+      if (statusEl) statusEl.textContent = '미설정';
+      if (btnEl) btnEl.classList.remove('configured');
+      if (hintEl) {
+        hintEl.textContent = '녹화 시작 전에 저장 폴더를 선택하면 원터치 녹화가 가능합니다.';
+        hintEl.className = 'folder-hint';
+      }
+    }
+  }
+
+  // 초기화 시 폴더 상태 로드
+  async function initFolderStatus() {
+    try {
+      const dirHandle = await loadDirectoryHandle();
+      if (dirHandle) {
+        const hasPermission = await verifyDirectoryPermission(dirHandle);
+        if (hasPermission) {
+          recordingDirectoryHandle = dirHandle;
+          updateFolderStatus(dirHandle.name);
+        } else {
+          // 권한 없으면 폴더명만 표시 (클릭 시 재요청 가능)
+          updateFolderStatus(dirHandle.name + ' (권한 필요)');
+        }
+      }
+    } catch (err) {
+      console.error('[숲토킹] 폴더 상태 로드 오류:', err);
+    }
+  }
+
+  // 폴더 선택 처리
+  async function selectRecordingFolder() {
+    try {
+      // 폴더 선택 다이얼로그
+      const dirHandle = await window.showDirectoryPicker({
+        mode: 'readwrite',
+        startIn: 'downloads'
+      });
+
+      // IndexedDB에 저장
+      await saveDirectoryHandle(dirHandle);
+      recordingDirectoryHandle = dirHandle;
+
+      // UI 업데이트
+      updateFolderStatus(dirHandle.name);
+      showToast(`녹화 폴더 설정: ${dirHandle.name}`, 'success');
+
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error('[숲토킹] 폴더 선택 오류:', err);
+        showToast('폴더 선택 중 오류가 발생했습니다.', 'error');
+      }
+    }
+  }
+
   // ===== 저장 공간 =====
   async function updateStorageInfo() {
     try {
@@ -996,6 +1138,9 @@
 
     // 녹화 버튼
     elements.startRecordingBtn?.addEventListener('click', startRecording);
+
+    // 녹화 폴더 선택 버튼 (v3.3.0)
+    document.getElementById('selectFolderBtn')?.addEventListener('click', selectRecordingFolder);
 
     // 필터
     elements.filterSelect?.addEventListener('change', (e) => {
@@ -1116,6 +1261,9 @@
     // 현재 탭 녹화 상태 동기화
     await syncCurrentTabRecordingState();
     await updateStorageInfo();
+
+    // 녹화 폴더 상태 초기화 (v3.3.0)
+    await initFolderStatus();
 
     // 이벤트 바인딩
     bindEvents();
