@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.4.0 - 사이드패널 =====
+// ===== 숲토킹 v3.4.4 - 사이드패널 =====
 // Downloads API 기반 안정화 버전, Background와 메시지 통신
 
 (function() {
@@ -16,6 +16,7 @@
     currentStream: null,
     currentSoopTabId: null,
     filter: 'all',
+    expandedStreamerId: null,
     // 현재 탭 녹화 상태 (sessionId 기반)
     currentTabRecording: null
   };
@@ -521,6 +522,14 @@
     }).join('');
 
     bindStreamerCardEvents();
+
+    // 확장 상태 복원 (DOM 재생성 후)
+    if (state.expandedStreamerId) {
+      const expandedCard = document.querySelector(`.streamer-card[data-id="${state.expandedStreamerId}"]`);
+      if (expandedCard) {
+        expandedCard.classList.add('expanded');
+      }
+    }
   }
 
   // ===== 아코디언 토글 (v3.2.4 - 안정화) =====
@@ -529,6 +538,7 @@
     if (toggleTimeout) return;
 
     const isExpanded = card.classList.contains('expanded');
+    const streamerId = card.dataset.id;
 
     // 다른 모든 아이템 닫기
     document.querySelectorAll('.streamer-card.expanded').forEach(el => {
@@ -539,6 +549,9 @@
 
     // 현재 아이템 토글
     card.classList.toggle('expanded', !isExpanded);
+
+    // 확장 상태 저장 (DOM 재생성 후 복원용)
+    state.expandedStreamerId = isExpanded ? null : streamerId;
 
     // 300ms 동안 추가 토글 방지
     toggleTimeout = setTimeout(() => {
