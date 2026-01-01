@@ -149,9 +149,9 @@
 
   function getRecordingQualityTooltip() {
     if (state.recordingQuality === 'high') {
-      return '고사양 모드 (VP9)\n• 화질: 우수\n• CPU 사용량: 높음\n• 권장: 고사양 PC';
+      return '동시 녹화 권장: 1~2개\n• 녹화 화질은 원본보다 낮습니다\n• ⚠️ PC 성능에 따라 불안정할 수 있습니다';
     } else {
-      return '저사양 모드 (VP8)\n• 화질: 양호\n• CPU 사용량: 낮음\n• 권장: 저사양 PC, 노트북';
+      return '동시 녹화 권장: 3~4개\n• 녹화 화질은 원본보다 낮습니다\n• ✅ 대부분의 PC에서 안정적입니다';
     }
   }
 
