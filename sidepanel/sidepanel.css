@@ -1697,8 +1697,9 @@ body {
 .info-tooltip {
   position: absolute;
   top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
+  left: auto;
+  right: -12px;
+  transform: none;
   width: 260px;
   padding: 12px;
   background: #1a1a2e;
@@ -1716,8 +1717,9 @@ body {
   content: '';
   position: absolute;
   top: -6px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: auto;
+  right: 16px;
+  transform: none;
   border-left: 6px solid transparent;
   border-right: 6px solid transparent;
   border-bottom: 6px solid rgba(255, 255, 255, 0.15);
@@ -1727,8 +1729,9 @@ body {
   content: '';
   position: absolute;
   top: -5px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: auto;
+  right: 17px;
+  transform: none;
   border-left: 5px solid transparent;
   border-right: 5px solid transparent;
   border-bottom: 5px solid #1a1a2e;
