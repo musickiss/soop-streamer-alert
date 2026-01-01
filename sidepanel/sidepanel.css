@@ -1664,3 +1664,108 @@ body {
   color: #444;
   margin: 0 6px;
 }
+
+/* ===== v3.2.6 녹화 정보 툴팁 ===== */
+
+/* 정보 아이콘 래퍼 */
+.info-tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+}
+
+/* 정보 아이콘 */
+.info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 12px;
+  font-style: normal;
+  color: #888;
+  cursor: help;
+  transition: color 0.2s ease;
+}
+
+.info-icon:hover {
+  color: #4ecdc4;
+}
+
+/* 툴팁 박스 */
+.info-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 260px;
+  padding: 12px;
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  z-index: 1000;
+  transition: all 0.2s ease;
+}
+
+/* 툴팁 화살표 */
+.info-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid rgba(255, 255, 255, 0.15);
+}
+
+.info-tooltip::after {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 5px solid #1a1a2e;
+}
+
+/* 호버 시 툴팁 표시 */
+.info-tooltip-wrapper:hover .info-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 툴팁 내용 스타일 */
+.info-tooltip .tooltip-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffcc00;
+  margin-bottom: 8px;
+}
+
+.info-tooltip p {
+  font-size: 11px;
+  color: #bbb;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.info-tooltip p:last-child {
+  margin-bottom: 0;
+}
+
+.info-tooltip strong {
+  color: #fff;
+}
+
+.info-tooltip .tooltip-tip {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: #4ecdc4;
+}
