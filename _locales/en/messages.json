@@ -224,5 +224,17 @@
   "toastError": {
     "message": "An error occurred.",
     "description": "General error toast"
+  },
+  "autoClose": {
+    "message": "Auto Close",
+    "description": "Auto close tab when broadcast ends"
+  },
+  "toastAutoCloseEnabled": {
+    "message": "Auto close enabled",
+    "description": "Auto close enabled toast"
+  },
+  "toastAutoCloseDisabled": {
+    "message": "Auto close disabled",
+    "description": "Auto close disabled toast"
   }
 }

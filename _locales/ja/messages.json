@@ -224,5 +224,17 @@
   "toastError": {
     "message": "エラーが発生しました。",
     "description": "一般エラートースト"
+  },
+  "autoClose": {
+    "message": "自動終了",
+    "description": "配信終了時にタブを自動終了"
+  },
+  "toastAutoCloseEnabled": {
+    "message": "自動終了が有効になりました",
+    "description": "自動終了有効トースト"
+  },
+  "toastAutoCloseDisabled": {
+    "message": "自動終了が無効になりました",
+    "description": "自動終了無効トースト"
   }
 }

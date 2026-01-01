@@ -1,5 +1,5 @@
-// ===== 숲토킹 v3.4.0 - Background Service Worker =====
-// Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링
+// ===== 숲토킹 v3.4.7 - Background Service Worker =====
+// Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 스트리머별 자동종료
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -193,6 +193,43 @@ async function stopRecording(tabId) {
   }
 }
 
+// ===== 안전한 탭 종료 (녹화 중이면 저장 후 종료) =====
+
+async function safeCloseTab(tabId, streamerId) {
+  console.log('[숲토킹] 안전한 탭 종료 요청:', streamerId, 'tabId:', tabId);
+
+  // 녹화 중인지 확인
+  if (state.recordings.has(tabId)) {
+    console.log('[숲토킹] 녹화 중인 탭 - 녹화 중지 후 종료:', streamerId);
+
+    try {
+      // 녹화 중지 요청
+      await chrome.tabs.sendMessage(tabId, { type: 'STOP_RECORDING' });
+
+      // 녹화 저장 완료 대기 (최대 10초)
+      let waitCount = 0;
+      while (state.recordings.has(tabId) && waitCount < 20) {
+        await new Promise(r => setTimeout(r, 500));
+        waitCount++;
+      }
+
+      console.log('[숲토킹] 녹화 저장 완료, 탭 종료:', streamerId);
+    } catch (error) {
+      console.error('[숲토킹] 녹화 중지 실패:', error);
+      state.recordings.delete(tabId);
+      updateBadge();
+    }
+  }
+
+  // 탭 종료
+  try {
+    await chrome.tabs.remove(tabId);
+    console.log('[숲토킹] 탭 종료됨:', streamerId);
+  } catch (error) {
+    console.error('[숲토킹] 탭 종료 실패:', error);
+  }
+}
+
 // ===== 배지 업데이트 =====
 
 function updateBadge() {
@@ -351,6 +388,20 @@ async function checkAndProcessStreamer(streamer) {
           message: `${streamer.nickname || streamer.id}님의 방송이 종료되었습니다.`,
           silent: true
         });
+      }
+
+      // 스트리머별 자동 종료 확인
+      if (streamer.autoClose) {
+        console.log('[숲토킹] 자동 종료 활성화됨 - 탭 찾기:', streamer.id);
+        // 해당 스트리머의 탭 찾아서 안전하게 종료
+        try {
+          const tabs = await chrome.tabs.query({ url: `*://play.sooplive.co.kr/${streamer.id}*` });
+          for (const tab of tabs) {
+            await safeCloseTab(tab.id, streamer.id);
+          }
+        } catch (error) {
+          console.error('[숲토킹] 자동 종료 실패:', error);
+        }
       }
     }
 
@@ -732,6 +783,32 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   }
 });
 
+// ===== VOD 리다이렉트 감지 (방송 종료 시 VOD 페이지로 이동) =====
+
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
+  // URL 변경 감지
+  if (changeInfo.url) {
+    const url = changeInfo.url;
+
+    // VOD 페이지로 리다이렉트 감지 (vod.sooplive.co.kr)
+    if (url.includes('vod.sooplive.co.kr')) {
+      console.log('[숲토킹] VOD 리다이렉트 감지:', tabId);
+
+      // 녹화 중인 탭인지 확인
+      if (state.recordings.has(tabId)) {
+        const rec = state.recordings.get(tabId);
+        const streamer = state.favoriteStreamers.find(s => s.id === rec.streamerId);
+
+        // 스트리머별 자동 종료 활성화 확인
+        if (streamer?.autoClose) {
+          console.log('[숲토킹] VOD 리다이렉트 - 자동 종료 실행:', rec.streamerId);
+          await safeCloseTab(tabId, rec.streamerId);
+        }
+      }
+    }
+  }
+});
+
 // ===== 사이드패널 열기 =====
 
 chrome.action.onClicked.addListener(async (tab) => {
@@ -751,4 +828,4 @@ loadSettings().then(() => {
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.4.0 로드됨');
+console.log('[숲토킹] Background Service Worker v3.4.7 로드됨');

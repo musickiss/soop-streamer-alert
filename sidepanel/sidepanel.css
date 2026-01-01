@@ -889,6 +889,11 @@ body {
   border-color: var(--record-red);
 }
 
+.mini-toggle.orange input:checked + .track {
+  background: #f39c12;
+  border-color: #f39c12;
+}
+
 .quality-setting {
   display: flex;
   align-items: center;

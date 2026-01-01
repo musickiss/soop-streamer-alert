@@ -224,5 +224,17 @@
   "toastError": {
     "message": "發生錯誤。",
     "description": "一般錯誤提示"
+  },
+  "autoClose": {
+    "message": "自動關閉",
+    "description": "直播結束時自動關閉標籤頁"
+  },
+  "toastAutoCloseEnabled": {
+    "message": "自動關閉已啟用",
+    "description": "自動關閉啟用提示"
+  },
+  "toastAutoCloseDisabled": {
+    "message": "自動關閉已停用",
+    "description": "自動關閉停用提示"
   }
 }

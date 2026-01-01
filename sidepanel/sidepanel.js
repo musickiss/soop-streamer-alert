@@ -528,6 +528,16 @@
                 <span class="track"></span>
               </label>
             </div>
+            <div class="setting-row">
+              <div class="setting-label">
+                <span class="icon">🚪</span>
+                <span data-i18n="autoClose">자동 종료</span>
+              </div>
+              <label class="mini-toggle orange">
+                <input type="checkbox" data-setting="autoClose" ${streamer.autoClose ? 'checked' : ''}>
+                <span class="track"></span>
+              </label>
+            </div>
             <button class="delete-streamer-btn" data-id="${escapeHtml(streamer.id)}">🗑️ 스트리머 삭제</button>
           </div>
         </div>

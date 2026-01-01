@@ -224,5 +224,17 @@
   "toastError": {
     "message": "오류가 발생했습니다.",
     "description": "일반 오류 토스트"
+  },
+  "autoClose": {
+    "message": "자동 종료",
+    "description": "방송 종료 시 탭 자동 종료 설정"
+  },
+  "toastAutoCloseEnabled": {
+    "message": "자동 종료 활성화됨",
+    "description": "자동 종료 활성화 토스트"
+  },
+  "toastAutoCloseDisabled": {
+    "message": "자동 종료 비활성화됨",
+    "description": "자동 종료 비활성화 토스트"
   }
 }
