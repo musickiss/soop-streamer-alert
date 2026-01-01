@@ -1,6 +1,6 @@
 # 개인정보처리방침 (Privacy Policy)
 
-**최종 수정일:** 2025년 12월 16일
+**최종 수정일:** 2025년 1월 1일
 
 ## 개요
 
@@ -24,10 +24,31 @@
 
 본 확장프로그램은 다음 데이터를 **사용자의 로컬 브라우저에만** 저장합니다:
 
-- 사용자가 등록한 스트리머 ID 목록
-- 확장프로그램 설정 값 (알림 설정, 자동참여 설정 등)
+| 데이터 유형 | 저장 위치 | 설명 |
+|------------|----------|------|
+| 스트리머 ID 목록 | Chrome Storage | 사용자가 등록한 스트리머 목록 |
+| 확장프로그램 설정 | Chrome Storage | 알림, 자동참여, 자동녹화 설정 |
+| 녹화 파일 | 다운로드 폴더 | `다운로드/SOOPtalking/*.webm` |
 
-이 데이터는 Chrome의 `chrome.storage.local` API를 사용하여 **사용자의 기기에만 저장**되며, 외부 서버로 전송되지 않습니다.
+이 데이터는 Chrome의 `chrome.storage.local` API 및 `chrome.downloads` API를 사용하여 **사용자의 기기에만 저장**되며, 외부 서버로 전송되지 않습니다.
+
+---
+
+## 녹화 기능
+
+본 확장프로그램은 방송 녹화 기능을 제공합니다:
+
+- **녹화 방식**: 브라우저 내 video.captureStream() API 사용
+- **저장 위치**: 사용자 다운로드 폴더 내 `SOOPtalking` 하위 폴더
+- **파일 형식**: WebM (VP9/AV1 코덱)
+- **외부 전송**: 녹화 파일은 외부 서버로 전송되지 않음
+
+### ⚠️ 저작권 고지
+
+녹화된 콘텐츠의 저작권은 해당 스트리머 및 SOOP(숲)에 있습니다.
+- 녹화 파일은 **개인적 시청 목적**으로만 사용하십시오.
+- 녹화물의 **재배포, 상업적 이용, 무단 공유는 저작권법 위반**입니다.
+- 본 확장프로그램 개발자는 사용자의 녹화물 사용에 대해 책임지지 않습니다.
 
 ---
 
@@ -54,19 +75,22 @@
 |------|----------|
 | `storage` | 스트리머 목록 및 설정을 로컬에 저장 |
 | `tabs` | 방송 시작 시 새 탭 열기 및 기존 탭 확인 |
-| `alarms` | 주기적인 방송 상태 확인 |
 | `notifications` | 방송 시작/종료 알림 표시 |
-| `host_permissions` (sooplive.co.kr) | SOOP 방송 상태 API 호출 |
+| `sidePanel` | Side Panel UI 표시 |
+| `downloads` | 녹화 파일을 다운로드 폴더에 저장 |
+| `scripting` | 방송 페이지에 녹화 스크립트 주입 |
+| `host_permissions` (sooplive.co.kr) | SOOP 방송 상태 API 호출 및 녹화 기능 |
 
 ---
 
 ## 데이터 삭제
 
-확장프로그램을 제거하면 로컬에 저장된 모든 데이터가 자동으로 삭제됩니다.
+### 확장프로그램 데이터
+확장프로그램을 제거하면 Chrome Storage에 저장된 모든 데이터가 자동으로 삭제됩니다.
 
-수동으로 데이터를 삭제하려면:
-1. 브라우저 설정 → 개인정보 및 보안 → 인터넷 사용 기록 삭제
-2. "쿠키 및 기타 사이트 데이터" 선택 후 삭제
+### 녹화 파일
+녹화 파일은 다운로드 폴더에 저장되므로 확장프로그램 제거 후에도 남아있습니다.
+수동으로 삭제하려면 `다운로드/SOOPtalking/` 폴더를 삭제하십시오.
 
 ---
 
@@ -92,11 +116,11 @@
 
 # Privacy Policy (English)
 
-**Last Updated:** December 16, 2025
+**Last Updated:** January 1, 2025
 
 ## Overview
 
-The "Sooptalking - SOOP Streamer Live Alert" Chrome extension (hereinafter "this extension") does not collect, store, or transmit any personal information from users.
+The "SOOPtalking - SOOP Streamer Live Alert" Chrome extension (hereinafter "this extension") does not collect, store, or transmit any personal information from users.
 
 ---
 
@@ -116,10 +140,31 @@ The "Sooptalking - SOOP Streamer Live Alert" Chrome extension (hereinafter "this
 
 This extension stores the following data **only in the user's local browser**:
 
-- List of streamer IDs registered by the user
-- Extension settings (notification settings, auto-join settings, etc.)
+| Data Type | Storage Location | Description |
+|-----------|-----------------|-------------|
+| Streamer ID list | Chrome Storage | List of streamers registered by user |
+| Extension settings | Chrome Storage | Notification, auto-join, auto-record settings |
+| Recording files | Downloads folder | `Downloads/SOOPtalking/*.webm` |
 
-This data is stored **only on the user's device** using Chrome's `chrome.storage.local` API and is not transmitted to any external servers.
+This data is stored **only on the user's device** using Chrome's `chrome.storage.local` API and `chrome.downloads` API, and is not transmitted to any external servers.
+
+---
+
+## Recording Feature
+
+This extension provides broadcast recording functionality:
+
+- **Recording method**: Browser's video.captureStream() API
+- **Storage location**: `SOOPtalking` subfolder in user's Downloads folder
+- **File format**: WebM (VP9/AV1 codec)
+- **External transmission**: Recording files are NOT transmitted to external servers
+
+### ⚠️ Copyright Notice
+
+The copyright of recorded content belongs to the respective streamer and SOOP.
+- Recording files should be used for **personal viewing purposes only**.
+- **Redistribution, commercial use, or unauthorized sharing of recordings is a copyright violation.**
+- The developer of this extension is not responsible for users' use of recorded content.
 
 ---
 
@@ -146,19 +191,22 @@ Browser permissions requested by this extension and their purposes:
 |------------|---------|
 | `storage` | Store streamer list and settings locally |
 | `tabs` | Open new tabs when broadcasts start and check existing tabs |
-| `alarms` | Periodic broadcast status checks |
 | `notifications` | Display broadcast start/end notifications |
-| `host_permissions` (sooplive.co.kr) | Call SOOP broadcast status API |
+| `sidePanel` | Display Side Panel UI |
+| `downloads` | Save recording files to downloads folder |
+| `scripting` | Inject recording script into broadcast pages |
+| `host_permissions` (sooplive.co.kr) | Call SOOP broadcast status API and enable recording |
 
 ---
 
 ## Data Deletion
 
-All locally stored data is automatically deleted when the extension is removed.
+### Extension Data
+All data stored in Chrome Storage is automatically deleted when the extension is removed.
 
-To manually delete data:
-1. Browser Settings → Privacy and Security → Clear Browsing Data
-2. Select "Cookies and other site data" and delete
+### Recording Files
+Recording files are saved in the downloads folder and remain after extension removal.
+To delete manually, remove the `Downloads/SOOPtalking/` folder.
 
 ---
 
