@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.4.4 - 사이드패널 =====
+// ===== 숲토킹 v3.4.5 - 사이드패널 =====
 // Downloads API 기반 안정화 버전, Background와 메시지 통신
 
 (function() {
@@ -17,6 +17,7 @@
     currentSoopTabId: null,
     filter: 'all',
     expandedStreamerId: null,
+    recordingQuality: 'low',  // 'low' = VP8, 'high' = VP9
     // 현재 탭 녹화 상태 (sessionId 기반)
     currentTabRecording: null
   };
@@ -63,6 +64,8 @@
 
     elements.storageValue = document.getElementById('storageValue');
     elements.storageProgressFill = document.getElementById('storageProgressFill');
+
+    elements.recordingQualitySelect = document.getElementById('recordingQualitySelect');
 
     elements.toast = document.getElementById('toast');
     elements.versionInfo = document.getElementById('versionInfo');
@@ -295,7 +298,8 @@
         type: 'START_RECORDING_REQUEST',
         tabId: tabId,
         streamerId: streamerId,
-        nickname: nickname
+        nickname: nickname,
+        quality: state.recordingQuality
       });
 
       if (result?.success) {
@@ -1010,6 +1014,13 @@
     // 녹화 버튼
     elements.startRecordingBtn?.addEventListener('click', startRecording);
 
+    // 녹화 품질 드롭다운
+    elements.recordingQualitySelect?.addEventListener('change', (e) => {
+      state.recordingQuality = e.target.value;
+      chrome.storage.local.set({ recordingQuality: state.recordingQuality });
+      showToast(state.recordingQuality === 'high' ? '고사양 (VP9) 녹화 설정됨' : '저사양 (VP8) 녹화 설정됨', 'success');
+    });
+
     // 필터
     elements.filterSelect?.addEventListener('change', (e) => {
       state.filter = e.target.value;
@@ -1119,6 +1130,16 @@
 
     // 상태 로드
     await loadState();
+
+    // 녹화 품질 설정 로드
+    chrome.storage.local.get(['recordingQuality'], (result) => {
+      if (result.recordingQuality) {
+        state.recordingQuality = result.recordingQuality;
+        if (elements.recordingQualitySelect) {
+          elements.recordingQualitySelect.value = state.recordingQuality;
+        }
+      }
+    });
 
     // UI 초기화
     updateMonitoringUI();

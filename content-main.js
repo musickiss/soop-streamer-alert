@@ -1,5 +1,5 @@
 // ===== 숲토킹 v3.4.5 - MAIN World 녹화 모듈 =====
-// 녹화 성능 최적화: VP9 코덱, 5Mbps, 1초 청크
+// 녹화 품질 선택 (VP9/VP8) + 성능 최적화
 
 (function() {
   'use strict';
@@ -54,19 +54,28 @@
   }
 
   // ===== 코덱 선택 =====
-  function getBestMimeType() {
-    // AV1 제거: 실시간 인코딩 시 CPU 과부하 발생
-    // VP9: 하드웨어 가속 지원, 좋은 압축률
-    // VP8: 가장 가벼움, 폴백용
-    const codecs = [
-      { mime: 'video/webm;codecs=vp9,opus', name: 'VP9' },
-      { mime: 'video/webm;codecs=vp8,opus', name: 'VP8' },
-      { mime: 'video/webm', name: 'WebM' }
-    ];
+  function getBestMimeType(quality) {
+    // quality: 'high' = VP9 (고사양), 'low' = VP8 (저사양)
+    let codecs;
+
+    if (quality === 'high') {
+      // 고사양: VP9 우선 (좋은 화질, 하드웨어 가속 시 부하 적음)
+      codecs = [
+        { mime: 'video/webm;codecs=vp9,opus', name: 'VP9' },
+        { mime: 'video/webm;codecs=vp8,opus', name: 'VP8' },
+        { mime: 'video/webm', name: 'WebM' }
+      ];
+    } else {
+      // 저사양: VP8 우선 (가장 가벼움)
+      codecs = [
+        { mime: 'video/webm;codecs=vp8,opus', name: 'VP8' },
+        { mime: 'video/webm', name: 'WebM' }
+      ];
+    }
 
     for (const { mime, name } of codecs) {
       if (MediaRecorder.isTypeSupported(mime)) {
-        console.log('[숲토킹 Recorder] 코덱 선택:', name);
+        console.log(`[숲토킹 Recorder] 코덱 선택: ${name} (${quality === 'high' ? '고사양' : '저사양'})`);
         return mime;
       }
     }
@@ -157,7 +166,8 @@
         console.log('[숲토킹 Recorder] 스트림 획득 성공');
 
         // 4. 코덱 선택
-        const mimeType = getBestMimeType();
+        const quality = params.quality || 'low';
+        const mimeType = getBestMimeType(quality);
 
         // 5. MediaRecorder 생성
         mediaRecorder = new MediaRecorder(recordingStream, {
@@ -346,5 +356,5 @@
     }
   });
 
-  console.log('[숲토킹 Recorder] v3.4.5 MAIN world 모듈 로드됨 (VP9 최적화)');
+  console.log('[숲토킹 Recorder] v3.4.5 MAIN world 모듈 로드됨 (품질 선택 지원)');
 })();
