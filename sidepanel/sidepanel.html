@@ -19,12 +19,20 @@
           <div class="brand-logo">📺</div>
           <div class="brand-text">
             <h1 id="brandText">숲토킹</h1>
-            <p class="tagline" data-i18n="tagline">SOOP 알림 & 다운로드</p>
+            <p class="tagline creepy-text">내가 늘 지켜보고 있어..</p>
           </div>
         </div>
         <div class="header-actions">
-          <button class="icon-btn" id="settingsBtn" title="설정">⚙️</button>
-          <button class="icon-btn" id="helpBtn" title="도움말">❓</button>
+          <div class="help-wrapper">
+            <button class="icon-btn" id="helpBtn" title="도움말">❓</button>
+            <div class="help-tooltip">
+              <p class="tooltip-title">📢 안내</p>
+              <p>이 확장 프로그램은 개인 사용 목적으로 제작되었습니다.</p>
+              <p>일부 버그나 예상치 못한 동작이 있을 수 있습니다.</p>
+              <p>지속적으로 개선하고 있으니 양해 부탁드립니다.</p>
+              <a href="https://github.com/musickiss/soop-streamer-alert/issues" target="_blank" class="tooltip-link">버그 신고 →</a>
+            </div>
+          </div>
         </div>
       </div>
     </header>
@@ -114,15 +122,32 @@
         <div class="section-header">
           <div class="section-title">⭐ <span data-i18n="favoriteStreamers">즐겨찾기 스트리머</span></div>
           <div class="section-actions">
-            <select class="filter-select" id="filterSelect">
+            <button class="action-btn" id="importBtn" title="가져오기">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </button>
+            <button class="action-btn" id="exportBtn" title="내보내기">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </button>
+            <input type="file" id="importFileInput" accept=".json" style="display: none;">
+            <button class="action-btn" id="refreshBtn" title="새로고침">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+            </button>
+            <select id="filterSelect" class="filter-select">
               <option value="all" data-i18n="filterAll">전체</option>
               <option value="live" data-i18n="filterLive">방송중</option>
               <option value="offline" data-i18n="filterOffline">오프라인</option>
             </select>
-            <button class="action-btn-small" id="exportBtn" title="내보내기">📤</button>
-            <button class="action-btn-small" id="importBtn" title="가져오기">📥</button>
-            <input type="file" id="importFileInput" accept=".json" style="display: none;">
-            <button class="action-btn-small" id="refreshBtn" title="새로고침">🔄</button>
           </div>
         </div>
 
@@ -160,11 +185,11 @@
       <!-- 푸터 -->
       <footer class="footer">
         <span class="footer-links">
-          <a href="https://www.sooplive.co.kr" target="_blank">SOOP</a>
+          <a href="https://www.sooplive.co.kr/station/teamilh" target="_blank">SOOP</a>
           <span>·</span>
           <a href="https://github.com/musickiss/soop-streamer-alert" target="_blank">GitHub</a>
           <span>·</span>
-          <a href="#" id="privacyLink" data-i18n="privacy">개인정보</a>
+          <a href="https://github.com/musickiss/soop-streamer-alert/blob/master/PRIVACY.md" target="_blank" data-i18n="privacy">개인정보</a>
         </span>
         <span id="versionInfo">v2.0.0</span>
       </footer>

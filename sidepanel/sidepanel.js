@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.2.2 - 사이드패널 =====
+// ===== 숲토킹 v3.2.4 - 사이드패널 =====
 // video.captureStream 기반 녹화, Background와 메시지 통신
 
 (function() {
@@ -19,6 +19,13 @@
     // 현재 탭 녹화 상태 (sessionId 기반)
     currentTabRecording: null
   };
+
+  // ===== 드래그 앤 드롭 상태 (v3.2.4) =====
+  let draggedItem = null;
+  let draggedIndex = -1;
+
+  // ===== 아코디언 안정화 (v3.2.4) =====
+  let toggleTimeout = null;
 
   // ===== DOM 요소 =====
   const elements = {};
@@ -516,14 +523,132 @@
     bindStreamerCardEvents();
   }
 
-  function bindStreamerCardEvents() {
-    // 카드 확장/축소
-    document.querySelectorAll('.streamer-card-header').forEach(header => {
-      header.addEventListener('click', () => {
-        const card = header.closest('.streamer-card');
-        card?.classList.toggle('expanded');
+  // ===== 아코디언 토글 (v3.2.4 - 안정화) =====
+  function toggleStreamerDetails(card) {
+    // 이미 토글 중이면 무시 (떨림 방지)
+    if (toggleTimeout) return;
+
+    const isExpanded = card.classList.contains('expanded');
+
+    // 다른 모든 아이템 닫기
+    document.querySelectorAll('.streamer-card.expanded').forEach(el => {
+      if (el !== card) {
+        el.classList.remove('expanded');
+      }
+    });
+
+    // 현재 아이템 토글
+    card.classList.toggle('expanded', !isExpanded);
+
+    // 300ms 동안 추가 토글 방지
+    toggleTimeout = setTimeout(() => {
+      toggleTimeout = null;
+    }, 300);
+  }
+
+  // ===== 드래그 앤 드롭 설정 (v3.2.4) =====
+  function setupDragAndDrop() {
+    const streamerCards = document.querySelectorAll('.streamer-card');
+
+    streamerCards.forEach((card, index) => {
+      card.setAttribute('draggable', 'true');
+
+      card.addEventListener('dragstart', (e) => {
+        draggedItem = card;
+        draggedIndex = index;
+        card.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+        document.querySelectorAll('.streamer-card').forEach(el => {
+          el.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+        });
+        draggedItem = null;
+        draggedIndex = -1;
+      });
+
+      card.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (!draggedItem || draggedItem === card) return;
+
+        const rect = card.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+
+        document.querySelectorAll('.streamer-card').forEach(el => {
+          el.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+        });
+
+        if (e.clientY < midY) {
+          card.classList.add('drag-over-top');
+        } else {
+          card.classList.add('drag-over-bottom');
+        }
+      });
+
+      card.addEventListener('dragleave', () => {
+        card.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+      });
+
+      card.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        if (!draggedItem || draggedItem === card) return;
+
+        const cards = Array.from(document.querySelectorAll('.streamer-card'));
+        let targetIndex = cards.indexOf(card);
+
+        const rect = card.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        if (e.clientY > midY) {
+          targetIndex += 1;
+        }
+
+        // 배열 순서 변경
+        if (draggedIndex !== -1 && targetIndex !== draggedIndex) {
+          const [movedStreamer] = state.favoriteStreamers.splice(draggedIndex, 1);
+          if (draggedIndex < targetIndex) {
+            targetIndex -= 1;
+          }
+          state.favoriteStreamers.splice(targetIndex, 0, movedStreamer);
+
+          // 저장 및 UI 업데이트
+          await saveStreamerOrder();
+          updateStreamerList();
+        }
+
+        document.querySelectorAll('.streamer-card').forEach(el => {
+          el.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
+        });
       });
     });
+  }
+
+  // ===== 스트리머 순서 저장 (v3.2.4) =====
+  async function saveStreamerOrder() {
+    try {
+      await sendMessage({
+        type: 'REORDER_STREAMERS',
+        streamers: state.favoriteStreamers
+      });
+    } catch (error) {
+      console.error('[사이드패널] 스트리머 순서 저장 오류:', error);
+    }
+  }
+
+  function bindStreamerCardEvents() {
+    // 카드 확장/축소 (v3.2.4 - 안정화된 아코디언)
+    document.querySelectorAll('.streamer-card-header').forEach(header => {
+      header.addEventListener('click', (e) => {
+        // 드래그 중이면 무시
+        if (draggedItem) return;
+        const card = header.closest('.streamer-card');
+        if (card) toggleStreamerDetails(card);
+      });
+    });
+
+    // 드래그 앤 드롭 설정 (v3.2.4)
+    setupDragAndDrop();
 
     // 설정 토글
     document.querySelectorAll('.streamer-settings input[type="checkbox"]').forEach(toggle => {
