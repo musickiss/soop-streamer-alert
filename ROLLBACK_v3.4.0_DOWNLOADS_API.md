@@ -1,3 +1,79 @@
+# 🔙 ROLLBACK v3.4.0 - Downloads API 기반 안정화 버전
+
+## 버전 정보
+- **롤백 대상**: v3.3.0 ~ v3.3.1 (File System API)
+- **신규 버전**: v3.4.0
+- **작성일**: 2026-01-01
+
+---
+
+## 1. 롤백 배경
+
+### 발견된 치명적 이슈
+
+| 이슈 | 심각도 | 설명 |
+|------|--------|------|
+| showDirectoryPicker 보안 에러 | 🔴 치명적 | Side Panel → MAIN world 메시지 전달 시 사용자 제스처 컨텍스트 소멸 |
+| 브라우저 크래시 | 🔴 치명적 | Side Panel에서 File System API 호출 시 Chrome 강제 종료 |
+
+### 에러 메시지
+```
+SecurityError: Failed to execute 'showDirectoryPicker' on 'Window': 
+Must be handling a user gesture to show a file picker.
+```
+
+### 근본 원인
+- `showDirectoryPicker()`는 직접적인 사용자 클릭 이벤트 핸들러 내에서만 호출 가능
+- Chrome Extension의 메시지 체인을 통해 전달되면 사용자 제스처 컨텍스트가 소멸
+- Side Panel은 File System Access API와 호환성 문제 존재
+
+---
+
+## 2. 롤백 전략
+
+### 핵심 변경
+- File System API → Downloads API로 롤백
+- 메모리 최적화 적용 (청크 즉시 처리)
+- Side Panel의 녹화 폴더 설정 UI 제거
+
+### 유지 사항
+- v3.2.x의 UI/UX 개선 사항 유지
+- 아코디언 안정화 (v3.2.4)
+- 드래그 앤 드롭 (v3.2.4)
+- 녹화 진행 상황 표시
+
+---
+
+## 3. 수정 파일 목록
+
+| 파일 | 변경 내용 |
+|------|-----------|
+| `manifest.json` | 버전 3.3.1 → 3.4.0 |
+| `content-main.js` | File System API → Downloads API 롤백 + 메모리 최적화 |
+| `sidepanel/sidepanel.html` | 녹화 폴더 설정 섹션 제거 |
+| `sidepanel/sidepanel.css` | 폴더 설정 스타일 제거 |
+| `sidepanel/sidepanel.js` | 폴더 관련 코드 제거, IndexedDB 코드 제거 |
+| `background.js` | 버전 주석 업데이트, 폴더 에러 알림 제거 |
+
+---
+
+## 4. 상세 수정 내용
+
+### 4.1 manifest.json
+
+```json
+// 변경 전
+"version": "3.3.1",
+
+// 변경 후
+"version": "3.4.0",
+```
+
+---
+
+### 4.2 content-main.js (전체 교체)
+
+```javascript
 // ===== 숲토킹 v3.4.0 - MAIN World 녹화 모듈 =====
 // Downloads API 기반 안정화 버전 (메모리 최적화)
 
@@ -170,7 +246,7 @@
             recordedChunks.push(e.data);
             totalBytesRecorded += e.data.size;
 
-            // 메모리 보호: 청크 크기 제한 도달 시 경고
+            // ★ 메모리 보호: 청크 크기 제한 도달 시 경고
             if (totalBytesRecorded > CONFIG.MAX_CHUNK_SIZE * 10) {
               console.warn('[숲토킹 Recorder] 녹화 용량이 500MB를 초과했습니다.');
             }
@@ -212,7 +288,7 @@
                 fileName: fileName
               }, window.location.origin);
 
-              // 메모리 정리: 10초 후 Blob URL 해제
+              // ★ 메모리 정리: 10초 후 Blob URL 해제
               setTimeout(() => {
                 URL.revokeObjectURL(blobUrl);
                 console.log('[숲토킹 Recorder] Blob URL 해제됨');
@@ -346,3 +422,195 @@
 
   console.log('[숲토킹 Recorder] v3.4.0 MAIN world 모듈 로드됨 (Downloads API)');
 })();
+```
+
+---
+
+### 4.3 sidepanel/sidepanel.html
+
+**삭제할 섹션:**
+```html
+<!-- 녹화 폴더 설정 섹션 전체 삭제 -->
+<div class="folder-section">
+  <div class="folder-row">
+    <span class="folder-label">📁 녹화 저장 폴더</span>
+    <button id="selectFolderBtn" class="folder-btn">
+      <span id="folderStatus">미설정</span>
+    </button>
+  </div>
+  <p class="folder-hint" id="folderHint">녹화 시작 전에 저장 폴더를 선택하면 원터치 녹화가 가능합니다.</p>
+</div>
+```
+
+---
+
+### 4.4 sidepanel/sidepanel.css
+
+**삭제할 스타일:**
+```css
+/* 폴더 설정 섹션 스타일 전체 삭제 */
+.folder-section { ... }
+.folder-row { ... }
+.folder-label { ... }
+.folder-btn { ... }
+.folder-btn.configured { ... }
+.folder-hint { ... }
+.folder-hint.success { ... }
+```
+
+---
+
+### 4.5 sidepanel/sidepanel.js
+
+**삭제할 코드:**
+
+1. 변수 선언:
+```javascript
+// 삭제
+let recordingDirectoryHandle = null;
+```
+
+2. 함수들 전체 삭제:
+```javascript
+// 삭제할 함수들
+async function saveDirectoryHandle(dirHandle) { ... }
+async function loadDirectoryHandle() { ... }
+async function verifyDirectoryPermission(dirHandle) { ... }
+function updateFolderStatus(folderName) { ... }
+async function initFolderStatus() { ... }
+async function selectRecordingFolder() { ... }
+```
+
+3. 이벤트 리스너 삭제:
+```javascript
+// 삭제
+document.getElementById('selectFolderBtn')?.addEventListener('click', selectRecordingFolder);
+```
+
+4. init() 함수에서 삭제:
+```javascript
+// 삭제
+await initFolderStatus();
+```
+
+---
+
+### 4.6 background.js
+
+**수정 1: 버전 주석**
+```javascript
+// 변경 전
+// ===== 숲토킹 v3.3.1 - Background Service Worker =====
+// File System API 기반 녹화 + 5초/30초 분리 모니터링
+
+// 변경 후
+// ===== 숲토킹 v3.4.0 - Background Service Worker =====
+// Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링
+```
+
+**수정 2: 폴더 에러 알림 제거**
+
+`checkAndProcessStreamer()` 함수에서 폴더 관련 에러 체크 삭제:
+```javascript
+// 삭제
+if (result.error?.includes('폴더') || result.error?.includes('취소')) {
+  console.log('[숲토킹] 자동 녹화 실패 - 폴더 미설정');
+  chrome.notifications.create({
+    type: 'basic',
+    iconUrl: 'icons/icon128.png',
+    title: '📁 녹화 폴더 설정 필요',
+    message: `${streamer.nickname || streamer.id} 자동 녹화를 위해 녹화 폴더를 먼저 설정해주세요.`,
+    priority: 2,
+    requireInteraction: true
+  });
+  return result;
+}
+```
+
+`RECORDING_ERROR_FROM_PAGE` 핸들러에서 폴더 에러 알림 삭제:
+```javascript
+// 삭제
+if (message.error?.includes('폴더') || message.error?.includes('취소')) {
+  chrome.notifications.create({
+    type: 'basic',
+    iconUrl: 'icons/icon128.png',
+    title: '📁 녹화 폴더 설정 필요',
+    message: '자동 녹화를 위해 Side Panel에서 녹화 폴더를 먼저 설정해주세요.',
+    priority: 2,
+    requireInteraction: true
+  });
+}
+```
+
+**수정 3: 로그 메시지 업데이트**
+```javascript
+// 변경 전
+console.log('[숲토킹] Background Service Worker v3.3.1 로드됨');
+
+// 변경 후
+console.log('[숲토킹] Background Service Worker v3.4.0 로드됨');
+```
+
+---
+
+## 5. 영향 평가
+
+| 기능 | 영향 | 설명 |
+|------|------|------|
+| 수동 녹화 | ✅ 정상 | Downloads API로 즉시 다운로드 |
+| 자동 녹화 | ✅ 정상 | 다이얼로그 없이 작동 |
+| 모니터링 | 🟢 없음 | 변경 없음 |
+| UI | 🟡 변경 | 폴더 설정 섹션 제거 |
+| 메모리 | ✅ 개선 | Blob URL 자동 해제 |
+
+---
+
+## 6. 테스트 체크리스트
+
+```
+[ ] 1. 수동 녹화 시작/중지 정상 작동
+[ ] 2. 녹화 파일이 다운로드/SOOPtalking/ 폴더에 저장
+[ ] 3. 자동 녹화 정상 작동 (다이얼로그 없이)
+[ ] 4. Side Panel 닫아도 녹화 유지
+[ ] 5. 장시간 녹화 (30분+) 메모리 안정성
+[ ] 6. 녹화 진행 상황 표시 (시간, 용량)
+[ ] 7. 녹화 완료 후 파일 재생 정상
+[ ] 8. 브라우저 크래시 없음
+```
+
+---
+
+## 7. Claude Code 실행 커맨드
+
+```bash
+cd C:\Users\ADMIN\Claude\soop-streamer-alert && claude "ROLLBACK_v3.4.0_DOWNLOADS_API.md 파일을 읽고 수정사항을 적용해줘. File System API 관련 코드는 완전히 제거하고, Downloads API 기반으로 롤백해줘. 완료 후 git add -A && git commit -m 'rollback: v3.4.0 - File System API → Downloads API 롤백 (안정화)'"
+```
+
+---
+
+## 8. 버전 히스토리 업데이트
+
+### CHANGELOG.md에 추가
+
+```markdown
+## v3.4.0 (2026-01-01)
+
+### Rollback
+- **File System API → Downloads API 롤백**: Chrome Extension의 Side Panel에서 File System Access API 사용 시 발생하는 보안 제약 및 브라우저 크래시 문제 해결
+
+### Issues Fixed
+- `SecurityError: Failed to execute 'showDirectoryPicker'` 에러 해결
+- Side Panel에서 폴더 선택 시 브라우저 강제 종료 문제 해결
+
+### Improvements
+- 메모리 최적화: Blob URL 자동 해제 (10초 후)
+- 대용량 녹화 경고 (500MB 초과 시)
+
+### Removed
+- 녹화 폴더 설정 UI 제거
+- IndexedDB 폴더 핸들 저장 기능 제거
+```
+
+---
+
+**문서 끝**
