@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.2.1 - 사이드패널 =====
+// ===== 숲토킹 v3.2.2 - 사이드패널 =====
 // video.captureStream 기반 녹화, Background와 메시지 통신
 
 (function() {
@@ -11,8 +11,7 @@
     broadcastStatus: {},
     settings: {
       notificationEnabled: true,
-      endNotificationEnabled: false,
-      autoCloseOfflineTabs: true
+      endNotificationEnabled: false
     },
     currentStream: null,
     currentSoopTabId: null,
@@ -33,8 +32,6 @@
 
     elements.notificationChip = document.getElementById('notificationChip');
     elements.endNotificationChip = document.getElementById('endNotificationChip');
-    elements.autoCloseChip = document.getElementById('autoCloseChip');
-
     elements.currentStreamCard = document.getElementById('currentStreamCard');
     elements.notWatchingMessage = document.getElementById('notWatchingMessage');
     elements.currentStreamerName = document.getElementById('currentStreamerName');
@@ -186,7 +183,6 @@
   function updateQuickSettings() {
     elements.notificationChip?.classList.toggle('active', state.settings.notificationEnabled);
     elements.endNotificationChip?.classList.toggle('active', state.settings.endNotificationEnabled);
-    elements.autoCloseChip?.classList.toggle('active', state.settings.autoCloseOfflineTabs);
   }
 
   // ===== 현재 스트림 감지 =====
@@ -688,9 +684,8 @@
       case 'endNotification':
         newSettings.endNotificationEnabled = !state.settings.endNotificationEnabled;
         break;
-      case 'autoClose':
-        newSettings.autoCloseOfflineTabs = !state.settings.autoCloseOfflineTabs;
-        break;
+      default:
+        return;
     }
 
     try {
@@ -873,7 +868,6 @@
     // 빠른 설정
     elements.notificationChip?.addEventListener('click', () => toggleQuickSetting('notification'));
     elements.endNotificationChip?.addEventListener('click', () => toggleQuickSetting('endNotification'));
-    elements.autoCloseChip?.addEventListener('click', () => toggleQuickSetting('autoClose'));
 
     // 녹화 버튼
     elements.startRecordingBtn?.addEventListener('click', startRecording);

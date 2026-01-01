@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.2.1 - Content Script (ISOLATED) =====
+// ===== 숲토킹 v3.2.2 - Content Script (ISOLATED) =====
 // MAIN world와 Background 사이의 메시지 브릿지
 
 (function() {
@@ -28,16 +28,29 @@
     return match ? match[1] : null;
   }
 
-  function extractBroadNoFromUrl() {
-    const match = window.location.pathname.match(/^\/[^\/]+\/(\d+)/);
-    return match ? match[1] : null;
-  }
-
   // ===== MAIN world → Background 메시지 브릿지 =====
+
+  // 허용된 메시지 타입 목록 (화이트리스트)
+  const ALLOWED_MESSAGE_TYPES = [
+    'SOOPTALKING_RECORDING_STARTED',
+    'SOOPTALKING_RECORDING_PROGRESS',
+    'SOOPTALKING_RECORDING_STOPPED',
+    'SOOPTALKING_RECORDING_ERROR',
+    'SOOPTALKING_SAVE_RECORDING',
+    'SOOPTALKING_RECORDER_RESULT'
+  ];
+
   window.addEventListener('message', (e) => {
+    // 보안: 같은 윈도우에서 온 메시지만 처리
     if (e.source !== window) return;
 
+    // 보안: origin 검증 (SOOP 도메인만)
+    if (!e.origin.includes('sooplive.co.kr')) return;
+
     const { type, ...data } = e.data;
+
+    // 보안: 화이트리스트에 없는 타입 무시
+    if (!type || !ALLOWED_MESSAGE_TYPES.includes(type)) return;
 
     switch (type) {
       case 'SOOPTALKING_RECORDING_STARTED':
@@ -97,7 +110,6 @@
         sendResponse({
           success: true,
           streamerId: extractStreamerIdFromUrl(),
-          broadNo: extractBroadNoFromUrl(),
           url: window.location.href,
           title: document.title
         });
@@ -144,9 +156,8 @@
   safeSendMessage({
     type: 'CONTENT_SCRIPT_LOADED',
     streamerId: extractStreamerIdFromUrl(),
-    broadNo: extractBroadNoFromUrl(),
     url: window.location.href
   }).catch(() => {});
 
-  console.log('[숲토킹 Content] v3.2.1 ISOLATED 브릿지 로드됨');
+  console.log('[숲토킹 Content] v3.2.2 ISOLATED 브릿지 로드됨');
 })();

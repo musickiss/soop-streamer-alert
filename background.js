@@ -1,10 +1,38 @@
-// ===== 숲토킹 v3.2.1 - Background Service Worker =====
+// ===== 숲토킹 v3.2.2 - Background Service Worker =====
 // video.captureStream 기반 녹화 + 5초/30초 분리 모니터링
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
 const CHECK_INTERVAL_SLOW = 30000;  // 자동참여 OFF 스트리머 (30초)
 const API_BASE = 'https://api.m.sooplive.co.kr/broad/a/watch';
+
+// ===== 보안 유틸리티 =====
+
+function isValidStreamerId(streamerId) {
+  if (!streamerId || typeof streamerId !== 'string') return false;
+  // 영문 소문자, 숫자, 언더스코어만 허용 (1-50자)
+  return /^[a-z0-9_]{1,50}$/.test(streamerId);
+}
+
+function sanitizeStreamerId(streamerId) {
+  if (!streamerId || typeof streamerId !== 'string') return null;
+  const sanitized = streamerId.toLowerCase().replace(/[^a-z0-9_]/g, '').substring(0, 50);
+  return sanitized.length > 0 ? sanitized : null;
+}
+
+function isValidBlobUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+  return url.startsWith('blob:');
+}
+
+function sanitizeFilename(str) {
+  if (!str || typeof str !== 'string') return 'unknown';
+  return str
+    .replace(/[\/\\:*?"<>|]/g, '_')
+    .replace(/\.\./g, '_')
+    .replace(/\s+/g, '_')
+    .substring(0, 100);
+}
 
 // ===== 상태 관리 =====
 const state = {
@@ -23,16 +51,14 @@ const state = {
   // 설정
   settings: {
     notificationEnabled: true,
-    endNotificationEnabled: false,
-    autoCloseOfflineTabs: true,
-    notificationDuration: 10
+    endNotificationEnabled: false
   }
 };
 
 // ===== 초기화 =====
 
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[숲토킹] v3.2.1 설치됨');
+  console.log('[숲토킹] v3.2.2 설치됨');
   await loadSettings();
 });
 
@@ -87,9 +113,18 @@ async function saveSettings() {
 async function startRecording(tabId, streamerId, nickname) {
   console.log('[숲토킹] 녹화 시작 요청:', streamerId, 'tabId:', tabId);
 
-  if (!tabId) {
+  // 보안: 입력 검증
+  if (!tabId || typeof tabId !== 'number') {
     return { success: false, error: 'tabId가 필요합니다.' };
   }
+
+  // streamerId 검증 및 정제
+  const sanitizedId = sanitizeStreamerId(streamerId);
+  if (!sanitizedId) {
+    return { success: false, error: '올바르지 않은 스트리머 ID입니다.' };
+  }
+  streamerId = sanitizedId;
+  nickname = sanitizeFilename(nickname) || streamerId;
 
   // 이미 녹화 중인지 확인
   if (state.recordings.has(tabId)) {
@@ -390,6 +425,13 @@ async function openStreamerTab(streamerId) {
 // ===== 스트리머 관리 =====
 
 async function addStreamer(streamerId) {
+  // 보안: streamerId 검증
+  const sanitized = sanitizeStreamerId(streamerId);
+  if (!sanitized) {
+    return { success: false, error: '올바르지 않은 스트리머 ID입니다.' };
+  }
+  streamerId = sanitized;
+
   const exists = state.favoriteStreamers.some(s => s.id === streamerId);
   if (exists) {
     return { success: false, error: '이미 등록된 스트리머입니다.' };
@@ -449,6 +491,18 @@ function broadcastToSidepanel(message) {
 
 async function downloadRecording(blobUrl, fileName) {
   console.log('[숲토킹] 다운로드 요청:', fileName);
+
+  // 보안: blobUrl 검증
+  if (!isValidBlobUrl(blobUrl)) {
+    console.error('[숲토킹] 유효하지 않은 blobUrl:', blobUrl);
+    return { success: false, error: '유효하지 않은 다운로드 URL입니다.' };
+  }
+
+  // 보안: 파일명 정제
+  fileName = sanitizeFilename(fileName) || 'recording.webm';
+  if (!fileName.endsWith('.webm')) {
+    fileName += '.webm';
+  }
 
   try {
     const downloadId = await chrome.downloads.download({
@@ -643,6 +697,11 @@ async function handleMessage(message, sender, sendResponse) {
 
     case 'SAVE_RECORDING_FROM_PAGE':
       console.log('[숲토킹] 파일 저장 요청:', message.fileName);
+      // 보안: Content Script에서 온 요청만 처리
+      if (!tabId) {
+        console.warn('[숲토킹] 파일 저장 요청 거부: 탭 ID 없음');
+        break;
+      }
       await downloadRecording(message.blobUrl, message.fileName);
       break;
 
@@ -680,4 +739,4 @@ loadSettings().then(() => {
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.2.1 로드됨');
+console.log('[숲토킹] Background Service Worker v3.2.2 로드됨');

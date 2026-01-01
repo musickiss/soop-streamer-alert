@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.2.1 - MAIN World 녹화 모듈 =====
+// ===== 숲토킹 v3.2.2 - MAIN World 녹화 모듈 =====
 // video.captureStream() 기반 다이얼로그 없는 녹화
 
 (function() {
@@ -143,7 +143,7 @@
           window.postMessage({
             type: 'SOOPTALKING_RECORDING_ERROR',
             error: e.error?.message || '녹화 에러'
-          }, '*');
+          }, window.location.origin);
           this.stopRecording();
         };
 
@@ -162,7 +162,7 @@
           streamerId: this.streamerId,
           nickname: this.nickname,
           recordingId: this.recordingId
-        }, '*');
+        }, window.location.origin);
 
         return {
           success: true,
@@ -209,7 +209,7 @@
           totalBytes: 0,
           duration: duration,
           saved: false
-        }, '*');
+        }, window.location.origin);
         this.cleanup();
         return;
       }
@@ -231,7 +231,7 @@
         nickname: this.nickname,
         recordingId: this.recordingId,
         duration: duration
-      }, '*');
+      }, window.location.origin);
 
       window.postMessage({
         type: 'SOOPTALKING_RECORDING_STOPPED',
@@ -240,7 +240,7 @@
         totalBytes: blob.size,
         duration: duration,
         saved: true
-      }, '*');
+      }, window.location.origin);
 
       this.cleanup();
     },
@@ -257,7 +257,7 @@
             nickname: this.nickname,
             totalBytes: this.totalBytes,
             elapsedTime: elapsedTime
-          }, '*');
+          }, window.location.origin);
         }
       }, CONFIG.PROGRESS_INTERVAL);
     },
@@ -323,8 +323,8 @@
       type: 'SOOPTALKING_RECORDER_RESULT',
       command: command,
       result: result
-    }, '*');
+    }, window.location.origin);
   });
 
-  console.log('[숲토킹 Recorder] v3.2.1 MAIN world 모듈 로드됨');
+  console.log('[숲토킹 Recorder] v3.2.2 MAIN world 모듈 로드됨');
 })();
