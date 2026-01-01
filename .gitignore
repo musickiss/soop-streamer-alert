@@ -1,2 +1,6 @@
 *.zip
+
+# .md 파일 제외 (README, PRIVACY 제외)
 *.md
+!README.md
+!PRIVACY.md
