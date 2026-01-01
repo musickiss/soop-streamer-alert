@@ -1,5 +1,5 @@
-// ===== 숲토킹 v3.2.3 - Background Service Worker =====
-// video.captureStream 기반 녹화 + 5초/30초 분리 모니터링
+// ===== 숲토킹 v3.3.1 - Background Service Worker =====
+// File System API 기반 녹화 + 5초/30초 분리 모니터링
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -58,7 +58,7 @@ const state = {
 // ===== 초기화 =====
 
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[숲토킹] v3.2.3 설치됨');
+  console.log('[숲토킹] v3.3.1 설치됨');
   await loadSettings();
 });
 
@@ -324,11 +324,28 @@ async function checkAndProcessStreamer(streamer) {
           const tryStartRecording = async () => {
             const result = await startRecording(tab.id, streamer.id, streamer.nickname || streamer.id);
 
-            if (!result.success && retryCount < maxRetries) {
-              retryCount++;
-              console.log('[숲토킹] 자동 녹화 재시도:', retryCount);
-              await new Promise(r => setTimeout(r, 2000));
-              return tryStartRecording();
+            if (!result.success) {
+              // ★ 폴더 미설정 에러는 재시도하지 않고 즉시 알림 (v3.3.1)
+              if (result.error?.includes('폴더') || result.error?.includes('취소')) {
+                console.log('[숲토킹] 자동 녹화 실패 - 폴더 미설정');
+                chrome.notifications.create({
+                  type: 'basic',
+                  iconUrl: 'icons/icon128.png',
+                  title: '📁 녹화 폴더 설정 필요',
+                  message: `${streamer.nickname || streamer.id} 자동 녹화를 위해 녹화 폴더를 먼저 설정해주세요.`,
+                  priority: 2,
+                  requireInteraction: true
+                });
+                return result;
+              }
+
+              // 다른 에러는 재시도
+              if (retryCount < maxRetries) {
+                retryCount++;
+                console.log('[숲토킹] 자동 녹화 재시도:', retryCount);
+                await new Promise(r => setTimeout(r, 2000));
+                return tryStartRecording();
+              }
             }
 
             return result;
@@ -700,6 +717,19 @@ async function handleMessage(message, sender, sendResponse) {
         state.recordings.delete(tabId);
         updateBadge();
       }
+
+      // ★ 폴더 미설정으로 인한 자동 녹화 실패 알림 (v3.3.1)
+      if (message.error?.includes('폴더') || message.error?.includes('취소')) {
+        chrome.notifications.create({
+          type: 'basic',
+          iconUrl: 'icons/icon128.png',
+          title: '📁 녹화 폴더 설정 필요',
+          message: '자동 녹화를 위해 Side Panel에서 녹화 폴더를 먼저 설정해주세요.',
+          priority: 2,
+          requireInteraction: true
+        });
+      }
+
       broadcastToSidepanel({
         type: 'RECORDING_ERROR_UPDATE',
         tabId: tabId,
@@ -751,4 +781,4 @@ loadSettings().then(() => {
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.2.3 로드됨');
+console.log('[숲토킹] Background Service Worker v3.3.1 로드됨');
