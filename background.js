@@ -4,7 +4,7 @@
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
 const CHECK_INTERVAL_SLOW = 30000;  // 자동참여 OFF 스트리머 (30초)
-const API_BASE = 'https://api.m.sooplive.co.kr/broad/a/watch';
+const API_BASE = 'https://live.sooplive.co.kr/afreeca/player_live_api.php';
 
 // ===== 보안 유틸리티 =====
 
@@ -363,9 +363,10 @@ async function checkAndProcessStreamer(streamer) {
 
 async function checkStreamerStatus(streamerId) {
   try {
-    const response = await fetch(`${API_BASE}/${streamerId}`, {
+    const response = await fetch(API_BASE, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `bid=${streamerId}`
     });
 
     if (!response.ok) {
@@ -373,18 +374,17 @@ async function checkStreamerStatus(streamerId) {
     }
 
     const data = await response.json();
-    const broad = data.data?.broad;
+    const channel = data.CHANNEL;
 
-    if (!broad) {
+    if (!channel) {
       return { isLive: false };
     }
 
     return {
-      isLive: broad.broad_no > 0,
-      broadNo: broad.broad_no,
-      title: broad.broad_title || '',
-      viewerCount: broad.current_sum_viewer || 0,
-      startTime: broad.broad_start || null
+      isLive: channel.RESULT === 1,
+      broadNo: channel.BNO,
+      title: channel.TITLE || '',
+      nickname: channel.BJNICK || streamerId
     };
   } catch (error) {
     return { isLive: false };
