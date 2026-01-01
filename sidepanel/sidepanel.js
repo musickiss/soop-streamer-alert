@@ -1018,7 +1018,7 @@
     elements.recordingQualitySelect?.addEventListener('change', (e) => {
       state.recordingQuality = e.target.value;
       chrome.storage.local.set({ recordingQuality: state.recordingQuality });
-      showToast(state.recordingQuality === 'high' ? '고사양 (VP9) 녹화 설정됨' : '저사양 (VP8) 녹화 설정됨', 'success');
+      showToast(state.recordingQuality === 'high' ? '고사양 녹화 설정됨' : '저사양 녹화 설정됨', 'success');
     });
 
     // 필터
