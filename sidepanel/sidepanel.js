@@ -66,6 +66,7 @@
     elements.storageProgressFill = document.getElementById('storageProgressFill');
 
     elements.recordingQualitySelect = document.getElementById('recordingQualitySelect');
+    elements.recordingQualityInfoTooltip = document.getElementById('recordingQualityInfoTooltip');
 
     elements.toast = document.getElementById('toast');
     elements.versionInfo = document.getElementById('versionInfo');
@@ -153,6 +154,27 @@
     } else {
       return '동시 녹화 권장: 3~4개\n• 녹화 화질은 원본보다 낮습니다\n• ✅ 대부분의 PC에서 안정적입니다';
     }
+  }
+
+  function updateRecordingQualityInfoBox() {
+    if (!elements.recordingQualityInfoTooltip) return;
+
+    const isHigh = state.recordingQuality === 'high';
+    const qualityName = isHigh ? '고사양' : '저사양';
+    const recommendCount = isHigh ? '1~2개' : '3~4개';
+    const stabilityNote = isHigh
+      ? '⚠️ PC 성능에 따라 불안정할 수 있습니다'
+      : '✅ 대부분의 PC에서 안정적입니다';
+
+    elements.recordingQualityInfoTooltip.innerHTML = `
+      <p class="tooltip-title">⚠️ 녹화 품질 안내</p>
+      <p><strong>현재 설정: ${qualityName}</strong></p>
+      <p>• 동시 녹화 권장: ${recommendCount}</p>
+      <p>• 녹화 화질은 원본보다 낮습니다</p>
+      <p>• ${stabilityNote}</p>
+      <p style="margin-top: 8px;">백그라운드 탭은 브라우저가 리소스를 제한하여 <strong>프레임 드랍</strong>이 발생할 수 있습니다.</p>
+      <p class="tooltip-tip">💡 <strong>권장:</strong> 녹화 탭을 새 창으로 분리하거나 활성 상태로 유지하세요.</p>
+    `;
   }
 
   // ===== 상태 로드 =====
@@ -1042,6 +1064,8 @@
       document.querySelectorAll('.recording-quality-info').forEach(el => {
         el.title = getRecordingQualityTooltip();
       });
+      // 녹화 품질 안내박스 업데이트
+      updateRecordingQualityInfoBox();
     });
 
     // 필터
@@ -1162,6 +1186,8 @@
           elements.recordingQualitySelect.value = state.recordingQuality;
         }
       }
+      // 품질 안내박스 초기화
+      updateRecordingQualityInfoBox();
     });
 
     // UI 초기화
