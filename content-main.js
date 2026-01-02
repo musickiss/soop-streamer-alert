@@ -1,6 +1,6 @@
-// ===== 숲토킹 v3.5.3 - MAIN World 녹화 모듈 =====
+// ===== 숲토킹 v3.5.4 - MAIN World 녹화 모듈 =====
 // 녹화 품질 선택 (VP9/VP8) + 성능 최적화 + 500MB 자동 분할 저장
-// v3.5.3: MediaRecorder 재시작 방식으로 분할 녹화 파일 재생 불가 버그 수정
+// v3.5.4: 녹화 안정화 - 30fps 제한, 3Mbps 비트레이트, 버퍼 체크, 시작 딜레이
 
 (function() {
   'use strict';
@@ -31,12 +31,15 @@
 
   // ===== 설정 =====
   const CONFIG = {
-    VIDEO_BITRATE: 5000000,    // 5 Mbps (원본 수준, CPU 부하 감소)
+    VIDEO_BITRATE: 3000000,    // 3 Mbps (안정성 우선, CPU 부하 감소)
     AUDIO_BITRATE: 128000,     // 128 Kbps
     TIMESLICE: 1000,           // 1초마다 데이터 청크 (부하 분산)
     PROGRESS_INTERVAL: 5000,   // 5초마다 진행 상황 보고
     MAX_CHUNK_SIZE: 50 * 1024 * 1024,  // 50MB 청크 제한 (메모리 보호)
-    SEGMENT_SIZE: 500 * 1024 * 1024    // 500MB (분할 저장 기준)
+    SEGMENT_SIZE: 500 * 1024 * 1024,   // 500MB (분할 저장 기준)
+    CAPTURE_FPS: 30,                   // 30fps 제한 (안정성)
+    MIN_BUFFER_SECONDS: 2,             // 최소 버퍼 시간 (초)
+    START_DELAY: 500                   // 녹화 시작 딜레이 (ms)
   };
 
   // ===== 유틸리티 =====
@@ -217,7 +220,7 @@
           if (currentVideoElement && !currentVideoElement.paused && !currentVideoElement.ended) {
             // 새 스트림 획득 및 MediaRecorder 재생성
             try {
-              recordingStream = currentVideoElement.captureStream();
+              recordingStream = currentVideoElement.captureStream(CONFIG.CAPTURE_FPS);
               mediaRecorder = createMediaRecorder();
               if (mediaRecorder) {
                 mediaRecorder.start(CONFIG.TIMESLICE);
@@ -367,6 +370,16 @@
           return { success: false, error: '비디오가 재생 중이 아닙니다.' };
         }
 
+        // 버퍼 체크 (최소 2초 이상 버퍼링 필요)
+        if (video.buffered.length > 0) {
+          const bufferedEnd = video.buffered.end(video.buffered.length - 1);
+          const bufferedSeconds = bufferedEnd - video.currentTime;
+          if (bufferedSeconds < CONFIG.MIN_BUFFER_SECONDS) {
+            return { success: false, error: `버퍼가 부족합니다 (${bufferedSeconds.toFixed(1)}초). 잠시 후 다시 시도해주세요.` };
+          }
+          console.log(`[숲토킹 Recorder] 버퍼 확인: ${bufferedSeconds.toFixed(1)}초`);
+        }
+
         // 비디오 요소 참조 저장 (세그먼트 분할 시 재사용)
         currentVideoElement = video;
 
@@ -393,9 +406,9 @@
           now.getSeconds().toString().padStart(2, '0');
         accumulatedBytes = 0;
 
-        // 3. video.captureStream()으로 스트림 획득
-        recordingStream = video.captureStream();
-        console.log('[숲토킹 Recorder] 스트림 획득 성공');
+        // 3. video.captureStream(30)으로 스트림 획득 (30fps 제한)
+        recordingStream = video.captureStream(CONFIG.CAPTURE_FPS);
+        console.log(`[숲토킹 Recorder] 스트림 획득 성공 (${CONFIG.CAPTURE_FPS}fps 제한)`);
 
         // 4. 코덱 선택
         currentQuality = params.quality || 'low';
@@ -407,7 +420,10 @@
           return { success: false, error: 'MediaRecorder 생성 실패' };
         }
 
-        // 6. 녹화 시작
+        // 6. 녹화 시작 (500ms 딜레이로 안정성 확보)
+        await new Promise(resolve => setTimeout(resolve, CONFIG.START_DELAY));
+        console.log(`[숲토킹 Recorder] ${CONFIG.START_DELAY}ms 딜레이 후 녹화 시작`);
+
         mediaRecorder.start(CONFIG.TIMESLICE);
         isRecording = true;
 
@@ -516,5 +532,5 @@
     }
   });
 
-  console.log('[숲토킹 Recorder] v3.5.3 MAIN world 모듈 로드됨 (MediaRecorder 재시작 방식 분할 저장)');
+  console.log('[숲토킹 Recorder] v3.5.4 MAIN world 모듈 로드됨 (30fps 제한, 3Mbps, 버퍼체크, 시작딜레이)');
 })();
