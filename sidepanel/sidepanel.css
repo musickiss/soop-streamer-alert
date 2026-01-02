@@ -1945,3 +1945,25 @@ body {
   color: var(--soop-primary);
 }
 
+/* ===== 파트 전환 상태 표시 (v3.5.8.2) ===== */
+.split-status {
+  font-size: 11px;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.split-saving {
+  animation: pulse 1s infinite;
+}
+
+.split-recording {
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+

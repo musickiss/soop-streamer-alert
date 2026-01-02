@@ -38,6 +38,8 @@
     'SOOPTALKING_RECORDING_ERROR',
     'SOOPTALKING_SAVE_RECORDING',
     'SOOPTALKING_SAVE_SEGMENT',  // 분할 저장 메시지 추가
+    'SOOPTALKING_SPLIT_START',   // 파트 전환 시작
+    'SOOPTALKING_SPLIT_COMPLETE', // 파트 전환 완료
     'SOOPTALKING_RECORDER_RESULT'
   ];
 
@@ -106,6 +108,32 @@
 
       case 'SOOPTALKING_RECORDER_RESULT':
         // 녹화 명령 결과 - 필요시 처리
+        break;
+
+      // 파트 전환 시작 알림 전달
+      case 'SOOPTALKING_SPLIT_START':
+        try {
+          chrome.runtime.sendMessage({
+            type: 'RECORDING_SPLIT_START',
+            partNumber: event.data.partNumber,
+            streamerId: event.data.streamerId
+          });
+        } catch (e) {
+          console.log('[숲토킹 Content] 파트 전환 시작 알림 전달 실패');
+        }
+        break;
+
+      // 파트 전환 완료 알림 전달
+      case 'SOOPTALKING_SPLIT_COMPLETE':
+        try {
+          chrome.runtime.sendMessage({
+            type: 'RECORDING_SPLIT_COMPLETE',
+            partNumber: event.data.partNumber,
+            streamerId: event.data.streamerId
+          });
+        } catch (e) {
+          console.log('[숲토킹 Content] 파트 전환 완료 알림 전달 실패');
+        }
         break;
     }
   });

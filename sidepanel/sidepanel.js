@@ -173,6 +173,39 @@
     }
   }
 
+  // 파트 전환 상태 표시
+  function showSplitStatus(streamerId, partNumber, status) {
+    // 녹화 카드 찾기
+    const recordingCard = document.querySelector(`.recording-card[data-streamer-id="${streamerId}"]`);
+    if (!recordingCard) return;
+
+    // 상태 표시 요소 찾기 또는 생성
+    let splitStatus = recordingCard.querySelector('.split-status');
+    if (!splitStatus) {
+      splitStatus = document.createElement('div');
+      splitStatus.className = 'split-status';
+      const infoArea = recordingCard.querySelector('.recording-card-stats');
+      if (infoArea) {
+        infoArea.appendChild(splitStatus);
+      }
+    }
+
+    if (status === 'saving') {
+      splitStatus.innerHTML = `<span class="split-saving">💾 파트 ${partNumber} 저장 중...</span>`;
+      splitStatus.style.color = '#ffa500';
+    } else if (status === 'recording') {
+      splitStatus.innerHTML = `<span class="split-recording">🔴 파트 ${partNumber} 녹화 중</span>`;
+      splitStatus.style.color = '#00ff88';
+
+      // 3초 후 숨김
+      setTimeout(() => {
+        if (splitStatus) {
+          splitStatus.innerHTML = '';
+        }
+      }, 3000);
+    }
+  }
+
   function updateRecordingQualityInfoBox() {
     if (!elements.recordingQualityInfoTooltip) return;
 
@@ -1280,6 +1313,20 @@
         case 'SEGMENT_SAVE_ERROR':
           // 분할 저장 실패 알림
           showToast('분할 저장 실패: ' + (message.error || '알 수 없는 오류'), 'error');
+          break;
+
+        // 파트 전환 시작
+        case 'RECORDING_SPLIT_START':
+          console.log(`[숲토킹 SidePanel] 파트 ${message.partNumber} 저장 중...`);
+          showSplitStatus(message.streamerId, message.partNumber, 'saving');
+          break;
+
+        // 파트 전환 완료
+        case 'RECORDING_SPLIT_COMPLETE':
+          console.log(`[숲토킹 SidePanel] 파트 ${message.partNumber} 녹화 시작`);
+          showSplitStatus(message.streamerId, message.partNumber, 'recording');
+          // 토스트 표시
+          showToast(`파트 ${message.partNumber} 녹화 중`, 'info');
           break;
       }
     });
