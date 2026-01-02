@@ -18,7 +18,7 @@
     currentSoopTabId: null,
     filter: 'all',
     expandedStreamerId: null,
-    recordingQuality: 'high',  // 'high' = 고사양, 'low' = 저사양
+    recordingQuality: 'ultra',  // 'ultra' = 원본급(30Mbps), 'high' = 고품질(15Mbps), 'standard' = 표준(8Mbps)
     // 현재 탭 녹화 상태 (sessionId 기반)
     currentTabRecording: null
   };
@@ -166,10 +166,16 @@
   }
 
   function getRecordingQualityTooltip() {
-    if (state.recordingQuality === 'high') {
-      return '동시 녹화 권장: 1~2개\n• 녹화 화질은 원본보다 낮습니다\n• ⚠️ PC 성능에 따라 불안정할 수 있습니다';
-    } else {
-      return '동시 녹화 권장: 3~4개\n• 녹화 화질은 원본보다 낮습니다\n• ✅ 대부분의 PC에서 안정적입니다';
+    // ⭐ 3단계 품질 툴팁
+    switch (state.recordingQuality) {
+      case 'ultra':
+        return '원본급 (VP9 30Mbps 60fps)\n• 1시간당 약 13GB\n• 동시 녹화: 1개 권장\n• ⚠️ 고사양 PC 필요';
+      case 'high':
+        return '고품질 (VP9 15Mbps 60fps)\n• 1시간당 약 6.5GB\n• 동시 녹화: 1~2개 권장\n• 대부분의 PC에서 안정적';
+      case 'standard':
+        return '표준 (VP8 8Mbps 30fps)\n• 1시간당 약 3.5GB\n• 동시 녹화: 2~3개 가능\n• ✅ 저사양 PC에서도 안정적';
+      default:
+        return '녹화 품질 정보';
     }
   }
 
@@ -252,18 +258,49 @@
   function updateRecordingQualityInfoBox() {
     if (!elements.recordingQualityInfoTooltip) return;
 
-    const isHigh = state.recordingQuality === 'high';
-    const qualityName = isHigh ? '고사양' : '저사양';
-    const recommendCount = isHigh ? '1~2개' : '3~4개';
-    const stabilityNote = isHigh
-      ? '⚠️ PC 성능에 따라 불안정할 수 있습니다'
-      : '✅ 대부분의 PC에서 안정적입니다';
+    // ⭐ 3단계 품질 정보 박스
+    let qualityName, bitrate, fps, fileSize, recommendCount, stabilityNote;
+
+    switch (state.recordingQuality) {
+      case 'ultra':
+        qualityName = '원본급';
+        bitrate = 'VP9 30Mbps';
+        fps = '60fps';
+        fileSize = '~13GB/시간';
+        recommendCount = '1개';
+        stabilityNote = '⚠️ 고사양 PC 필요';
+        break;
+      case 'high':
+        qualityName = '고품질';
+        bitrate = 'VP9 15Mbps';
+        fps = '60fps';
+        fileSize = '~6.5GB/시간';
+        recommendCount = '1~2개';
+        stabilityNote = '대부분의 PC에서 안정적';
+        break;
+      case 'standard':
+        qualityName = '표준';
+        bitrate = 'VP8 8Mbps';
+        fps = '30fps';
+        fileSize = '~3.5GB/시간';
+        recommendCount = '2~3개';
+        stabilityNote = '✅ 저사양 PC에서도 안정적';
+        break;
+      default:
+        qualityName = '알 수 없음';
+        bitrate = '-';
+        fps = '-';
+        fileSize = '-';
+        recommendCount = '-';
+        stabilityNote = '';
+    }
 
     elements.recordingQualityInfoTooltip.innerHTML = `
       <p class="tooltip-title">⚠️ 녹화 품질 안내</p>
       <p><strong>현재 설정: ${qualityName}</strong></p>
+      <p>• 코덱: ${bitrate} ${fps}</p>
+      <p>• 파일 크기: ${fileSize}</p>
       <p>• 동시 녹화 권장: ${recommendCount}</p>
-      <p>• 녹화 화질은 원본보다 낮습니다</p>
       <p>• ${stabilityNote}</p>
       <p style="margin-top: 8px;">백그라운드 탭은 브라우저가 리소스를 제한하여 <strong>프레임 드랍</strong>이 발생할 수 있습니다.</p>
       <p class="tooltip-tip">💡 <strong>권장:</strong> 녹화 탭을 새 창으로 분리하거나 활성 상태로 유지하세요.</p>
@@ -1260,7 +1297,13 @@
     elements.recordingQualitySelect?.addEventListener('change', (e) => {
       state.recordingQuality = e.target.value;
       chrome.storage.local.set({ recordingQuality: state.recordingQuality });
-      showToast(state.recordingQuality === 'high' ? '고사양 녹화 설정됨' : '저사양 녹화 설정됨', 'success');
+      // ⭐ 3단계 품질 토스트 메시지
+      const qualityNames = {
+        'ultra': '원본급 (30Mbps)',
+        'high': '고품질 (15Mbps)',
+        'standard': '표준 (8Mbps)'
+      };
+      showToast(`${qualityNames[state.recordingQuality] || '품질'} 설정됨`, 'success');
       // 녹화 카드의 info 아이콘 툴팁 업데이트
       document.querySelectorAll('.recording-quality-info').forEach(el => {
         el.title = getRecordingQualityTooltip();

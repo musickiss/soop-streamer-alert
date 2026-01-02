@@ -167,7 +167,7 @@
           params: {
             streamerId: message.streamerId,
             nickname: message.nickname,
-            quality: message.quality || 'low'
+            quality: message.quality || 'ultra'  // ⭐ 기본값: 원본급 (v3.5.9)
           }
         }, '*');
 

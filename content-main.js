@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 =====
 // content-main.js - MAIN world Canvas 녹화 스크립트
-// v3.5.8.3 - MediaRecorder 분할 안정성 강화
+// v3.5.9 - VP9 기반 3단계 품질 설정
 
 (function() {
   'use strict';
@@ -12,27 +12,34 @@
   }
   window.__SOOPTALKING_RECORDER_LOADED__ = true;
 
-  console.log('[숲토킹 Recorder] v3.5.8.3 로드됨');
+  console.log('[숲토킹 Recorder] v3.5.9 로드됨');
 
   // ===== 설정 =====
   const CONFIG = {
-    // 고사양 (AV1) - 기본값
-    HIGH_QUALITY: {
-      VIDEO_BITRATE: 8000000,
-      AUDIO_BITRATE: 192000,
+    // ⭐ 원본급 (Ultra) - VP9 30Mbps - 기본값
+    ULTRA_QUALITY: {
+      VIDEO_BITRATE: 30000000,    // 30 Mbps
+      AUDIO_BITRATE: 320000,      // 320 kbps
       TARGET_FPS: 60,
-      CODEC_PRIORITY: ['av01', 'av1', 'vp9', 'vp8']
-    },
-    // 저사양 (VP9)
-    LOW_QUALITY: {
-      VIDEO_BITRATE: 4000000,
-      AUDIO_BITRATE: 128000,
-      TARGET_FPS: 30,
       CODEC_PRIORITY: ['vp9', 'vp8']
+    },
+    // ⭐ 고품질 (High) - VP9 15Mbps
+    HIGH_QUALITY: {
+      VIDEO_BITRATE: 15000000,    // 15 Mbps
+      AUDIO_BITRATE: 192000,      // 192 kbps
+      TARGET_FPS: 60,
+      CODEC_PRIORITY: ['vp9', 'vp8']
+    },
+    // ⭐ 표준 (Standard) - VP8 8Mbps
+    STANDARD_QUALITY: {
+      VIDEO_BITRATE: 8000000,     // 8 Mbps
+      AUDIO_BITRATE: 128000,      // 128 kbps
+      TARGET_FPS: 30,
+      CODEC_PRIORITY: ['vp8', 'vp9']  // VP8 우선
     },
     // 공통 설정
     TIMESLICE: 2000,
-    MAX_FILE_SIZE: 500 * 1024 * 1024,
+    MAX_FILE_SIZE: 500 * 1024 * 1024,  // 500MB 유지
     PROGRESS_INTERVAL: 5000,
     CANVAS_DRAW_INTERVAL: 8,
     MIN_RECORD_TIME: 2000,
@@ -87,22 +94,30 @@
   }
 
   function getBestMimeType(quality) {
-    const config = quality === 'high' ? CONFIG.HIGH_QUALITY : CONFIG.LOW_QUALITY;
+    let config;
+    switch (quality) {
+      case 'ultra':
+        config = CONFIG.ULTRA_QUALITY;
+        break;
+      case 'high':
+        config = CONFIG.HIGH_QUALITY;
+        break;
+      case 'standard':
+        config = CONFIG.STANDARD_QUALITY;
+        break;
+      default:
+        config = CONFIG.ULTRA_QUALITY;  // 기본값: 원본급
+    }
 
     for (const codec of config.CODEC_PRIORITY) {
-      const variations = codec === 'av01' || codec === 'av1'
-        ? ['video/webm;codecs=av01,opus', 'video/webm;codecs=av1,opus']
-        : [`video/webm;codecs=${codec},opus`];
-
-      for (const mime of variations) {
-        if (MediaRecorder.isTypeSupported(mime)) {
-          console.log(`[숲토킹 Recorder] 코덱 선택됨`);
-          return mime;
-        }
+      const mime = `video/webm;codecs=${codec},opus`;
+      if (MediaRecorder.isTypeSupported(mime)) {
+        console.log(`[숲토킹 Recorder] 코덱 선택: ${codec.toUpperCase()}`);
+        return mime;
       }
     }
 
-    console.log('[숲토킹 Recorder] 기본 코덱 사용');
+    console.log('[숲토킹 Recorder] 기본 코덱 사용: WebM');
     return 'video/webm';
   }
 
@@ -424,7 +439,21 @@
     }
 
     try {
-      const qualityConfig = currentQuality === 'high' ? CONFIG.HIGH_QUALITY : CONFIG.LOW_QUALITY;
+      // ⭐ 3단계 품질 설정
+      let qualityConfig;
+      switch (currentQuality) {
+        case 'ultra':
+          qualityConfig = CONFIG.ULTRA_QUALITY;
+          break;
+        case 'high':
+          qualityConfig = CONFIG.HIGH_QUALITY;
+          break;
+        case 'standard':
+          qualityConfig = CONFIG.STANDARD_QUALITY;
+          break;
+        default:
+          qualityConfig = CONFIG.ULTRA_QUALITY;
+      }
 
       // 새 Canvas 스트림 생성
       canvasStream = recordingCanvas.captureStream(qualityConfig.TARGET_FPS);
@@ -435,7 +464,9 @@
         const audioTrack = audioDest.stream.getAudioTracks()[0];
         if (audioTrack && audioTrack.readyState === 'live') {
           canvasStream.addTrack(audioTrack);
-          console.log('[숲토킹 Recorder] 오디오 트랙 추가됨');
+          console.log('[숲토킹 Recorder] 오디오 트랙 재추가됨');
+        } else {
+          console.log('[숲토킹 Recorder] 오디오 트랙 무효, 영상만 녹화');
         }
       }
 
@@ -474,7 +505,7 @@
 
   // ===== 녹화 제어 함수 =====
 
-  async function startRecording(streamerId, nickname, quality = 'high') {
+  async function startRecording(streamerId, nickname, quality = 'ultra') {
     if (isRecording) {
       console.log('[숲토킹 Recorder] 이미 녹화 중');
       return { success: false, error: '이미 녹화 중입니다.' };
@@ -504,7 +535,21 @@
 
       console.log(`[숲토킹 Recorder] 비디오 발견: ${video.videoWidth}x${video.videoHeight}`);
 
-      const qualityConfig = quality === 'high' ? CONFIG.HIGH_QUALITY : CONFIG.LOW_QUALITY;
+      // ⭐ 품질 설정 가져오기 (3단계)
+      let qualityConfig;
+      switch (quality) {
+        case 'ultra':
+          qualityConfig = CONFIG.ULTRA_QUALITY;
+          break;
+        case 'high':
+          qualityConfig = CONFIG.HIGH_QUALITY;
+          break;
+        case 'standard':
+          qualityConfig = CONFIG.STANDARD_QUALITY;
+          break;
+        default:
+          qualityConfig = CONFIG.ULTRA_QUALITY;
+      }
 
       if (!setupCanvas(video)) {
         throw new Error('Canvas 설정 실패');
@@ -531,6 +576,8 @@
         videoBitsPerSecond: qualityConfig.VIDEO_BITRATE,
         audioBitsPerSecond: qualityConfig.AUDIO_BITRATE
       };
+
+      console.log(`[숲토킹 Recorder] 녹화 설정: ${(qualityConfig.VIDEO_BITRATE / 1000000).toFixed(0)}Mbps, ${qualityConfig.TARGET_FPS}fps`);
 
       mediaRecorder = new MediaRecorder(canvasStream, options);
 
@@ -720,8 +767,21 @@
           return;
         }
 
-        // 7. 새 MediaRecorder 생성
-        const qualityConfig = currentQuality === 'high' ? CONFIG.HIGH_QUALITY : CONFIG.LOW_QUALITY;
+        // 7. 새 MediaRecorder 생성 (품질 설정 3단계 적용)
+        let qualityConfig;
+        switch (currentQuality) {
+          case 'ultra':
+            qualityConfig = CONFIG.ULTRA_QUALITY;
+            break;
+          case 'high':
+            qualityConfig = CONFIG.HIGH_QUALITY;
+            break;
+          case 'standard':
+            qualityConfig = CONFIG.STANDARD_QUALITY;
+            break;
+          default:
+            qualityConfig = CONFIG.ULTRA_QUALITY;
+        }
 
         const options = {
           mimeType: currentMimeType,
@@ -755,7 +815,21 @@
         console.log('[숲토킹 Recorder] 분할 실패 후 복구 시도...');
         try {
           if (ensureValidCanvasStream()) {
-            const qualityConfig = currentQuality === 'high' ? CONFIG.HIGH_QUALITY : CONFIG.LOW_QUALITY;
+            // 3단계 품질 설정
+            let qualityConfig;
+            switch (currentQuality) {
+              case 'ultra':
+                qualityConfig = CONFIG.ULTRA_QUALITY;
+                break;
+              case 'high':
+                qualityConfig = CONFIG.HIGH_QUALITY;
+                break;
+              case 'standard':
+                qualityConfig = CONFIG.STANDARD_QUALITY;
+                break;
+              default:
+                qualityConfig = CONFIG.ULTRA_QUALITY;
+            }
             const options = {
               mimeType: currentMimeType,
               videoBitsPerSecond: qualityConfig.VIDEO_BITRATE,
@@ -927,7 +1001,7 @@
         result = await startRecording(
           params?.streamerId,
           params?.nickname,
-          params?.quality || 'high'
+          params?.quality || 'ultra'
         );
         break;
 
@@ -949,7 +1023,7 @@
         break;
 
       case 'PING':
-        result = { success: true, pong: true, version: '3.5.8.3' };
+        result = { success: true, pong: true, version: '3.5.9' };
         break;
 
       default:
