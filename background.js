@@ -58,7 +58,7 @@ const state = {
 // ===== 초기화 =====
 
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[숲토킹] v3.4.0 설치됨');
+  console.log('[숲토킹] v3.5.3 설치됨');
   await loadSettings();
 });
 
