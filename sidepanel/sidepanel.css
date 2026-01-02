@@ -287,11 +287,111 @@ body {
   border-color: var(--border-hover);
 }
 
-/* ===== 메인 스크롤 영역 ===== */
-.main-content {
+/* ===== 리사이저블 영역 ===== */
+.resizable-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* flex 스크롤 버그 방지 */
+  overflow: hidden;
+}
+
+/* ===== 녹화 중 영역 (리사이저블) ===== */
+.recordings-section {
+  min-height: 120px; /* 최소: 헤더 + 1개 카드 */
+  height: 180px; /* 초기값 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+  border-bottom: none;
+}
+
+.recordings-section .section-header {
+  flex-shrink: 0;
+  padding: 8px 12px;
+}
+
+.recordings-section .recording-list {
   flex: 1;
   overflow-y: auto;
-  overflow-x: hidden;
+  padding: 0 12px 8px;
+  max-height: none; /* 기존 max-height 제거 */
+}
+
+.recordings-section .empty-recordings {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===== 리사이즈 핸들 ===== */
+.resize-handle {
+  height: 10px;
+  background: linear-gradient(to bottom,
+    rgba(255, 255, 255, 0.03),
+    rgba(255, 255, 255, 0.06),
+    rgba(255, 255, 255, 0.03));
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-top: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border-default);
+  transition: background 0.2s;
+  user-select: none;
+}
+
+.resize-handle:hover {
+  background: linear-gradient(to bottom,
+    rgba(233, 69, 96, 0.3),
+    rgba(233, 69, 96, 0.5),
+    rgba(233, 69, 96, 0.3));
+}
+
+.resize-handle::before {
+  content: '';
+  width: 40px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  transition: background 0.2s;
+}
+
+.resize-handle:hover::before {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+/* 드래그 중 상태 */
+.resize-handle.dragging {
+  background: linear-gradient(to bottom,
+    rgba(233, 69, 96, 0.5),
+    rgba(233, 69, 96, 0.7),
+    rgba(233, 69, 96, 0.5));
+}
+
+.resize-handle.dragging::before {
+  background: #fff;
+}
+
+/* ===== 즐겨찾기 영역 (리사이저블) ===== */
+.streamer-section {
+  flex: 1;
+  min-height: 80px; /* 최소: 헤더 + 1명 */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.streamer-section .section-header {
+  flex-shrink: 0;
+}
+
+.streamer-section .streamer-list {
+  flex: 1;
+  overflow-y: auto;
 }
 
 /* ===== 섹션 공통 ===== */
@@ -342,6 +442,7 @@ body {
 /* ===== 현재 시청 중 섹션 ===== */
 .now-watching {
   background: linear-gradient(180deg, rgba(0, 180, 229, 0.04) 0%, transparent 100%);
+  flex-shrink: 0;
 }
 
 .current-stream-card {

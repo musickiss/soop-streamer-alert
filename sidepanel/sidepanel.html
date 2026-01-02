@@ -64,10 +64,8 @@
       </div>
     </div>
 
-    <!-- 메인 스크롤 영역 -->
-    <div class="main-content">
-      <!-- 현재 시청 중 섹션 -->
-      <section class="section now-watching" id="nowWatching">
+    <!-- 현재 시청 중 섹션 (상단 고정) -->
+    <section class="section now-watching" id="nowWatching">
         <div class="section-header">
           <div class="section-title">📺 <span data-i18n="nowWatching">현재 시청 중</span></div>
           <select id="recordingQualitySelect" class="quality-select" title="녹화 품질 선택">
@@ -107,6 +105,8 @@
         </div>
       </section>
 
+    <!-- 리사이저블 영역 (녹화 중 + 즐겨찾기) -->
+    <div class="resizable-area">
       <!-- 녹화 중 목록 섹션 -->
       <section class="section recordings-section" id="recordingsSection">
         <div class="section-header">
@@ -128,8 +128,11 @@
         <div class="empty-recordings" id="noRecordingMessage" data-i18n="noRecordings">녹화 중인 방송이 없습니다</div>
       </section>
 
+      <!-- 리사이즈 핸들 -->
+      <div class="resize-handle" id="resizeHandle" title="드래그하여 크기 조절"></div>
+
       <!-- 스트리머 목록 섹션 -->
-      <section class="streamer-section">
+      <section class="streamer-section" id="favoritesSection">
         <div class="section-header">
           <div class="section-title">⭐ <span data-i18n="favoriteStreamers">즐겨찾기 스트리머</span></div>
           <div class="section-actions">
@@ -166,7 +169,7 @@
           <!-- 동적으로 채워짐 -->
         </div>
       </section>
-    </div>
+    </div> <!-- resizable-area 끝 -->
 
     <!-- 하단 고정 영역 -->
     <div class="bottom-fixed">

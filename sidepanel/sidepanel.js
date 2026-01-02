@@ -1,5 +1,6 @@
-// ===== 숲토킹 v3.4.5 - 사이드패널 =====
+// ===== 숲토킹 v3.5.2 - 사이드패널 =====
 // Downloads API 기반 안정화 버전, Background와 메시지 통신
+// 리사이저블 레이아웃 지원
 
 (function() {
   'use strict';
@@ -28,6 +29,16 @@
 
   // ===== 아코디언 안정화 (v3.2.4) =====
   let toggleTimeout = null;
+
+  // ===== 리사이즈 상태 (v3.5.2) =====
+  const RESIZE_CONFIG = {
+    MIN_RECORDING_HEIGHT: 120, // 녹화 중 최소 높이
+    MIN_FAVORITES_HEIGHT: 80,  // 즐겨찾기 최소 높이
+    STORAGE_KEY: 'sooptalking_recording_section_height'
+  };
+  let isResizing = false;
+  let resizeStartY = 0;
+  let resizeStartHeight = 0;
 
   // ===== DOM 요소 =====
   const elements = {};
@@ -71,6 +82,12 @@
     elements.toast = document.getElementById('toast');
     elements.versionInfo = document.getElementById('versionInfo');
     elements.brandText = document.getElementById('brandText');
+
+    // 리사이즈 관련 요소
+    elements.resizeHandle = document.getElementById('resizeHandle');
+    elements.recordingsSection = document.getElementById('recordingsSection');
+    elements.favoritesSection = document.getElementById('favoritesSection');
+    elements.resizableArea = document.querySelector('.resizable-area');
   }
 
   // ===== i18n =====
@@ -992,6 +1009,114 @@
     }
   }
 
+  // ===== 리사이즈 핸들 로직 (v3.5.2) =====
+
+  function initResize() {
+    if (!elements.resizeHandle || !elements.recordingsSection || !elements.resizableArea) {
+      console.warn('[사이드패널] 리사이즈 요소를 찾을 수 없습니다.');
+      return;
+    }
+
+    // 저장된 높이 복원
+    loadSavedHeight();
+
+    // 마우스 이벤트
+    elements.resizeHandle.addEventListener('mousedown', handleResizeStart);
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+
+    // 터치 이벤트 (모바일 지원)
+    elements.resizeHandle.addEventListener('touchstart', handleTouchStart, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    document.addEventListener('touchend', handleResizeEnd);
+  }
+
+  function loadSavedHeight() {
+    try {
+      const savedHeight = localStorage.getItem(RESIZE_CONFIG.STORAGE_KEY);
+      if (savedHeight) {
+        const height = parseInt(savedHeight, 10);
+        if (!isNaN(height) && height >= RESIZE_CONFIG.MIN_RECORDING_HEIGHT) {
+          elements.recordingsSection.style.height = height + 'px';
+        }
+      }
+    } catch (e) {
+      console.warn('[사이드패널] 저장된 높이 복원 실패:', e);
+    }
+  }
+
+  function saveResizeHeight(height) {
+    try {
+      localStorage.setItem(RESIZE_CONFIG.STORAGE_KEY, height.toString());
+    } catch (e) {
+      console.warn('[사이드패널] 높이 저장 실패:', e);
+    }
+  }
+
+  function handleResizeStart(e) {
+    e.preventDefault();
+    isResizing = true;
+    resizeStartY = e.clientY;
+    resizeStartHeight = elements.recordingsSection.offsetHeight;
+
+    elements.resizeHandle.classList.add('dragging');
+    document.body.style.cursor = 'ns-resize';
+    document.body.style.userSelect = 'none';
+  }
+
+  function handleTouchStart(e) {
+    e.preventDefault();
+    if (e.touches.length === 1) {
+      isResizing = true;
+      resizeStartY = e.touches[0].clientY;
+      resizeStartHeight = elements.recordingsSection.offsetHeight;
+
+      elements.resizeHandle.classList.add('dragging');
+    }
+  }
+
+  function handleResizeMove(e) {
+    if (!isResizing) return;
+
+    const deltaY = e.clientY - resizeStartY;
+    applyResize(deltaY);
+  }
+
+  function handleTouchMove(e) {
+    if (!isResizing || e.touches.length !== 1) return;
+    e.preventDefault();
+
+    const deltaY = e.touches[0].clientY - resizeStartY;
+    applyResize(deltaY);
+  }
+
+  function applyResize(deltaY) {
+    const resizableHeight = elements.resizableArea.offsetHeight;
+    const handleHeight = elements.resizeHandle.offsetHeight;
+    const availableHeight = resizableHeight - handleHeight;
+
+    let newRecordingHeight = resizeStartHeight + deltaY;
+
+    // 최소/최대 제한 적용
+    newRecordingHeight = Math.max(RESIZE_CONFIG.MIN_RECORDING_HEIGHT, newRecordingHeight);
+    newRecordingHeight = Math.min(availableHeight - RESIZE_CONFIG.MIN_FAVORITES_HEIGHT, newRecordingHeight);
+
+    elements.recordingsSection.style.height = newRecordingHeight + 'px';
+  }
+
+  function handleResizeEnd() {
+    if (!isResizing) return;
+
+    isResizing = false;
+    elements.resizeHandle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+
+    // 현재 높이 저장
+    const currentHeight = elements.recordingsSection.offsetHeight;
+    saveResizeHeight(currentHeight);
+  }
+
   // ===== 새로고침 =====
   async function refreshBroadcastStatus() {
     if (elements.refreshBtn) {
@@ -1202,6 +1327,9 @@
 
     // 이벤트 바인딩
     bindEvents();
+
+    // 리사이즈 기능 초기화
+    initResize();
 
     // 주기적 업데이트
     setInterval(updateActiveRecordingList, 5000);
