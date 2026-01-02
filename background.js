@@ -1,6 +1,6 @@
-// ===== 숲토킹 v3.5.5 - Background Service Worker =====
+// ===== 숲토킹 v3.5.6 - Background Service Worker =====
 // Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장 + 500MB 자동 분할 저장
-// v3.5.5: 브라우저 시작 시 탭 중복 열림 및 자동 녹화 실패 버그 수정
+// v3.5.6: Content Script 자동 주입 - 확장 새로고침 후 녹화 가능
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -63,7 +63,7 @@ const state = {
 // ===== 초기화 =====
 
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[숲토킹] v3.5.5 설치됨');
+  console.log('[숲토킹] v3.5.6 설치됨');
   if (state.isInitialized) {
     console.log('[숲토킹] 이미 초기화됨 - onInstalled 스킵');
     return;
@@ -123,6 +123,37 @@ async function saveSettings() {
   }
 }
 
+// ===== Content Script 자동 주입 =====
+
+async function injectContentScripts(tabId) {
+  console.log('[숲토킹] Content Script 주입 시도:', tabId);
+
+  try {
+    // ISOLATED world content script 주입
+    await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      files: ['content.js']
+    });
+    console.log('[숲토킹] content.js 주입 완료');
+
+    // MAIN world content script 주입
+    await chrome.scripting.executeScript({
+      target: { tabId: tabId },
+      files: ['content-main.js'],
+      world: 'MAIN'
+    });
+    console.log('[숲토킹] content-main.js 주입 완료');
+
+    // 스크립트 초기화 대기
+    await new Promise(r => setTimeout(r, 500));
+
+    return { success: true };
+  } catch (error) {
+    console.error('[숲토킹] Content Script 주입 실패:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 // ===== 녹화 관리 =====
 
 async function startRecording(tabId, streamerId, nickname) {
@@ -178,9 +209,41 @@ async function startRecording(tabId, streamerId, nickname) {
   } catch (error) {
     console.error('[숲토킹] 녹화 시작 실패:', error);
 
-    // Content Script 없으면 주입 시도
+    // Content Script 없으면 자동 주입 시도
     if (error.message?.includes('Receiving end') || error.message?.includes('Could not establish')) {
-      return { success: false, error: '페이지를 새로고침 후 다시 시도해주세요.' };
+      console.log('[숲토킹] Content Script 연결 실패 - 자동 주입 시도');
+
+      const injectResult = await injectContentScripts(tabId);
+      if (!injectResult.success) {
+        return { success: false, error: '스크립트 주입 실패. 페이지를 새로고침 해주세요.' };
+      }
+
+      // 주입 후 재시도
+      try {
+        const retryResponse = await chrome.tabs.sendMessage(tabId, {
+          type: 'START_RECORDING',
+          streamerId: streamerId,
+          nickname: nickname
+        });
+
+        if (retryResponse?.success) {
+          state.recordings.set(tabId, {
+            tabId,
+            streamerId,
+            nickname,
+            startTime: Date.now(),
+            totalBytes: 0
+          });
+          updateBadge();
+          console.log('[숲토킹] Content Script 주입 후 녹화 시작 성공');
+          return { success: true, tabId, streamerId, nickname };
+        } else {
+          return { success: false, error: retryResponse?.error || '녹화 시작 실패' };
+        }
+      } catch (retryError) {
+        console.error('[숲토킹] 재시도 실패:', retryError);
+        return { success: false, error: '스크립트 주입 후에도 실패. 페이지를 새로고침 해주세요.' };
+      }
     }
 
     return { success: false, error: error.message };
@@ -972,4 +1035,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.5.5 로드됨 (탭 중복 열림 버그 수정)');
+console.log('[숲토킹] Background Service Worker v3.5.6 로드됨 (Content Script 자동 주입)');
