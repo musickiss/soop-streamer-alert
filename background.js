@@ -967,6 +967,29 @@ async function handleMessage(message, sender, sendResponse) {
       }
       break;
 
+    // ===== 분할 녹화 상태 릴레이 (v3.5.8.3) =====
+    case 'RECORDING_SPLIT_START':
+      console.log(`[숲토킹] 파트 ${message.partNumber} 분할 시작 (${message.streamerId})`);
+      broadcastToSidepanel({
+        type: 'RECORDING_SPLIT_START',
+        tabId: tabId,
+        streamerId: message.streamerId,
+        partNumber: message.partNumber
+      });
+      sendResponse({ success: true });
+      break;
+
+    case 'RECORDING_SPLIT_COMPLETE':
+      console.log(`[숲토킹] 파트 ${message.partNumber} 분할 완료 (${message.streamerId})`);
+      broadcastToSidepanel({
+        type: 'RECORDING_SPLIT_COMPLETE',
+        tabId: tabId,
+        streamerId: message.streamerId,
+        partNumber: message.partNumber
+      });
+      sendResponse({ success: true });
+      break;
+
     default:
       sendResponse({ success: false, error: '알 수 없는 메시지 타입' });
   }

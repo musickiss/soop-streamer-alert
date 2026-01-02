@@ -173,10 +173,21 @@
     }
   }
 
-  // 파트 전환 상태 표시
+  // 파트 전환 상태 표시 (v3.5.8.2)
   function showSplitStatus(streamerId, partNumber, status) {
-    // 녹화 카드 찾기
-    const recordingCard = document.querySelector(`.recording-card[data-streamer-id="${streamerId}"]`);
+    // 녹화 카드 찾기 (tabId 또는 streamerId로)
+    let recordingCard = document.querySelector(`.recording-card[data-streamer-id="${streamerId}"]`);
+    if (!recordingCard) {
+      // streamerId로 못 찾으면 모든 녹화 카드에서 찾기
+      const allCards = document.querySelectorAll('.recording-card');
+      for (const card of allCards) {
+        const nameEl = card.querySelector('.recording-streamer-name');
+        if (nameEl && nameEl.textContent.includes(streamerId)) {
+          recordingCard = card;
+          break;
+        }
+      }
+    }
     if (!recordingCard) return;
 
     // 상태 표시 요소 찾기 또는 생성
@@ -203,6 +214,38 @@
           splitStatus.innerHTML = '';
         }
       }, 3000);
+    }
+  }
+
+  // ⭐ 녹화 카드 파트 상태 업데이트 (v3.5.8.3)
+  function updateRecordingCardPartStatus(tabId, partNumber) {
+    const card = document.querySelector(`.recording-card[data-tab-id="${tabId}"]`);
+    if (!card) return;
+
+    // 파트 표시 컨테이너 찾기 또는 생성
+    let partContainer = card.querySelector('.part-container');
+    if (!partContainer) {
+      partContainer = document.createElement('div');
+      partContainer.className = 'part-container';
+
+      const header = card.querySelector('.recording-card-header');
+      if (header) {
+        // 헤더 내 적절한 위치에 삽입
+        const streamerName = header.querySelector('.recording-streamer-name');
+        if (streamerName) {
+          streamerName.insertAdjacentElement('afterend', partContainer);
+        } else {
+          header.appendChild(partContainer);
+        }
+      }
+    }
+
+    // 파트 번호 표시
+    if (partNumber > 1) {
+      partContainer.innerHTML = `<span class="part-indicator">Part ${partNumber}</span>`;
+      partContainer.style.display = 'inline-flex';
+    } else {
+      partContainer.style.display = 'none';
     }
   }
 
@@ -1282,6 +1325,11 @@
             const sizeEl = card.querySelector('.recording-size');
             if (timeEl) timeEl.textContent = formatDuration(message.elapsedTime || 0);
             if (sizeEl) sizeEl.textContent = formatBytes(message.totalBytes || 0);
+
+            // ⭐ 파트 번호 표시 (v3.5.8.3)
+            if (message.partNumber && message.partNumber > 1) {
+              updateRecordingCardPartStatus(message.tabId, message.partNumber);
+            }
           }
           break;
 
@@ -1315,16 +1363,24 @@
           showToast('분할 저장 실패: ' + (message.error || '알 수 없는 오류'), 'error');
           break;
 
-        // 파트 전환 시작
+        // 파트 전환 시작 (v3.5.8.3)
         case 'RECORDING_SPLIT_START':
           console.log(`[숲토킹 SidePanel] 파트 ${message.partNumber} 저장 중...`);
           showSplitStatus(message.streamerId, message.partNumber, 'saving');
+          // 파트 상태도 업데이트
+          if (message.tabId) {
+            updateRecordingCardPartStatus(message.tabId, message.partNumber);
+          }
           break;
 
-        // 파트 전환 완료
+        // 파트 전환 완료 (v3.5.8.3)
         case 'RECORDING_SPLIT_COMPLETE':
           console.log(`[숲토킹 SidePanel] 파트 ${message.partNumber} 녹화 시작`);
           showSplitStatus(message.streamerId, message.partNumber, 'recording');
+          // 파트 상태 업데이트
+          if (message.tabId) {
+            updateRecordingCardPartStatus(message.tabId, message.partNumber);
+          }
           // 토스트 표시
           showToast(`파트 ${message.partNumber} 녹화 중`, 'info');
           break;

@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 =====
 // content-main.js - MAIN world Canvas 녹화 스크립트
-// v3.5.8.2 - MediaRecorder 재시작 분할 + 안정성 개선
+// v3.5.8.3 - MediaRecorder 분할 안정성 강화
 
 (function() {
   'use strict';
@@ -12,33 +12,34 @@
   }
   window.__SOOPTALKING_RECORDER_LOADED__ = true;
 
-  console.log('[숲토킹 Recorder] v3.5.8.2 로드됨');
+  console.log('[숲토킹 Recorder] v3.5.8.3 로드됨');
 
   // ===== 설정 =====
   const CONFIG = {
     // 고사양 (AV1) - 기본값
     HIGH_QUALITY: {
-      VIDEO_BITRATE: 8000000,     // 8 Mbps
-      AUDIO_BITRATE: 192000,      // 192 kbps
+      VIDEO_BITRATE: 8000000,
+      AUDIO_BITRATE: 192000,
       TARGET_FPS: 60,
       CODEC_PRIORITY: ['av01', 'av1', 'vp9', 'vp8']
     },
     // 저사양 (VP9)
     LOW_QUALITY: {
-      VIDEO_BITRATE: 4000000,     // 4 Mbps
-      AUDIO_BITRATE: 128000,      // 128 kbps
+      VIDEO_BITRATE: 4000000,
+      AUDIO_BITRATE: 128000,
       TARGET_FPS: 30,
       CODEC_PRIORITY: ['vp9', 'vp8']
     },
     // 공통 설정
-    TIMESLICE: 2000,              // 2초마다 데이터 청크
-    MAX_FILE_SIZE: 500 * 1024 * 1024,  // 500MB
-    PROGRESS_INTERVAL: 5000,      // 5초마다 진행 상황 보고
-    CANVAS_DRAW_INTERVAL: 8,      // 8ms (FPS 타이밍 충돌 해결)
-    MIN_RECORD_TIME: 2000,        // 최소 녹화 시간 2초
-    MAX_VIDEO_UNAVAILABLE: 60,    // video 비정상 최대 허용 횟수 (~0.5초)
-    MAX_STOP_RETRIES: 10,         // stopRecording 최대 재시도 횟수
-    SPLIT_TRANSITION_DELAY: 300,  // 파트 전환 대기 시간 (ms)
+    TIMESLICE: 2000,
+    MAX_FILE_SIZE: 500 * 1024 * 1024,
+    PROGRESS_INTERVAL: 5000,
+    CANVAS_DRAW_INTERVAL: 8,
+    MIN_RECORD_TIME: 2000,
+    MAX_VIDEO_UNAVAILABLE: 60,
+    MAX_STOP_RETRIES: 10,
+    MAX_SPLIT_WAIT: 20,           // ⭐ 분할 대기 최대 횟수 (10초)
+    SPLIT_TRANSITION_DELAY: 300,
   };
 
   // ===== 상태 변수 =====
@@ -53,9 +54,9 @@
   let partNumber = 1;
   let isRecording = false;
   let isSaving = false;
-  let isSplitting = false;  // ⭐ 파트 전환 중 플래그
+  let isSplitting = false;
   let currentQuality = 'high';
-  let currentMimeType = null;  // ⭐ 현재 사용 중인 mimeType 저장
+  let currentMimeType = null;
 
   // ===== Canvas 관련 변수 =====
   let recordingCanvas = null;
@@ -73,10 +74,10 @@
   // ===== 안정성 관련 변수 =====
   let videoUnavailableCount = 0;
   let stopRetryCount = 0;
+  let splitWaitCount = 0;  // ⭐ 분할 대기 카운터
 
   // ===== 유틸리티 함수 =====
 
-  // 메모리 사용량 로깅 (디버그용)
   function logMemoryUsage(context) {
     if (typeof performance !== 'undefined' && performance.memory) {
       const usedMB = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
@@ -85,7 +86,6 @@
     }
   }
 
-  // 최적 코덱 선택
   function getBestMimeType(quality) {
     const config = quality === 'high' ? CONFIG.HIGH_QUALITY : CONFIG.LOW_QUALITY;
 
@@ -106,7 +106,6 @@
     return 'video/webm';
   }
 
-  // 파일명 생성
   function generateFileName(streamerId) {
     const now = new Date();
     const timestamp = now.getFullYear().toString() +
@@ -120,13 +119,11 @@
     return `soop_${streamerId}_${timestamp}.webm`;
   }
 
-  // 비디오 요소 찾기
   function findVideoElement() {
     const videos = document.querySelectorAll('video');
     let bestVideo = null;
     let maxArea = 0;
 
-    // 1순위: 재생 중인 큰 비디오
     for (const v of videos) {
       if (v.readyState >= 2 && !v.paused && v.videoWidth > 0) {
         const area = v.videoWidth * v.videoHeight;
@@ -138,14 +135,12 @@
     }
     if (bestVideo) return bestVideo;
 
-    // 2순위: readyState가 높은 비디오
     for (const v of videos) {
       if (v.readyState >= 2 && v.videoWidth > 0) {
         return v;
       }
     }
 
-    // 3순위: 아무 비디오나
     for (const v of videos) {
       if (v.videoWidth > 0) {
         return v;
@@ -157,9 +152,7 @@
 
   // ===== 오디오 관리 함수 =====
 
-  // 오디오 트랙 획득 (재사용 로직 포함)
   async function getOrCreateAudioTrack(video) {
-    // AudioContext가 닫혔으면 초기화
     if (audioCtx && audioCtx.state === 'closed') {
       audioCtx = null;
       audioSource = null;
@@ -167,7 +160,6 @@
       connectedVideo = null;
     }
 
-    // Case 1: 같은 video에 이미 연결됨 → 재사용
     if (connectedVideo === video && audioDest) {
       const track = audioDest.stream.getAudioTracks()[0];
       if (track && track.readyState === 'live') {
@@ -178,9 +170,7 @@
       connectedVideo = null;
     }
 
-    // Case 2: 다른 video거나 새 연결 필요
     try {
-      // 기존 AudioContext 정리 (다른 video인 경우)
       if (audioCtx && connectedVideo !== video) {
         try {
           audioCtx.close();
@@ -192,22 +182,18 @@
         audioDest = null;
       }
 
-      // 새 AudioContext 생성
       if (!audioCtx) {
         audioCtx = new AudioContext();
       }
 
-      // suspended 상태면 resume
       if (audioCtx.state === 'suspended') {
         await audioCtx.resume();
         console.log('[숲토킹 Recorder] AudioContext resumed');
       }
 
-      // MediaElementSource 생성
       audioSource = audioCtx.createMediaElementSource(video);
       audioDest = audioCtx.createMediaStreamDestination();
 
-      // 연결: 녹화용 + 스피커 출력
       audioSource.connect(audioDest);
       audioSource.connect(audioCtx.destination);
 
@@ -219,7 +205,6 @@
     } catch (e) {
       console.log('[숲토킹 Recorder] 오디오 연결 실패:', e.message);
 
-      // 이미 연결된 경우 기존 dest에서 트랙 반환 시도
       if (audioDest && connectedVideo === video) {
         const track = audioDest.stream.getAudioTracks()[0];
         if (track) return track;
@@ -229,7 +214,6 @@
     }
   }
 
-  // 새 video에 오디오 재연결 (비동기)
   async function reconnectAudioToNewVideo(newVideo) {
     if (connectedVideo === newVideo) {
       return;
@@ -241,14 +225,12 @@
       const track = await getOrCreateAudioTrack(newVideo);
 
       if (track && canvasStream) {
-        // 기존 오디오 트랙 제거
         const oldAudioTracks = canvasStream.getAudioTracks();
         oldAudioTracks.forEach(t => {
           canvasStream.removeTrack(t);
           console.log('[숲토킹 Recorder] 기존 오디오 트랙 제거됨');
         });
 
-        // 새 오디오 트랙 추가
         canvasStream.addTrack(track);
         console.log('[숲토킹 Recorder] 오디오 재연결 완료');
       }
@@ -259,7 +241,6 @@
 
   // ===== Canvas 관리 함수 =====
 
-  // Canvas 생성 및 설정
   function setupCanvas(video) {
     cleanupCanvas();
 
@@ -270,7 +251,6 @@
     recordingCanvas.width = width;
     recordingCanvas.height = height;
 
-    // Canvas 컨텍스트 생성 (호환성 처리)
     try {
       recordingCtx = recordingCanvas.getContext('2d', {
         alpha: false,
@@ -291,7 +271,6 @@
     return true;
   }
 
-  // Canvas에 비디오 프레임 그리기 시작
   function startCanvasDrawing(video, targetFps) {
     sourceVideo = video;
     videoUnavailableCount = 0;
@@ -304,12 +283,10 @@
     let lastDrawTime = 0;
 
     drawIntervalId = setInterval(() => {
-      // video 유효성 검사
       if (!sourceVideo) {
         return;
       }
 
-      // DOM에서 제거되었는지 확인
       if (!document.body.contains(sourceVideo)) {
         console.log('[숲토킹 Recorder] video 요소 DOM에서 제거됨, 새 video 탐색...');
         const newVideo = findVideoElement();
@@ -319,7 +296,6 @@
           recordingCanvas.width = newVideo.videoWidth || recordingCanvas.width;
           recordingCanvas.height = newVideo.videoHeight || recordingCanvas.height;
 
-          // 새 video에 오디오 재연결 (비동기로 처리)
           reconnectAudioToNewVideo(newVideo);
 
           console.log('[숲토킹 Recorder] 새 video로 전환');
@@ -335,13 +311,11 @@
         }
       }
 
-      // video 상태 확인
       if (sourceVideo.paused || sourceVideo.ended ||
           sourceVideo.readyState < 2 || sourceVideo.videoWidth === 0) {
 
         videoUnavailableCount++;
 
-        // 연속 실패 횟수 체크
         if (videoUnavailableCount > CONFIG.MAX_VIDEO_UNAVAILABLE) {
           console.log('[숲토킹 Recorder] video 장시간 비정상 상태, 녹화 중지');
           stopRecording();
@@ -351,17 +325,14 @@
         return;
       }
 
-      // 정상 상태이면 카운터 리셋
       videoUnavailableCount = 0;
 
-      // FPS 제한
       const now = performance.now();
       if (now - lastDrawTime < minInterval) {
         return;
       }
 
       try {
-        // 해상도 변경 감지
         if (recordingCanvas.width !== sourceVideo.videoWidth ||
             recordingCanvas.height !== sourceVideo.videoHeight) {
           if (sourceVideo.videoWidth > 0 && sourceVideo.videoHeight > 0) {
@@ -371,7 +342,6 @@
           }
         }
 
-        // 비디오를 Canvas에 그리기
         recordingCtx.drawImage(sourceVideo, 0, 0, recordingCanvas.width, recordingCanvas.height);
         lastDrawTime = now;
 
@@ -383,7 +353,6 @@
     console.log('[숲토킹 Recorder] Canvas 그리기 시작');
   }
 
-  // Canvas 정리 (오디오는 유지)
   function cleanupCanvas() {
     if (drawIntervalId) {
       clearInterval(drawIntervalId);
@@ -391,7 +360,6 @@
     }
 
     if (canvasStream) {
-      // 비디오 트랙만 정리 (오디오는 재사용)
       canvasStream.getVideoTracks().forEach(track => {
         track.stop();
       });
@@ -412,7 +380,72 @@
     videoUnavailableCount = 0;
   }
 
-  // 탭 종료 시 모든 리소스 정리
+  // ⭐ Canvas 스트림 유효성 검증 및 재생성
+  function ensureValidCanvasStream() {
+    if (!canvasStream) {
+      console.log('[숲토킹 Recorder] canvasStream 없음, 재생성 필요');
+      return recreateCanvasStream();
+    }
+
+    // 비디오 트랙 유효성 검증
+    const videoTracks = canvasStream.getVideoTracks();
+    const hasActiveVideo = videoTracks.some(t => t.readyState === 'live');
+
+    if (!hasActiveVideo) {
+      console.log('[숲토킹 Recorder] 비디오 트랙 무효, 스트림 재생성');
+      return recreateCanvasStream();
+    }
+
+    // 오디오 트랙 검증 (선택적)
+    const audioTracks = canvasStream.getAudioTracks();
+    const hasActiveAudio = audioTracks.some(t => t.readyState === 'live');
+
+    if (!hasActiveAudio && audioDest) {
+      console.log('[숲토킹 Recorder] 오디오 트랙 무효, 재연결 시도');
+      const audioTrack = audioDest.stream.getAudioTracks()[0];
+      if (audioTrack && audioTrack.readyState === 'live') {
+        // 기존 무효 트랙 제거
+        audioTracks.forEach(t => {
+          try { canvasStream.removeTrack(t); } catch (e) {}
+        });
+        canvasStream.addTrack(audioTrack);
+        console.log('[숲토킹 Recorder] 오디오 트랙 재연결됨');
+      }
+    }
+
+    return true;
+  }
+
+  // ⭐ Canvas 스트림 재생성
+  function recreateCanvasStream() {
+    if (!recordingCanvas) {
+      console.error('[숲토킹 Recorder] recordingCanvas 없음, 재생성 불가');
+      return false;
+    }
+
+    try {
+      const qualityConfig = currentQuality === 'high' ? CONFIG.HIGH_QUALITY : CONFIG.LOW_QUALITY;
+
+      // 새 Canvas 스트림 생성
+      canvasStream = recordingCanvas.captureStream(qualityConfig.TARGET_FPS);
+      console.log('[숲토킹 Recorder] Canvas 스트림 재생성됨');
+
+      // 오디오 트랙 추가
+      if (audioDest) {
+        const audioTrack = audioDest.stream.getAudioTracks()[0];
+        if (audioTrack && audioTrack.readyState === 'live') {
+          canvasStream.addTrack(audioTrack);
+          console.log('[숲토킹 Recorder] 오디오 트랙 추가됨');
+        }
+      }
+
+      return true;
+    } catch (e) {
+      console.error('[숲토킹 Recorder] Canvas 스트림 재생성 실패:', e.message);
+      return false;
+    }
+  }
+
   window.addEventListener('beforeunload', () => {
     console.log('[숲토킹 Recorder] 탭 종료, 리소스 정리');
 
@@ -427,7 +460,7 @@
     connectedVideo = null;
   });
 
-  // ⭐ 백그라운드 탭 경고 (console.warn → console.log로 변경)
+  // 백그라운드 탭 경고 (console.log 사용)
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && isRecording) {
       console.log('[숲토킹 Recorder] 탭이 백그라운드로 이동, 프레임 저하 가능');
@@ -441,7 +474,6 @@
 
   // ===== 녹화 제어 함수 =====
 
-  // 녹화 시작
   async function startRecording(streamerId, nickname, quality = 'high') {
     if (isRecording) {
       console.log('[숲토킹 Recorder] 이미 녹화 중');
@@ -454,13 +486,11 @@
     currentQuality = quality;
 
     try {
-      // 비디오 요소 찾기
       const video = findVideoElement();
       if (!video) {
         throw new Error('비디오 요소를 찾을 수 없습니다.');
       }
 
-      // 비디오 준비 상태 확인
       if (video.readyState < 2) {
         console.log('[숲토킹 Recorder] 비디오 로딩 대기...');
         await new Promise((resolve, reject) => {
@@ -474,25 +504,19 @@
 
       console.log(`[숲토킹 Recorder] 비디오 발견: ${video.videoWidth}x${video.videoHeight}`);
 
-      // 품질 설정 가져오기
       const qualityConfig = quality === 'high' ? CONFIG.HIGH_QUALITY : CONFIG.LOW_QUALITY;
 
-      // Canvas 설정
       if (!setupCanvas(video)) {
         throw new Error('Canvas 설정 실패');
       }
 
-      // Canvas 그리기 시작
       startCanvasDrawing(video, qualityConfig.TARGET_FPS);
 
-      // Canvas에 프레임이 그려지도록 대기
       await new Promise(r => setTimeout(r, 200));
 
-      // Canvas에서 스트림 획득
       canvasStream = recordingCanvas.captureStream(qualityConfig.TARGET_FPS);
       console.log('[숲토킹 Recorder] Canvas 스트림 획득');
 
-      // 오디오 트랙 추가
       const audioTrack = await getOrCreateAudioTrack(video);
       if (audioTrack) {
         canvasStream.addTrack(audioTrack);
@@ -501,7 +525,6 @@
         console.log('[숲토킹 Recorder] 오디오 없이 녹화 진행');
       }
 
-      // MediaRecorder 설정
       currentMimeType = getBestMimeType(quality);
       const options = {
         mimeType: currentMimeType,
@@ -511,7 +534,6 @@
 
       mediaRecorder = new MediaRecorder(canvasStream, options);
 
-      // 이벤트 핸들러
       mediaRecorder.ondataavailable = handleDataAvailable;
       mediaRecorder.onstop = handleRecordingStop;
       mediaRecorder.onerror = (event) => {
@@ -520,7 +542,6 @@
         notifyError(event.error?.message || '녹화 오류');
       };
 
-      // 상태 초기화
       currentStreamerId = streamerId;
       currentNickname = nickname;
       recordedChunks = [];
@@ -532,15 +553,13 @@
       isSaving = false;
       isSplitting = false;
       stopRetryCount = 0;
+      splitWaitCount = 0;
 
-      // 녹화 시작
       mediaRecorder.start(CONFIG.TIMESLICE);
       console.log('[숲토킹 Recorder] MediaRecorder 시작됨');
 
-      // 진행 상황 보고 시작
       startProgressReporting();
 
-      // 성공 알림
       notifyRecordingStarted(streamerId, nickname);
 
       return { success: true };
@@ -554,21 +573,28 @@
     }
   }
 
-  // 녹화 중지
   function stopRecording() {
     if (!isRecording || !mediaRecorder) {
       console.log('[숲토킹 Recorder] 녹화 중이 아님');
       return { success: false, error: '녹화 중이 아닙니다.' };
     }
 
-    // 파트 전환 중이면 대기
+    // ⭐ 파트 전환 중이면 대기 (최대 횟수 제한)
     if (isSplitting) {
-      console.log('[숲토킹 Recorder] 파트 전환 중, 잠시 후 재시도');
-      setTimeout(() => stopRecording(), 500);
-      return { success: true, pending: true };
-    }
+      splitWaitCount++;
 
-    // 저장 중이면 대기 (최대 재시도 횟수 제한)
+      if (splitWaitCount > CONFIG.MAX_SPLIT_WAIT) {
+        console.log('[숲토킹 Recorder] 분할 대기 초과, 강제 종료');
+        isSplitting = false;
+      } else {
+        console.log(`[숲토킹 Recorder] 파트 전환 중, 잠시 후 재시도 (${splitWaitCount}/${CONFIG.MAX_SPLIT_WAIT})`);
+        setTimeout(() => stopRecording(), 500);
+        return { success: true, pending: true };
+      }
+    }
+    splitWaitCount = 0;
+
+    // 저장 중이면 대기
     if (isSaving) {
       stopRetryCount++;
 
@@ -581,10 +607,8 @@
         return { success: true, pending: true };
       }
     }
-
     stopRetryCount = 0;
 
-    // 최소 녹화 시간 체크
     const elapsed = Date.now() - recordingStartTime;
     if (elapsed < CONFIG.MIN_RECORD_TIME) {
       const remaining = CONFIG.MIN_RECORD_TIME - elapsed;
@@ -601,13 +625,11 @@
     logMemoryUsage('녹화 중지 전');
 
     try {
-      // 진행 상황 보고 중지
       if (progressIntervalId) {
         clearInterval(progressIntervalId);
         progressIntervalId = null;
       }
 
-      // MediaRecorder 중지
       if (mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();
       }
@@ -621,13 +643,11 @@
     }
   }
 
-  // 데이터 청크 처리
   function handleDataAvailable(event) {
     if (event.data && event.data.size > 0) {
       recordedChunks.push(event.data);
       totalRecordedBytes += event.data.size;
 
-      // ⭐ 파일 크기 체크 (500MB 초과 시 MediaRecorder 재시작으로 분할)
       if (totalRecordedBytes >= CONFIG.MAX_FILE_SIZE && !isSaving && !isSplitting) {
         console.log('[숲토킹 Recorder] 파일 크기 제한 도달, MediaRecorder 재시작 분할');
         splitWithRecorderRestart();
@@ -635,7 +655,7 @@
     }
   }
 
-  // ⭐ MediaRecorder 재시작으로 분할 저장 (핵심 변경)
+  // ⭐ MediaRecorder 재시작으로 분할 저장 (안정성 강화)
   async function splitWithRecorderRestart() {
     if (isSplitting || isSaving || !isRecording) return;
 
@@ -643,17 +663,15 @@
     console.log(`[숲토킹 Recorder] 파트 ${partNumber} 분할 시작...`);
     logMemoryUsage('분할 전');
 
-    // UI에 파트 전환 알림
     notifySplitStart(partNumber);
 
     try {
-      // 1. 현재 MediaRecorder 중지 (onstop 핸들러 실행 방지를 위해 플래그 설정)
-      const currentChunks = [...recordedChunks];  // 청크 복사
-      recordedChunks = [];  // 새 파트용으로 초기화
+      // 1. 현재 청크 복사
+      const currentChunks = [...recordedChunks];
+      recordedChunks = [];
 
-      // MediaRecorder 중지 (ondataavailable로 남은 데이터 수집)
+      // 2. MediaRecorder 중지
       if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        // 임시로 onstop 핸들러 교체
         const originalOnstop = mediaRecorder.onstop;
         mediaRecorder.onstop = null;
 
@@ -665,27 +683,44 @@
         mediaRecorder.onstop = originalOnstop;
       }
 
-      // 2. 현재 파트 저장
+      // 3. 현재 파트 저장 (에러 처리 강화)
       if (currentChunks.length > 0) {
-        const blob = new Blob(currentChunks, { type: 'video/webm' });
-        const fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_part${partNumber}.webm`;
+        try {
+          const blob = new Blob(currentChunks, { type: 'video/webm' });
+          const fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_part${partNumber}.webm`;
 
-        console.log(`[숲토킹 Recorder] 파트 ${partNumber} 저장: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
-        saveRecording(blob, fileName);
+          console.log(`[숲토킹 Recorder] 파트 ${partNumber} 저장: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
+          saveRecording(blob, fileName);
+        } catch (saveError) {
+          console.error('[숲토킹 Recorder] 파트 저장 실패:', saveError);
+          notifyError(`파트 ${partNumber} 저장 실패: ${saveError.message}`);
+          // 저장 실패해도 녹화는 계속
+        }
 
-        // 명시적 메모리 정리
         currentChunks.length = 0;
       }
 
-      // 3. 파트 번호 증가
+      // 4. 파트 번호 증가
       partNumber++;
       totalRecordedBytes = 0;
 
-      // 4. 잠시 대기 (안정성)
+      // 5. 대기
       await new Promise(r => setTimeout(r, CONFIG.SPLIT_TRANSITION_DELAY));
 
-      // 5. 새 MediaRecorder 생성 및 시작
-      if (isRecording && canvasStream) {
+      // 6. ⭐ 스트림 유효성 검증 및 재생성
+      if (isRecording) {
+        const streamValid = ensureValidCanvasStream();
+
+        if (!streamValid) {
+          console.error('[숲토킹 Recorder] 스트림 재생성 실패, 녹화 중지');
+          notifyError('스트림 재생성 실패로 녹화가 중지되었습니다.');
+          isRecording = false;
+          isSplitting = false;
+          cleanupCanvas();
+          return;
+        }
+
+        // 7. 새 MediaRecorder 생성
         const qualityConfig = currentQuality === 'high' ? CONFIG.HIGH_QUALITY : CONFIG.LOW_QUALITY;
 
         const options = {
@@ -705,7 +740,6 @@
         mediaRecorder.start(CONFIG.TIMESLICE);
         console.log(`[숲토킹 Recorder] 파트 ${partNumber} 녹화 시작 (새 MediaRecorder)`);
 
-        // UI에 파트 전환 완료 알림
         notifySplitComplete(partNumber);
       }
 
@@ -714,25 +748,44 @@
     } catch (error) {
       console.error('[숲토킹 Recorder] 분할 중 오류:', error);
       console.error('[숲토킹 Recorder] 오류 스택:', error.stack);
-      notifyError('파트 분할 중 오류가 발생했습니다.');
+      notifyError(`파트 분할 중 오류: ${error.message}`);
+
+      // 분할 실패 시 복구 시도
+      if (isRecording && !mediaRecorder) {
+        console.log('[숲토킹 Recorder] 분할 실패 후 복구 시도...');
+        try {
+          if (ensureValidCanvasStream()) {
+            const qualityConfig = currentQuality === 'high' ? CONFIG.HIGH_QUALITY : CONFIG.LOW_QUALITY;
+            const options = {
+              mimeType: currentMimeType,
+              videoBitsPerSecond: qualityConfig.VIDEO_BITRATE,
+              audioBitsPerSecond: qualityConfig.AUDIO_BITRATE
+            };
+            mediaRecorder = new MediaRecorder(canvasStream, options);
+            mediaRecorder.ondataavailable = handleDataAvailable;
+            mediaRecorder.onstop = handleRecordingStop;
+            mediaRecorder.start(CONFIG.TIMESLICE);
+            console.log('[숲토킹 Recorder] 복구 성공, 녹화 재개');
+          }
+        } catch (recoveryError) {
+          console.error('[숲토킹 Recorder] 복구 실패:', recoveryError);
+          isRecording = false;
+        }
+      }
     } finally {
       isSplitting = false;
     }
   }
 
-  // 녹화 종료 처리
   function handleRecordingStop() {
-    // 파트 전환 중이면 무시 (splitWithRecorderRestart에서 처리)
     if (isSplitting) {
       return;
     }
 
     console.log('[숲토킹 Recorder] MediaRecorder 중지됨');
 
-    // 최종 저장
     finalizeRecording();
 
-    // 정리 (오디오 연결은 유지)
     cleanupCanvas();
     mediaRecorder = null;
     isRecording = false;
@@ -740,7 +793,6 @@
     logMemoryUsage('녹화 종료 후');
   }
 
-  // 최종 저장
   function finalizeRecording() {
     if (recordedChunks.length === 0) {
       console.log('[숲토킹 Recorder] 저장할 데이터 없음');
@@ -748,29 +800,33 @@
       return;
     }
 
-    const blob = new Blob(recordedChunks, { type: 'video/webm' });
-    const duration = Math.floor((Date.now() - recordingStartTime) / 1000);
+    try {
+      const blob = new Blob(recordedChunks, { type: 'video/webm' });
+      const duration = Math.floor((Date.now() - recordingStartTime) / 1000);
 
-    let fileName;
-    if (partNumber > 1) {
-      fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_part${partNumber}.webm`;
-    } else {
-      fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}.webm`;
+      let fileName;
+      if (partNumber > 1) {
+        fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_part${partNumber}.webm`;
+      } else {
+        fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}.webm`;
+      }
+
+      saveRecording(blob, fileName);
+
+      console.log(`[숲토킹 Recorder] 녹화 완료: ${fileName}, 크기: ${(blob.size / 1024 / 1024).toFixed(2)}MB, 시간: ${duration}초`);
+      notifyRecordingStopped(blob.size, duration, true);
+    } catch (error) {
+      console.error('[숲토킹 Recorder] 최종 저장 실패:', error);
+      notifyError(`최종 저장 실패: ${error.message}`);
+      notifyRecordingStopped(0, 0, false);
     }
 
-    saveRecording(blob, fileName);
-
-    console.log(`[숲토킹 Recorder] 녹화 완료: ${fileName}, 크기: ${(blob.size / 1024 / 1024).toFixed(2)}MB, 시간: ${duration}초`);
-    notifyRecordingStopped(blob.size, duration, true);
-
-    // 명시적 메모리 정리
     recordedChunks.length = 0;
     recordedChunks = [];
     totalRecordedBytes = 0;
     partNumber = 1;
   }
 
-  // 파일 저장 (Content Script로 전달)
   function saveRecording(blob, fileName) {
     const blobUrl = URL.createObjectURL(blob);
 
@@ -786,7 +842,6 @@
     console.log(`[숲토킹 Recorder] 저장 요청: ${fileName}`);
   }
 
-  // 진행 상황 보고
   function startProgressReporting() {
     if (progressIntervalId) {
       clearInterval(progressIntervalId);
@@ -806,7 +861,7 @@
         totalBytes: totalRecordedBytes,
         elapsedTime: elapsedTime,
         partNumber: partNumber,
-        isSplitting: isSplitting  // ⭐ 파트 전환 중 여부
+        isSplitting: isSplitting
       }, '*');
 
     }, CONFIG.PROGRESS_INTERVAL);
@@ -829,7 +884,8 @@
       streamerId: currentStreamerId,
       totalBytes: totalBytes,
       duration: duration,
-      saved: saved
+      saved: saved,
+      totalParts: partNumber  // ⭐ 총 파트 수 추가
     }, '*');
   }
 
@@ -840,7 +896,6 @@
     }, '*');
   }
 
-  // ⭐ 파트 전환 시작 알림
   function notifySplitStart(partNum) {
     window.postMessage({
       type: 'SOOPTALKING_SPLIT_START',
@@ -849,7 +904,6 @@
     }, '*');
   }
 
-  // ⭐ 파트 전환 완료 알림
   function notifySplitComplete(newPartNum) {
     window.postMessage({
       type: 'SOOPTALKING_SPLIT_COMPLETE',
@@ -895,14 +949,13 @@
         break;
 
       case 'PING':
-        result = { success: true, pong: true, version: '3.5.8.2' };
+        result = { success: true, pong: true, version: '3.5.8.3' };
         break;
 
       default:
         result = { success: false, error: '알 수 없는 명령' };
     }
 
-    // 결과 전송
     window.postMessage({
       type: 'SOOPTALKING_RECORDER_RESPONSE',
       command: command,
