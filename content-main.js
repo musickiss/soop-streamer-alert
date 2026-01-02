@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 =====
 // content-main.js - MAIN world Canvas 녹화 스크립트
-// v3.5.10 - 자동 녹화 안전 종료 시스템
+// v3.5.11 - 녹화 파일명에 품질 정보 추가
 
 (function() {
   'use strict';
@@ -114,7 +114,7 @@
     return 'video/webm';
   }
 
-  function generateFileName(streamerId) {
+  function generateFileName(streamerId, quality) {
     const now = new Date();
     const timestamp = now.getFullYear().toString() +
       String(now.getMonth() + 1).padStart(2, '0') +
@@ -124,7 +124,9 @@
       String(now.getSeconds()).padStart(2, '0');
 
     recordingStartTimestamp = timestamp;
-    return `soop_${streamerId}_${timestamp}.webm`;
+    // ⭐ v3.5.11: 품질 정보 추가
+    const qualityShort = getQualityShortName(quality);
+    return `soop_${streamerId}_${timestamp}_${qualityShort}.webm`;
   }
 
   // ⭐ v3.5.9.1: 품질 설정 헬퍼 함수
@@ -138,6 +140,20 @@
         return CONFIG.STANDARD_QUALITY;
       default:
         return CONFIG.ULTRA_QUALITY;
+    }
+  }
+
+  // ⭐ v3.5.11: 품질 약어 변환 함수 (파일명용)
+  function getQualityShortName(quality) {
+    switch (quality) {
+      case 'ultra':
+        return 'ultra';
+      case 'high':
+        return 'high';
+      case 'standard':
+        return 'std';
+      default:
+        return 'ultra';
     }
   }
 
@@ -655,7 +671,7 @@
       totalRecordedBytes = 0;
       partNumber = 1;
       recordingStartTime = Date.now();
-      generateFileName(streamerId);
+      generateFileName(streamerId, quality);
       isRecording = true;
       isSaving = false;
       isSplitting = false;
@@ -784,7 +800,9 @@
       if (allChunks.length > 0) {
         try {
           const blob = new Blob(allChunks, { type: 'video/webm' });
-          const fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_part${partNumber}.webm`;
+          // ⭐ v3.5.11: 품질 정보 포함
+          const qualityShort = getQualityShortName(currentQuality);
+          const fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_${qualityShort}_part${partNumber}.webm`;
 
           console.log(`[숲토킹 Recorder] 파트 ${partNumber} 저장: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
           saveRecording(blob, fileName);
@@ -908,11 +926,13 @@
       const blob = new Blob(recordedChunks, { type: 'video/webm' });
       const duration = Math.floor((Date.now() - recordingStartTime) / 1000);
 
+      // ⭐ v3.5.11: 품질 정보 포함
+      const qualityShort = getQualityShortName(currentQuality);
       let fileName;
       if (partNumber > 1) {
-        fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_part${partNumber}.webm`;
+        fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_${qualityShort}_part${partNumber}.webm`;
       } else {
-        fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}.webm`;
+        fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_${qualityShort}.webm`;
       }
 
       saveRecording(blob, fileName);
