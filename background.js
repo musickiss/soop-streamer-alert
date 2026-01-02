@@ -1,6 +1,6 @@
-// ===== 숲토킹 v3.5.10.1 - Background Service Worker =====
+// ===== 숲토킹 v3.5.10.2 - Background Service Worker =====
 // Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장 + 500MB 자동 분할 저장
-// v3.5.10.1: 핫픽스 - content.js event.data 참조 오류 수정, autoClose 초기값 추가
+// v3.5.10.2: 핫픽스 - 녹화 중지 버튼 동작 안 함 수정 (RECORDING_STARTED 핸들러 tabId 필드 누락)
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -1079,10 +1079,13 @@ async function handleMessage(message, sender, sendResponse) {
     // ⭐ 녹화 시작됨 (Content에서 알림)
     case 'RECORDING_STARTED':
       console.log(`[숲토킹] 녹화 시작됨: tabId=${message.tabId}, streamerId=${message.streamerId}`);
+      // ⭐ v3.5.10.2: tabId, totalBytes 필드 추가 (녹화 중지 버튼 동작 수정)
       state.recordings.set(message.tabId, {
+        tabId: message.tabId,
         streamerId: message.streamerId,
         nickname: message.nickname,
-        startTime: Date.now()
+        startTime: Date.now(),
+        totalBytes: 0
       });
       updateBadge();
       sendResponse({ success: true });
@@ -1208,4 +1211,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.5.10.1 로드됨 (핫픽스)');
+console.log('[숲토킹] Background Service Worker v3.5.10.2 로드됨 (녹화 중지 수정)');
