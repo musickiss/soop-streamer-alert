@@ -383,7 +383,14 @@
 
         // 분할 저장용 변수 초기화
         partNumber = 1;
-        recordingStartTimestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+        // 타임스탬프 형식: YYYYMMDD_HHMMSS (generateFileName과 동일)
+        const now = new Date();
+        recordingStartTimestamp = now.getFullYear().toString() +
+          (now.getMonth() + 1).toString().padStart(2, '0') +
+          now.getDate().toString().padStart(2, '0') + '_' +
+          now.getHours().toString().padStart(2, '0') +
+          now.getMinutes().toString().padStart(2, '0') +
+          now.getSeconds().toString().padStart(2, '0');
         accumulatedBytes = 0;
 
         // 3. video.captureStream()으로 스트림 획득

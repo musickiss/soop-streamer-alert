@@ -1,6 +1,6 @@
-// ===== 숲토킹 v3.5.2 - 사이드패널 =====
+// ===== 숲토킹 v3.5.3 - 사이드패널 =====
 // Downloads API 기반 안정화 버전, Background와 메시지 통신
-// 리사이저블 레이아웃 지원
+// 리사이저블 레이아웃 지원 + 분할 저장 알림
 
 (function() {
   'use strict';
@@ -1270,6 +1270,16 @@
           updateRecordingButton();
           updateActiveRecordingList();
           showToast('녹화 오류: ' + (message.error || '알 수 없는 오류'), 'error');
+          break;
+
+        case 'SEGMENT_SAVED':
+          // 분할 저장 성공 알림
+          showToast(`📁 Part ${message.partNumber} 저장됨 (${formatBytes(message.size)})`, 'success');
+          break;
+
+        case 'SEGMENT_SAVE_ERROR':
+          // 분할 저장 실패 알림
+          showToast('분할 저장 실패: ' + (message.error || '알 수 없는 오류'), 'error');
           break;
       }
     });

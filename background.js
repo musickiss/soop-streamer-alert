@@ -1,5 +1,5 @@
-// ===== 숲토킹 v3.5.0 - Background Service Worker =====
-// Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장 + 500MB 자동 분할 저장
+// ===== 숲토킹 v3.5.3 - Background Service Worker =====
+// Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장 + 500MB 자동 분할 저장 (MediaRecorder 재시작 방식)
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -793,7 +793,7 @@ async function handleMessage(message, sender, sendResponse) {
     // ===== 분할 저장 처리 =====
     case 'SAVE_RECORDING_SEGMENT':
       try {
-        const { fileName, blobUrl, size, partNumber } = message;
+        const { fileName, blobUrl, size, partNumber, streamerId } = message;
 
         console.log(`[숲토킹] 분할 저장: ${fileName} (${(size / 1024 / 1024).toFixed(1)}MB)`);
 
@@ -818,9 +818,27 @@ async function handleMessage(message, sender, sendResponse) {
           saveAs: false
         });
 
+        // 사이드패널에 분할 저장 성공 알림
+        broadcastToSidepanel({
+          type: 'SEGMENT_SAVED',
+          tabId: tabId,
+          streamerId: streamerId,
+          partNumber: partNumber,
+          size: size,
+          fileName: fileName
+        });
+
         sendResponse({ success: true, partNumber: partNumber });
       } catch (error) {
         console.error('[숲토킹] 분할 저장 실패:', error);
+
+        // 사이드패널에 분할 저장 실패 알림
+        broadcastToSidepanel({
+          type: 'SEGMENT_SAVE_ERROR',
+          tabId: tabId,
+          error: error.message
+        });
+
         sendResponse({ success: false, error: error.message });
       }
       break;
@@ -885,4 +903,4 @@ loadSettings().then(() => {
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.5.0 로드됨 (500MB 자동 분할 저장)');
+console.log('[숲토킹] Background Service Worker v3.5.3 로드됨 (500MB 자동 분할 저장)');

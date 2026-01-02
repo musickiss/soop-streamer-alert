@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.0 - Content Script (ISOLATED) =====
+// ===== 숲토킹 v3.5.3 - Content Script (ISOLATED) =====
 // MAIN world와 Background 사이의 메시지 브릿지 + 분할 저장 지원
 
 (function() {
@@ -176,5 +176,5 @@
     url: window.location.href
   }).catch(() => {});
 
-  console.log('[숲토킹 Content] v3.5.0 ISOLATED 브릿지 로드됨 (분할 저장 지원)');
+  console.log('[숲토킹 Content] v3.5.3 ISOLATED 브릿지 로드됨 (분할 저장 지원)');
 })();
