@@ -1,6 +1,6 @@
-// ===== 숲토킹 v3.5.4 - MAIN World 녹화 모듈 =====
-// 녹화 품질 선택 (VP9/VP8) + 성능 최적화 + 500MB 자동 분할 저장
-// v3.5.4: 녹화 안정화 - 30fps 제한, 3Mbps 비트레이트, 버퍼 체크, 시작 딜레이
+// ===== 숲토킹 v3.5.7 - MAIN World 녹화 모듈 =====
+// VP9 우선 코덱 + 성능 최적화 + 500MB 자동 분할 저장
+// v3.5.7: 녹화 끊김 해결 - captureStream fps 제거, 5Mbps, VP9 우선
 
 (function() {
   'use strict';
@@ -19,7 +19,6 @@
   let currentStreamerId = null;
   let currentNickname = null;
   let currentVideoElement = null;  // 비디오 요소 참조 보관
-  let currentQuality = 'low';      // 현재 녹화 품질
 
   // ===== 분할 저장용 상태 변수 =====
   let partNumber = 1;              // 현재 파트 번호
@@ -31,13 +30,12 @@
 
   // ===== 설정 =====
   const CONFIG = {
-    VIDEO_BITRATE: 3000000,    // 3 Mbps (안정성 우선, CPU 부하 감소)
+    VIDEO_BITRATE: 5000000,    // 5 Mbps (고화질)
     AUDIO_BITRATE: 128000,     // 128 Kbps
-    TIMESLICE: 1000,           // 1초마다 데이터 청크 (부하 분산)
+    TIMESLICE: 2000,           // 2초마다 데이터 청크 (끊김 방지)
     PROGRESS_INTERVAL: 5000,   // 5초마다 진행 상황 보고
     MAX_CHUNK_SIZE: 50 * 1024 * 1024,  // 50MB 청크 제한 (메모리 보호)
     SEGMENT_SIZE: 500 * 1024 * 1024,   // 500MB (분할 저장 기준)
-    CAPTURE_FPS: 30,                   // 30fps 제한 (안정성)
     MIN_BUFFER_SECONDS: 2,             // 최소 버퍼 시간 (초)
     START_DELAY: 500                   // 녹화 시작 딜레이 (ms)
   };
@@ -69,28 +67,17 @@
   }
 
   // ===== 코덱 선택 =====
-  function getBestMimeType(quality) {
-    // quality: 'high' = VP9 (고사양), 'low' = VP8 (저사양)
-    let codecs;
-
-    if (quality === 'high') {
-      // 고사양: VP9 우선 (좋은 화질, 하드웨어 가속 시 부하 적음)
-      codecs = [
-        { mime: 'video/webm;codecs=vp9,opus', name: 'VP9' },
-        { mime: 'video/webm;codecs=vp8,opus', name: 'VP8' },
-        { mime: 'video/webm', name: 'WebM' }
-      ];
-    } else {
-      // 저사양: VP8 우선 (가장 가벼움)
-      codecs = [
-        { mime: 'video/webm;codecs=vp8,opus', name: 'VP8' },
-        { mime: 'video/webm', name: 'WebM' }
-      ];
-    }
+  function getBestMimeType() {
+    // VP9 우선 (좋은 화질, 하드웨어 가속 지원)
+    const codecs = [
+      { mime: 'video/webm;codecs=vp9,opus', name: 'VP9' },
+      { mime: 'video/webm;codecs=vp8,opus', name: 'VP8' },
+      { mime: 'video/webm', name: 'WebM' }
+    ];
 
     for (const { mime, name } of codecs) {
       if (MediaRecorder.isTypeSupported(mime)) {
-        console.log(`[숲토킹 Recorder] 코덱 선택: ${name} (${quality === 'high' ? '고사양' : '저사양'})`);
+        console.log(`[숲토킹 Recorder] 코덱 선택: ${name}`);
         return mime;
       }
     }
@@ -220,7 +207,7 @@
           if (currentVideoElement && !currentVideoElement.paused && !currentVideoElement.ended) {
             // 새 스트림 획득 및 MediaRecorder 재생성
             try {
-              recordingStream = currentVideoElement.captureStream(CONFIG.CAPTURE_FPS);
+              recordingStream = currentVideoElement.captureStream();
               mediaRecorder = createMediaRecorder();
               if (mediaRecorder) {
                 mediaRecorder.start(CONFIG.TIMESLICE);
@@ -406,13 +393,12 @@
           now.getSeconds().toString().padStart(2, '0');
         accumulatedBytes = 0;
 
-        // 3. video.captureStream(30)으로 스트림 획득 (30fps 제한)
-        recordingStream = video.captureStream(CONFIG.CAPTURE_FPS);
-        console.log(`[숲토킹 Recorder] 스트림 획득 성공 (${CONFIG.CAPTURE_FPS}fps 제한)`);
+        // 3. video.captureStream()으로 스트림 획득 (원본 fps 유지)
+        recordingStream = video.captureStream();
+        console.log('[숲토킹 Recorder] 스트림 획득 성공 (원본 fps)');
 
-        // 4. 코덱 선택
-        currentQuality = params.quality || 'low';
-        currentMimeType = getBestMimeType(currentQuality);
+        // 4. 코덱 선택 (VP9 우선)
+        currentMimeType = getBestMimeType();
 
         // 5. MediaRecorder 생성
         mediaRecorder = createMediaRecorder();
@@ -532,5 +518,5 @@
     }
   });
 
-  console.log('[숲토킹 Recorder] v3.5.4 MAIN world 모듈 로드됨 (30fps 제한, 3Mbps, 버퍼체크, 시작딜레이)');
+  console.log('[숲토킹 Recorder] v3.5.7 MAIN world 모듈 로드됨 (VP9 우선, 5Mbps, 원본fps)');
 })();
