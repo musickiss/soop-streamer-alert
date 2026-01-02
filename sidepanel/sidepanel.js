@@ -18,7 +18,7 @@
     currentSoopTabId: null,
     filter: 'all',
     expandedStreamerId: null,
-    recordingQuality: 'low',  // 'low' = VP8, 'high' = VP9
+    recordingQuality: 'high',  // 'high' = 고사양, 'low' = 저사양
     // 현재 탭 녹화 상태 (sessionId 기반)
     currentTabRecording: null
   };
