@@ -1,4 +1,4 @@
-# 📺 숲토킹 (SOOPtalking) v3.5.9
+# 📺 숲토킹 (SOOPtalking) v3.5.11
 
 SOOP(구 아프리카TV) 스트리머 방송 알림 및 녹화 Chrome 확장 프로그램
 
@@ -50,8 +50,13 @@ SOOP(구 아프리카TV) 스트리머 방송 알림 및 녹화 Chrome 확장 프
 
 ### 녹화 파일 저장 위치
 ```
-다운로드/SOOPtalking/soop_{스트리머ID}_{타임스탬프}.webm
-분할 시: soop_{스트리머ID}_{타임스탬프}_part1.webm, _part2.webm, ...
+다운로드/SOOPtalking/soop_{스트리머ID}_{타임스탬프}_{품질}.webm
+분할 시: soop_{스트리머ID}_{타임스탬프}_{품질}_part1.webm, _part2.webm, ...
+
+예시:
+  soop_streamer123_20260103_143052_ultra.webm      (원본급)
+  soop_streamer123_20260103_143052_high.webm       (고품질)
+  soop_streamer123_20260103_143052_std_part1.webm  (표준, 분할)
 ```
 
 ### 녹화 품질 설정 (v3.5.9+)
@@ -108,7 +113,9 @@ SOOP(구 아프리카TV) 스트리머 방송 알림 및 녹화 Chrome 확장 프
 
 | 버전 | 주요 변경 |
 |------|-----------|
-| **v3.5.9** | VP9 기반 3단계 품질 설정 (원본급 30Mbps / 고품질 15Mbps / 표준 8Mbps), AV1 제거 |
+| **v3.5.11** | 녹화 파일명에 품질 정보(ultra/high/std) 추가 |
+| v3.5.10 | 방송 종료 시 녹화 안전 저장 시스템 (Promise 기반 저장 완료 대기) |
+| v3.5.9 | VP9 기반 3단계 품질 설정 (원본급 30Mbps / 고품질 15Mbps / 표준 8Mbps), AV1 제거 |
 | v3.5.8.3 | MediaRecorder 분할 안정성 강화, Canvas 스트림 유효성 검증, 분할 대기 무한 루프 방지 |
 | v3.5.8.2 | MediaRecorder 재시작 분할 (각 파트 독립 재생 보장) |
 | v3.5.8.1 | Canvas 녹화 안정성 개선, 오디오 연결 재사용 |
