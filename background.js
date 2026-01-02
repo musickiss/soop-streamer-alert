@@ -1,6 +1,6 @@
-// ===== 숲토킹 v3.5.10 - Background Service Worker =====
+// ===== 숲토킹 v3.5.10.1 - Background Service Worker =====
 // Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장 + 500MB 자동 분할 저장
-// v3.5.10: 자동 녹화 안전 종료 시스템 - 방송 종료 시 녹화 저장 완료 후 탭 종료
+// v3.5.10.1: 핫픽스 - content.js event.data 참조 오류 수정, autoClose 초기값 추가
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -719,6 +719,7 @@ async function addStreamer(streamerId) {
     nickname: streamerId,
     autoJoin: false,
     autoRecord: false,
+    autoClose: false,
     addedAt: Date.now()
   };
 
@@ -1207,4 +1208,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.5.10 로드됨 (자동 녹화 안전 종료 시스템)');
+console.log('[숲토킹] Background Service Worker v3.5.10.1 로드됨 (핫픽스)');

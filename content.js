@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.10 - Content Script (ISOLATED) =====
+// ===== 숲토킹 v3.5.10.1 - Content Script (ISOLATED) =====
 // MAIN world와 Background 사이의 메시지 브릿지 + 분할 저장 지원 + 안전 종료
 
 (function() {
@@ -130,8 +130,8 @@
         try {
           chrome.runtime.sendMessage({
             type: 'RECORDING_SPLIT_START',
-            partNumber: event.data.partNumber,
-            streamerId: event.data.streamerId
+            partNumber: data.partNumber,
+            streamerId: data.streamerId
           });
         } catch (e) {
           console.log('[숲토킹 Content] 파트 전환 시작 알림 전달 실패');
@@ -143,8 +143,8 @@
         try {
           chrome.runtime.sendMessage({
             type: 'RECORDING_SPLIT_COMPLETE',
-            partNumber: event.data.partNumber,
-            streamerId: event.data.streamerId
+            partNumber: data.partNumber,
+            streamerId: data.streamerId
           });
         } catch (e) {
           console.log('[숲토킹 Content] 파트 전환 완료 알림 전달 실패');
@@ -270,5 +270,5 @@
     url: window.location.href
   }).catch(() => {});
 
-  console.log('[숲토킹 Content] v3.5.10 ISOLATED 브릿지 로드됨 (안전 종료 지원)');
+  console.log('[숲토킹 Content] v3.5.10.1 ISOLATED 브릿지 로드됨 (핫픽스)');
 })();
