@@ -1997,3 +1997,17 @@ body {
   margin-left: 4px;
 }
 
+/* ===== 아바타 클릭 가능 스타일 (v3.5.12) ===== */
+.avatar.clickable {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.avatar.clickable:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px rgba(100, 181, 246, 0.4);
+}
+
+.avatar.clickable:active {
+  transform: scale(1.05);
+}

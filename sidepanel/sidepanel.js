@@ -654,7 +654,7 @@
       return `
         <div class="streamer-card ${isLive ? 'live' : ''}" data-id="${escapeHtml(streamer.id)}">
           <div class="streamer-card-header">
-            <div class="avatar">
+            <div class="avatar clickable" data-station-id="${escapeHtml(streamer.id)}" title="방송국 페이지로 이동">
               <span>${getFirstChar(streamer.nickname || streamer.id)}</span>
               <span class="status-dot ${isLive ? 'live' : 'offline'}"></span>
             </div>
@@ -845,6 +845,18 @@
 
     // 드래그 앤 드롭 설정 (v3.2.4)
     setupDragAndDrop();
+
+    // ★ v3.5.12: 아바타 클릭 - 방송국 페이지로 이동
+    document.querySelectorAll('.avatar.clickable').forEach(avatar => {
+      avatar.addEventListener('click', (e) => {
+        e.stopPropagation();  // 카드 확장/축소 방지
+        const streamerId = avatar.dataset.stationId;
+        if (streamerId) {
+          const stationUrl = `https://www.sooplive.co.kr/station/${streamerId}`;
+          chrome.tabs.create({ url: stationUrl });
+        }
+      });
+    });
 
     // 설정 토글
     document.querySelectorAll('.streamer-settings input[type="checkbox"]').forEach(toggle => {

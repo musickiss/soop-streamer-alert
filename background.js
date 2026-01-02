@@ -36,6 +36,22 @@ function sanitizeFilename(str) {
     .substring(0, 100);
 }
 
+// ===== 스트리머 닉네임 업데이트 헬퍼 (v3.5.12) =====
+function updateStreamerNickname(streamerId, newNickname) {
+  if (!newNickname || typeof newNickname !== 'string') return false;
+
+  const streamer = state.favoriteStreamers.find(s => s.id === streamerId);
+  if (!streamer) return false;
+
+  // 닉네임이 변경된 경우에만 업데이트
+  if (streamer.nickname !== newNickname) {
+    console.log(`[숲토킹] 닉네임 업데이트: ${streamer.nickname || streamerId} → ${newNickname}`);
+    streamer.nickname = newNickname;
+    return true;
+  }
+  return false;
+}
+
 // ===== 상태 관리 =====
 const state = {
   // 스트리머 모니터링
@@ -604,6 +620,14 @@ async function checkAndProcessStreamer(streamer) {
 
     state.broadcastStatus[streamer.id] = status;
 
+    // ★ v3.5.12: 닉네임 업데이트 (방송 중일 때 API에서 가져온 닉네임으로 갱신)
+    if (status.nickname && status.nickname !== streamer.id) {
+      const updated = updateStreamerNickname(streamer.id, status.nickname);
+      if (updated) {
+        await saveSettings();  // 변경 사항 저장
+      }
+    }
+
   } catch (error) {
     console.error('[숲토킹] 스트리머 체크 실패:', streamer.id, error);
   }
@@ -716,7 +740,7 @@ async function addStreamer(streamerId) {
 
   const streamer = {
     id: streamerId,
-    nickname: streamerId,
+    nickname: status.nickname || streamerId,  // ★ v3.5.12: API에서 가져온 닉네임 사용
     autoJoin: false,
     autoRecord: false,
     autoClose: false,
