@@ -1,5 +1,6 @@
-// ===== 숲토킹 v3.5.3 - Background Service Worker =====
-// Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장 + 500MB 자동 분할 저장 (MediaRecorder 재시작 방식)
+// ===== 숲토킹 v3.5.5 - Background Service Worker =====
+// Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장 + 500MB 자동 분할 저장
+// v3.5.5: 브라우저 시작 시 탭 중복 열림 및 자동 녹화 실패 버그 수정
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -52,18 +53,32 @@ const state = {
   settings: {
     notificationEnabled: true,
     endNotificationEnabled: false
-  }
+  },
+
+  // 초기화 상태 플래그 (중복 초기화 방지)
+  isInitialized: false,
+  isMonitoringStarting: false
 };
 
 // ===== 초기화 =====
 
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[숲토킹] v3.5.3 설치됨');
+  console.log('[숲토킹] v3.5.5 설치됨');
+  if (state.isInitialized) {
+    console.log('[숲토킹] 이미 초기화됨 - onInstalled 스킵');
+    return;
+  }
+  state.isInitialized = true;
   await loadSettings();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
   console.log('[숲토킹] 브라우저 시작');
+  if (state.isInitialized) {
+    console.log('[숲토킹] 이미 초기화됨 - onStartup 스킵');
+    return;
+  }
+  state.isInitialized = true;
   await loadSettings();
   if (state.isMonitoring) {
     startMonitoring();
@@ -241,6 +256,13 @@ function updateBadge() {
 // ===== 스트리머 모니터링 (5초/30초 분리) =====
 
 function startMonitoring() {
+  // 중복 시작 방지
+  if (state.isMonitoringStarting) {
+    console.log('[숲토킹] 모니터링 시작 중 - 중복 호출 무시');
+    return;
+  }
+  state.isMonitoringStarting = true;
+
   state.isMonitoring = true;
   saveSettings();
 
@@ -258,6 +280,7 @@ function startMonitoring() {
   // 자동참여 OFF 스트리머: 30초마다
   state.slowIntervalId = setInterval(checkSlowStreamers, CHECK_INTERVAL_SLOW);
 
+  state.isMonitoringStarting = false;
   console.log('[숲토킹] 모니터링 시작 (5초/30초 분리)');
 }
 
@@ -354,11 +377,34 @@ async function checkAndProcessStreamer(streamer) {
           // 비디오 요소 로드 대기 (추가 2초)
           await new Promise(r => setTimeout(r, 2000));
 
+          // 탭 유효성 재확인 (탭이 닫혔거나 URL이 변경되었을 수 있음)
+          try {
+            const currentTab = await chrome.tabs.get(tab.id);
+            if (!currentTab || !currentTab.url?.includes(`play.sooplive.co.kr/${streamer.id}`)) {
+              console.log('[숲토킹] 자동 녹화 취소 - 탭이 유효하지 않음:', streamer.id);
+              return;
+            }
+          } catch (error) {
+            console.log('[숲토킹] 자동 녹화 취소 - 탭 확인 실패:', error);
+            return;
+          }
+
           // 녹화 시작 (최대 3회 재시도)
           let retryCount = 0;
           const maxRetries = 3;
 
           const tryStartRecording = async () => {
+            // 재시도 전 탭 유효성 재확인
+            try {
+              const currentTab = await chrome.tabs.get(tab.id);
+              if (!currentTab || !currentTab.url?.includes(`play.sooplive.co.kr/${streamer.id}`)) {
+                console.log('[숲토킹] 자동 녹화 재시도 취소 - 탭 무효');
+                return { success: false, error: '탭이 유효하지 않음' };
+              }
+            } catch {
+              return { success: false, error: '탭 확인 실패' };
+            }
+
             const result = await startRecording(tab.id, streamer.id, streamer.nickname || streamer.id);
 
             if (!result.success && retryCount < maxRetries) {
@@ -503,7 +549,22 @@ chrome.notifications.onClicked.addListener((notificationId) => {
 
 async function openStreamerTab(streamerId) {
   const url = `https://play.sooplive.co.kr/${streamerId}`;
+
+  // 이미 열린 탭이 있는지 확인 (중복 열림 방지)
+  try {
+    const existingTabs = await chrome.tabs.query({ url: `*://play.sooplive.co.kr/${streamerId}*` });
+    if (existingTabs.length > 0) {
+      console.log('[숲토킹] 이미 열린 탭 재사용:', streamerId, 'tabId:', existingTabs[0].id);
+      // 탭 활성화
+      await chrome.tabs.update(existingTabs[0].id, { active: true });
+      return existingTabs[0];
+    }
+  } catch (error) {
+    console.warn('[숲토킹] 기존 탭 조회 실패:', error);
+  }
+
   const tab = await chrome.tabs.create({ url });
+  console.log('[숲토킹] 새 탭 생성:', streamerId, 'tabId:', tab.id);
   return tab;
 }
 
@@ -892,15 +953,23 @@ chrome.action.onClicked.addListener(async (tab) => {
 
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
-// ===== 초기 설정 로드 =====
+// ===== 초기 설정 로드 (IIFE로 중복 방지) =====
 
-loadSettings().then(() => {
+(async function initializeExtension() {
+  if (state.isInitialized) {
+    console.log('[숲토킹] 이미 초기화됨 - 초기 로드 스킵');
+    return;
+  }
+  state.isInitialized = true;
+
+  await loadSettings();
   console.log('[숲토킹] 초기 설정 로드 완료');
+
   if (state.isMonitoring) {
     startMonitoring();
   }
-});
+})();
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.5.3 로드됨 (500MB 자동 분할 저장)');
+console.log('[숲토킹] Background Service Worker v3.5.5 로드됨 (탭 중복 열림 버그 수정)');
