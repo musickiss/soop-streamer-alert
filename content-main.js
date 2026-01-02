@@ -217,10 +217,10 @@
                 streamerId: currentStreamerId
               }, '*');
 
-              // 10초 후 Blob URL 해제 (다운로드 완료 후)
+              // 30초 후 Blob URL 해제 (느린 디스크에서도 다운로드 완료 보장)
               setTimeout(() => {
                 URL.revokeObjectURL(blobUrl);
-              }, 10000);
+              }, 30000);
 
               // 다음 세그먼트 준비
               partNumber++;
