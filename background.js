@@ -1,5 +1,5 @@
-// ===== 숲토킹 v3.4.9 - Background Service Worker =====
-// Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장
+// ===== 숲토킹 v3.5.0 - Background Service Worker =====
+// Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장 + 500MB 자동 분할 저장
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -790,6 +790,41 @@ async function handleMessage(message, sender, sendResponse) {
       await downloadRecording(message.blobUrl, message.fileName);
       break;
 
+    // ===== 분할 저장 처리 =====
+    case 'SAVE_RECORDING_SEGMENT':
+      try {
+        const { fileName, blobUrl, size, partNumber } = message;
+
+        console.log(`[숲토킹] 분할 저장: ${fileName} (${(size / 1024 / 1024).toFixed(1)}MB)`);
+
+        // 보안: Content Script에서 온 요청만 처리
+        if (!tabId) {
+          console.warn('[숲토킹] 분할 저장 요청 거부: 탭 ID 없음');
+          sendResponse({ success: false, error: '탭 ID 없음' });
+          break;
+        }
+
+        // 보안: blobUrl 검증
+        if (!isValidBlobUrl(blobUrl)) {
+          console.error('[숲토킹] 분할 저장 - 유효하지 않은 blobUrl');
+          sendResponse({ success: false, error: '유효하지 않은 URL' });
+          break;
+        }
+
+        // 다운로드 실행
+        await chrome.downloads.download({
+          url: blobUrl,
+          filename: `SOOPtalking/${sanitizeFilename(fileName)}`,
+          saveAs: false
+        });
+
+        sendResponse({ success: true, partNumber: partNumber });
+      } catch (error) {
+        console.error('[숲토킹] 분할 저장 실패:', error);
+        sendResponse({ success: false, error: error.message });
+      }
+      break;
+
     default:
       sendResponse({ success: false, error: '알 수 없는 메시지 타입' });
   }
@@ -850,4 +885,4 @@ loadSettings().then(() => {
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.4.9 로드됨');
+console.log('[숲토킹] Background Service Worker v3.5.0 로드됨 (500MB 자동 분할 저장)');

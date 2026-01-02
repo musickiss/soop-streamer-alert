@@ -1,5 +1,5 @@
-// ===== 숲토킹 v3.4.5 - MAIN World 녹화 모듈 =====
-// 녹화 품질 선택 (VP9/VP8) + 성능 최적화
+// ===== 숲토킹 v3.5.0 - MAIN World 녹화 모듈 =====
+// 녹화 품질 선택 (VP9/VP8) + 성능 최적화 + 500MB 자동 분할 저장
 
 (function() {
   'use strict';
@@ -18,13 +18,20 @@
   let currentStreamerId = null;
   let currentNickname = null;
 
+  // ===== 분할 저장용 상태 변수 =====
+  let partNumber = 1;              // 현재 파트 번호
+  let recordingStartTimestamp = ''; // 녹화 시작 시간 (파일명용)
+  let accumulatedBytes = 0;         // 현재 세그먼트 누적 바이트
+  let currentMimeType = 'video/webm'; // 현재 사용 중인 mimeType
+
   // ===== 설정 =====
   const CONFIG = {
     VIDEO_BITRATE: 5000000,    // 5 Mbps (원본 수준, CPU 부하 감소)
     AUDIO_BITRATE: 128000,     // 128 Kbps
     TIMESLICE: 1000,           // 1초마다 데이터 청크 (부하 분산)
     PROGRESS_INTERVAL: 5000,   // 5초마다 진행 상황 보고
-    MAX_CHUNK_SIZE: 50 * 1024 * 1024  // 50MB 청크 제한 (메모리 보호)
+    MAX_CHUNK_SIZE: 50 * 1024 * 1024,  // 50MB 청크 제한 (메모리 보호)
+    SEGMENT_SIZE: 500 * 1024 * 1024    // 500MB (분할 저장 기준)
   };
 
   // ===== 유틸리티 =====
@@ -161,6 +168,11 @@
         totalBytesRecorded = 0;
         recordingStartTime = Date.now();
 
+        // 분할 저장용 변수 초기화
+        partNumber = 1;
+        recordingStartTimestamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+        accumulatedBytes = 0;
+
         // 3. video.captureStream()으로 스트림 획득
         recordingStream = video.captureStream();
         console.log('[숲토킹 Recorder] 스트림 획득 성공');
@@ -168,6 +180,7 @@
         // 4. 코덱 선택
         const quality = params.quality || 'low';
         const mimeType = getBestMimeType(quality);
+        currentMimeType = mimeType; // 분할 저장 시 사용
 
         // 5. MediaRecorder 생성
         mediaRecorder = new MediaRecorder(recordingStream, {
@@ -176,34 +189,74 @@
           audioBitsPerSecond: CONFIG.AUDIO_BITRATE
         });
 
-        // 6. 데이터 핸들러 (메모리 최적화)
+        // 6. 데이터 핸들러 (메모리 최적화 + 500MB 자동 분할 저장)
         mediaRecorder.ondataavailable = (e) => {
           if (e.data && e.data.size > 0) {
             recordedChunks.push(e.data);
             totalBytesRecorded += e.data.size;
+            accumulatedBytes += e.data.size;
 
-            // 메모리 보호: 청크 크기 제한 도달 시 경고
-            if (totalBytesRecorded > CONFIG.MAX_CHUNK_SIZE * 10) {
-              console.warn('[숲토킹 Recorder] 녹화 용량이 500MB를 초과했습니다.');
+            // ★ 500MB 도달 시 자동 분할 저장
+            if (accumulatedBytes >= CONFIG.SEGMENT_SIZE) {
+              console.log(`[숲토킹 Recorder] 분할 저장 시작 (part${partNumber}, ${(accumulatedBytes / 1024 / 1024).toFixed(1)}MB)`);
+
+              // 현재 청크들로 Blob 생성
+              const blob = new Blob(recordedChunks, { type: currentMimeType });
+
+              // 파일명 생성 (part 번호 포함)
+              const fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_part${partNumber}.webm`;
+
+              // 저장 요청 전송
+              const blobUrl = URL.createObjectURL(blob);
+              window.postMessage({
+                type: 'SOOPTALKING_SAVE_SEGMENT',
+                fileName: fileName,
+                size: blob.size,
+                blobUrl: blobUrl,
+                partNumber: partNumber,
+                streamerId: currentStreamerId
+              }, '*');
+
+              // 10초 후 Blob URL 해제 (다운로드 완료 후)
+              setTimeout(() => {
+                URL.revokeObjectURL(blobUrl);
+              }, 10000);
+
+              // 다음 세그먼트 준비
+              partNumber++;
+              recordedChunks = [];  // 청크 배열 초기화 (메모리 해제)
+              accumulatedBytes = 0;
+
+              console.log(`[숲토킹 Recorder] 분할 저장 완료, part${partNumber} 시작`);
             }
           }
         };
 
-        // 7. 녹화 종료 처리
+        // 7. 녹화 종료 처리 (남은 청크 저장 + part 번호 처리)
         mediaRecorder.onstop = async () => {
           console.log('[숲토킹 Recorder] 녹화 중지됨');
           clearProgressInterval();
 
           const duration = Math.floor((Date.now() - recordingStartTime) / 1000);
 
+          // 남은 청크가 있으면 저장
           if (recordedChunks.length > 0) {
             try {
               // Blob 생성
-              const blob = new Blob(recordedChunks, { type: mimeType });
+              const blob = new Blob(recordedChunks, { type: currentMimeType });
               const blobUrl = URL.createObjectURL(blob);
-              const fileName = generateFileName(currentStreamerId);
 
-              console.log(`[숲토킹 Recorder] 파일 생성: ${fileName} (${(blob.size / 1024 / 1024).toFixed(2)} MB)`);
+              // 파일명 생성 (마지막 part 또는 단일 파일)
+              let fileName;
+              if (partNumber > 1) {
+                // 분할된 경우: part 번호 포함
+                fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_part${partNumber}.webm`;
+              } else {
+                // 분할 없이 종료된 경우: 기존 형식 유지
+                fileName = generateFileName(currentStreamerId);
+              }
+
+              console.log(`[숲토킹 Recorder] 최종 파일 생성: ${fileName} (${(blob.size / 1024 / 1024).toFixed(2)} MB)`);
 
               // Background로 다운로드 요청
               window.postMessage({
@@ -218,10 +271,12 @@
                 type: 'SOOPTALKING_RECORDING_STOPPED',
                 streamerId: currentStreamerId,
                 nickname: currentNickname,
-                totalBytes: blob.size,
+                totalBytes: totalBytesRecorded,
                 duration: duration,
                 saved: true,
-                fileName: fileName
+                fileName: fileName,
+                partNumber: partNumber > 1 ? partNumber : null,
+                totalParts: partNumber > 1 ? partNumber : null
               }, window.location.origin);
 
               // 메모리 정리: 10초 후 Blob URL 해제
@@ -238,6 +293,12 @@
               }, window.location.origin);
             }
           }
+
+          // 상태 초기화
+          recordedChunks = [];
+          accumulatedBytes = 0;
+          partNumber = 1;
+          recordingStartTimestamp = '';
 
           cleanup();
         };
@@ -356,5 +417,5 @@
     }
   });
 
-  console.log('[숲토킹 Recorder] v3.4.5 MAIN world 모듈 로드됨 (품질 선택 지원)');
+  console.log('[숲토킹 Recorder] v3.5.0 MAIN world 모듈 로드됨 (500MB 자동 분할 저장)');
 })();

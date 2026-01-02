@@ -1,5 +1,5 @@
-// ===== 숲토킹 v3.4.5 - Content Script (ISOLATED) =====
-// MAIN world와 Background 사이의 메시지 브릿지
+// ===== 숲토킹 v3.5.0 - Content Script (ISOLATED) =====
+// MAIN world와 Background 사이의 메시지 브릿지 + 분할 저장 지원
 
 (function() {
   'use strict';
@@ -37,6 +37,7 @@
     'SOOPTALKING_RECORDING_STOPPED',
     'SOOPTALKING_RECORDING_ERROR',
     'SOOPTALKING_SAVE_RECORDING',
+    'SOOPTALKING_SAVE_SEGMENT',  // 분할 저장 메시지 추가
     'SOOPTALKING_RECORDER_RESULT'
   ];
 
@@ -86,6 +87,21 @@
           type: 'SAVE_RECORDING_FROM_PAGE',
           ...data
         }).catch(() => {});
+        break;
+
+      case 'SOOPTALKING_SAVE_SEGMENT':
+        // ★ 분할 저장 메시지 처리
+        console.log('[숲토킹 Content] 분할 저장 요청:', data.fileName);
+        safeSendMessage({
+          type: 'SAVE_RECORDING_SEGMENT',
+          fileName: data.fileName,
+          size: data.size,
+          blobUrl: data.blobUrl,
+          partNumber: data.partNumber,
+          streamerId: data.streamerId
+        }).catch((error) => {
+          console.error('[숲토킹 Content] 분할 저장 전송 실패:', error);
+        });
         break;
 
       case 'SOOPTALKING_RECORDER_RESULT':
@@ -160,5 +176,5 @@
     url: window.location.href
   }).catch(() => {});
 
-  console.log('[숲토킹 Content] v3.4.5 ISOLATED 브릿지 로드됨');
+  console.log('[숲토킹 Content] v3.5.0 ISOLATED 브릿지 로드됨 (분할 저장 지원)');
 })();
