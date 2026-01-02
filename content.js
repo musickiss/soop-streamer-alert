@@ -1,5 +1,5 @@
-// ===== 숲토킹 v3.5.9.2 - Content Script (ISOLATED) =====
-// MAIN world와 Background 사이의 메시지 브릿지 + 분할 저장 지원
+// ===== 숲토킹 v3.5.10 - Content Script (ISOLATED) =====
+// MAIN world와 Background 사이의 메시지 브릿지 + 분할 저장 지원 + 안전 종료
 
 (function() {
   'use strict';
@@ -28,6 +28,17 @@
     return match ? match[1] : null;
   }
 
+  // ⭐ v3.5.10: 현재 탭 ID 가져오기
+  async function getCurrentTabId() {
+    try {
+      const response = await chrome.runtime.sendMessage({ type: 'GET_CURRENT_TAB_ID' });
+      return response?.tabId;
+    } catch (e) {
+      console.warn('[숲토킹 Content] 탭 ID 조회 실패:', e);
+      return null;
+    }
+  }
+
   // ===== MAIN world → Background 메시지 브릿지 =====
 
   // 허용된 메시지 타입 목록 (화이트리스트)
@@ -40,7 +51,11 @@
     'SOOPTALKING_SAVE_SEGMENT',  // 분할 저장 메시지 추가
     'SOOPTALKING_SPLIT_START',   // 파트 전환 시작
     'SOOPTALKING_SPLIT_COMPLETE', // 파트 전환 완료
-    'SOOPTALKING_RECORDER_RESULT'
+    'SOOPTALKING_RECORDER_RESULT',
+    // ⭐ v3.5.10: 안전 종료용 알림 메시지
+    'SOOPTALKING_RECORDING_STARTED_NOTIFY',
+    'SOOPTALKING_RECORDING_SAVED_NOTIFY',
+    'SOOPTALKING_RECORDING_STOPPED_NOTIFY'
   ];
 
   window.addEventListener('message', (e) => {
@@ -135,6 +150,44 @@
           console.log('[숲토킹 Content] 파트 전환 완료 알림 전달 실패');
         }
         break;
+
+      // ⭐ v3.5.10: 녹화 시작 알림 → Background (안전 종료용)
+      case 'SOOPTALKING_RECORDING_STARTED_NOTIFY':
+        getCurrentTabId().then(tabId => {
+          chrome.runtime.sendMessage({
+            type: 'RECORDING_STARTED',
+            tabId: tabId,
+            streamerId: data.streamerId,
+            nickname: data.nickname
+          }).catch(e => console.log('[숲토킹 Content] RECORDING_STARTED 전송 실패:', e));
+        });
+        break;
+
+      // ⭐ v3.5.10: 녹화 저장 완료 알림 → Background (안전 종료용)
+      case 'SOOPTALKING_RECORDING_SAVED_NOTIFY':
+        getCurrentTabId().then(tabId => {
+          chrome.runtime.sendMessage({
+            type: 'RECORDING_SAVED',
+            tabId: tabId,
+            streamerId: data.streamerId,
+            nickname: data.nickname,
+            fileName: data.fileName,
+            fileSize: data.fileSize
+          }).catch(e => console.log('[숲토킹 Content] RECORDING_SAVED 전송 실패:', e));
+        });
+        break;
+
+      // ⭐ v3.5.10: 녹화 중지 알림 (저장 없음) → Background (안전 종료용)
+      case 'SOOPTALKING_RECORDING_STOPPED_NOTIFY':
+        getCurrentTabId().then(tabId => {
+          chrome.runtime.sendMessage({
+            type: 'RECORDING_STOPPED',
+            tabId: tabId,
+            streamerId: data.streamerId,
+            saved: data.saved
+          }).catch(e => console.log('[숲토킹 Content] RECORDING_STOPPED 전송 실패:', e));
+        });
+        break;
     }
   });
 
@@ -217,5 +270,5 @@
     url: window.location.href
   }).catch(() => {});
 
-  console.log('[숲토킹 Content] v3.5.9.2 ISOLATED 브릿지 로드됨 (분할 저장 지원)');
+  console.log('[숲토킹 Content] v3.5.10 ISOLATED 브릿지 로드됨 (안전 종료 지원)');
 })();

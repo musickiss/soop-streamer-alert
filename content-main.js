@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 =====
 // content-main.js - MAIN world Canvas 녹화 스크립트
-// v3.5.9.2 - 품질 설정 파라미터 전달 및 로깅 강화
+// v3.5.10 - 자동 녹화 안전 종료 시스템
 
 (function() {
   'use strict';
@@ -12,7 +12,7 @@
   }
   window.__SOOPTALKING_RECORDER_LOADED__ = true;
 
-  console.log('[숲토킹 Recorder] v3.5.9.2 로드됨');
+  console.log('[숲토킹 Recorder] v3.5.10 로드됨');
 
   // ===== 설정 =====
   const CONFIG = {
@@ -892,6 +892,14 @@
   function finalizeRecording() {
     if (recordedChunks.length === 0) {
       console.log('[숲토킹 Recorder] 저장할 데이터 없음');
+
+      // ⭐ v3.5.10: Background에 녹화 중지 알림 (저장 없음)
+      window.postMessage({
+        type: 'SOOPTALKING_RECORDING_STOPPED_NOTIFY',
+        streamerId: currentStreamerId,
+        saved: false
+      }, '*');
+
       notifyRecordingStopped(0, 0, false);
       return;
     }
@@ -935,7 +943,15 @@
       nickname: currentNickname
     }, '*');
 
-    console.log(`[숲토킹 Recorder] 저장 요청: ${fileName}`);
+    // ⭐ v3.5.10: 저장 완료 알림도 함께 전송 (Background에서 탭 종료 타이밍 결정용)
+    window.postMessage({
+      type: 'SOOPTALKING_RECORDING_SAVED_NOTIFY',
+      streamerId: currentStreamerId,
+      nickname: currentNickname,
+      fileName: fileName,
+      fileSize: blob.size
+    }, '*');
+    console.log(`[숲토킹 Recorder] 녹화 저장 완료 알림 전송: ${fileName}`);
   }
 
   function startProgressReporting() {
@@ -972,6 +988,18 @@
       nickname: nickname,
       recordingId: Date.now().toString()
     }, '*');
+
+    // ⭐ v3.5.10: Background에 녹화 시작 알림 (안전 종료용)
+    try {
+      window.postMessage({
+        type: 'SOOPTALKING_RECORDING_STARTED_NOTIFY',
+        streamerId: streamerId,
+        nickname: nickname
+      }, '*');
+      console.log('[숲토킹 Recorder] Background에 녹화 시작 알림 전송');
+    } catch (e) {
+      console.warn('[숲토킹 Recorder] 녹화 시작 알림 전송 실패:', e);
+    }
   }
 
   function notifyRecordingStopped(totalBytes, duration, saved) {
@@ -1068,7 +1096,7 @@
         break;
 
       case 'PING':
-        result = { success: true, pong: true, version: '3.5.9.2' };
+        result = { success: true, pong: true, version: '3.5.10' };
         break;
 
       default:

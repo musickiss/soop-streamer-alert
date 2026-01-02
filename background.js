@@ -1,11 +1,12 @@
-// ===== 숲토킹 v3.5.6 - Background Service Worker =====
+// ===== 숲토킹 v3.5.10 - Background Service Worker =====
 // Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장 + 500MB 자동 분할 저장
-// v3.5.6: Content Script 자동 주입 - 확장 새로고침 후 녹화 가능
+// v3.5.10: 자동 녹화 안전 종료 시스템 - 방송 종료 시 녹화 저장 완료 후 탭 종료
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
 const CHECK_INTERVAL_SLOW = 30000;  // 자동참여 OFF 스트리머 (30초)
 const API_URL = 'https://live.sooplive.co.kr/afreeca/player_live_api.php';
+const RECORDING_SAVE_TIMEOUT = 30000;  // 녹화 저장 최대 대기 시간 (30초)
 
 // ===== 보안 유틸리티 =====
 
@@ -44,6 +45,9 @@ const state = {
 
   // 녹화 세션 (tabId 기반)
   recordings: new Map(),  // tabId -> {streamerId, nickname, startTime, totalBytes}
+
+  // ⭐ v3.5.10: 탭 종료 대기 상태 (녹화 저장 완료 대기)
+  pendingTabClose: new Map(),  // tabId -> { resolve, timeoutId }
 
   // 모니터링 인터벌 ID
   fastIntervalId: null,
@@ -283,39 +287,98 @@ async function stopRecording(tabId) {
 
 // ===== 안전한 탭 종료 (녹화 중이면 저장 후 종료) =====
 
-async function safeCloseTab(tabId, streamerId) {
-  console.log('[숲토킹] 안전한 탭 종료 요청:', streamerId, 'tabId:', tabId);
-
-  // 녹화 중인지 확인
-  if (state.recordings.has(tabId)) {
-    console.log('[숲토킹] 녹화 중인 탭 - 녹화 중지 후 종료:', streamerId);
-
+// ⭐ v3.5.10: 녹화 저장 완료를 기다린 후 탭 종료
+async function safeCloseBroadcastTab(streamerId, tabId = null) {
+  // tabId가 없으면 스트리머 URL로 탭 검색
+  if (!tabId) {
     try {
-      // 녹화 중지 요청
-      await chrome.tabs.sendMessage(tabId, { type: 'STOP_RECORDING' });
-
-      // 녹화 저장 완료 대기 (최대 10초)
-      let waitCount = 0;
-      while (state.recordings.has(tabId) && waitCount < 20) {
-        await new Promise(r => setTimeout(r, 500));
-        waitCount++;
+      const tabs = await chrome.tabs.query({ url: `*://play.sooplive.co.kr/${streamerId}*` });
+      if (tabs.length > 0) {
+        tabId = tabs[0].id;
+      } else {
+        console.log(`[숲토킹] ${streamerId} 탭을 찾을 수 없음`);
+        return;
       }
-
-      console.log('[숲토킹] 녹화 저장 완료, 탭 종료:', streamerId);
     } catch (error) {
-      console.error('[숲토킹] 녹화 중지 실패:', error);
-      state.recordings.delete(tabId);
-      updateBadge();
+      console.log(`[숲토킹] ${streamerId} 탭 검색 실패:`, error);
+      return;
     }
   }
 
-  // 탭 종료
+  console.log('[숲토킹] 안전한 탭 종료 요청:', streamerId, 'tabId:', tabId);
+
+  // ⭐ 녹화 중인지 확인
+  if (state.recordings.has(tabId)) {
+    const recording = state.recordings.get(tabId);
+    console.log(`[숲토킹] ${streamerId} 녹화 중 - 안전 종료 프로세스 시작`);
+    console.log(`[숲토킹]   녹화 시간: ${Math.floor((Date.now() - recording.startTime) / 1000)}초`);
+
+    try {
+      // 1. 녹화 중지 요청
+      console.log(`[숲토킹] ${streamerId} 녹화 중지 요청 전송`);
+      await chrome.tabs.sendMessage(tabId, { type: 'STOP_RECORDING' });
+
+      // 2. 저장 완료 대기 (Promise + 타임아웃)
+      console.log(`[숲토킹] ${streamerId} 녹화 저장 완료 대기 중... (최대 ${RECORDING_SAVE_TIMEOUT / 1000}초)`);
+
+      const saved = await waitForRecordingSaved(tabId, RECORDING_SAVE_TIMEOUT);
+
+      if (saved) {
+        console.log(`[숲토킹] ${streamerId} 녹화 저장 완료 확인`);
+      } else {
+        console.warn(`[숲토킹] ${streamerId} 녹화 저장 타임아웃 - 강제 진행`);
+      }
+
+    } catch (error) {
+      console.error(`[숲토킹] ${streamerId} 녹화 중지 요청 실패:`, error);
+      // 에러가 나도 탭 종료는 진행 (탭이 이미 닫혔을 수 있음)
+    }
+  } else {
+    console.log(`[숲토킹] ${streamerId} 녹화 중 아님 - 즉시 종료`);
+  }
+
+  // 3. 탭 종료
   try {
     await chrome.tabs.remove(tabId);
-    console.log('[숲토킹] 탭 종료됨:', streamerId);
+    console.log(`[숲토킹] ${streamerId} 탭 종료 완료`);
   } catch (error) {
-    console.error('[숲토킹] 탭 종료 실패:', error);
+    console.log(`[숲토킹] ${streamerId} 탭이 이미 닫혀있음`);
+  } finally {
+    state.recordings.delete(tabId);
+    state.pendingTabClose.delete(tabId);
+    updateBadge();
   }
+}
+
+// ⭐ v3.5.10: 녹화 저장 완료 대기 함수
+function waitForRecordingSaved(tabId, timeout) {
+  return new Promise((resolve) => {
+    // 이미 녹화 상태가 없으면 즉시 resolve
+    if (!state.recordings.has(tabId)) {
+      resolve(true);
+      return;
+    }
+
+    // 타임아웃 설정
+    const timeoutId = setTimeout(() => {
+      console.warn(`[숲토킹] 탭 ${tabId} 녹화 저장 대기 타임아웃`);
+      state.pendingTabClose.delete(tabId);
+      resolve(false);  // 타임아웃 시 false 반환
+    }, timeout);
+
+    // 대기 상태 등록
+    state.pendingTabClose.set(tabId, {
+      resolve: resolve,
+      timeoutId: timeoutId
+    });
+
+    console.log(`[숲토킹] 탭 ${tabId} 저장 완료 대기 등록`);
+  });
+}
+
+// 기존 함수 호환용 (VOD 리다이렉트 등에서 사용)
+async function safeCloseTab(tabId, streamerId) {
+  await safeCloseBroadcastTab(streamerId, tabId);
 }
 
 // ===== 배지 업데이트 =====
@@ -499,6 +562,7 @@ async function checkAndProcessStreamer(streamer) {
     if (!status.isLive && prevStatus?.isLive) {
       console.log('[숲토킹] 방송 종료 감지:', streamer.nickname || streamer.id);
 
+      // 방송 종료 알림
       if (state.settings.endNotificationEnabled) {
         chrome.notifications.create({
           type: 'basic',
@@ -509,40 +573,32 @@ async function checkAndProcessStreamer(streamer) {
         });
       }
 
-      // 해당 스트리머의 탭 찾기
-      try {
-        const tabs = await chrome.tabs.query({ url: `*://play.sooplive.co.kr/${streamer.id}*` });
-
-        for (const tab of tabs) {
-          // 녹화 중인 탭이면 녹화 안전 저장 (autoClose 여부와 무관)
-          if (state.recordings.has(tab.id)) {
-            console.log('[숲토킹] 방송 종료 - 녹화 안전 저장:', streamer.id, 'tabId:', tab.id);
-            try {
-              await chrome.tabs.sendMessage(tab.id, { type: 'STOP_RECORDING' });
-              // 저장 완료 대기 (5초)
-              await new Promise(r => setTimeout(r, 5000));
-              state.recordings.delete(tab.id);
-              updateBadge();
-              console.log('[숲토킹] 녹화 저장 완료:', streamer.id);
-            } catch (error) {
-              console.error('[숲토킹] 녹화 중지 실패:', error);
-              state.recordings.delete(tab.id);
-              updateBadge();
+      // ⭐ v3.5.10: 자동 종료가 활성화되어 있으면 안전한 탭 종료 (녹화 저장 완료 후)
+      if (streamer.autoClose) {
+        console.log(`[숲토킹] ${streamer.id} 자동 종료 - 안전한 탭 종료 시작`);
+        await safeCloseBroadcastTab(streamer.id);
+      } else {
+        // 자동 종료가 비활성화되어 있어도, 녹화 중이면 녹화는 안전 저장
+        try {
+          const tabs = await chrome.tabs.query({ url: `*://play.sooplive.co.kr/${streamer.id}*` });
+          for (const tab of tabs) {
+            if (state.recordings.has(tab.id)) {
+              console.log('[숲토킹] 방송 종료 - 녹화 안전 저장 (탭 유지):', streamer.id);
+              try {
+                await chrome.tabs.sendMessage(tab.id, { type: 'STOP_RECORDING' });
+                // 저장 완료 대기 (Promise 기반)
+                await waitForRecordingSaved(tab.id, RECORDING_SAVE_TIMEOUT);
+                console.log('[숲토킹] 녹화 저장 완료 (탭 유지):', streamer.id);
+              } catch (error) {
+                console.error('[숲토킹] 녹화 중지 실패:', error);
+                state.recordings.delete(tab.id);
+                updateBadge();
+              }
             }
           }
-
-          // 자동 종료가 활성화되어 있으면 탭 종료
-          if (streamer.autoClose) {
-            console.log('[숲토킹] 자동 종료 - 탭 닫기:', streamer.id);
-            try {
-              await chrome.tabs.remove(tab.id);
-            } catch (error) {
-              console.error('[숲토킹] 탭 종료 실패:', error);
-            }
-          }
+        } catch (error) {
+          console.error('[숲토킹] 방송 종료 처리 실패:', error);
         }
-      } catch (error) {
-        console.error('[숲토킹] 방송 종료 처리 실패:', error);
       }
     }
 
@@ -1017,6 +1073,63 @@ async function handleMessage(message, sender, sendResponse) {
       sendResponse({ success: true });
       break;
 
+    // ===== v3.5.10: 녹화 상태 추적 메시지 =====
+
+    // ⭐ 녹화 시작됨 (Content에서 알림)
+    case 'RECORDING_STARTED':
+      console.log(`[숲토킹] 녹화 시작됨: tabId=${message.tabId}, streamerId=${message.streamerId}`);
+      state.recordings.set(message.tabId, {
+        streamerId: message.streamerId,
+        nickname: message.nickname,
+        startTime: Date.now()
+      });
+      updateBadge();
+      sendResponse({ success: true });
+      break;
+
+    // ⭐ 녹화 저장 완료 (Content에서 알림)
+    case 'RECORDING_SAVED':
+      console.log(`[숲토킹] 녹화 저장 완료: tabId=${message.tabId}, streamerId=${message.streamerId}`);
+      console.log(`[숲토킹]   파일: ${message.fileName}, 크기: ${(message.fileSize / 1024 / 1024).toFixed(2)}MB`);
+
+      // 녹화 상태 제거
+      state.recordings.delete(message.tabId);
+      updateBadge();
+
+      // 대기 중인 탭 종료가 있으면 resolve
+      if (state.pendingTabClose.has(message.tabId)) {
+        const pending = state.pendingTabClose.get(message.tabId);
+        clearTimeout(pending.timeoutId);
+        pending.resolve(true);
+        state.pendingTabClose.delete(message.tabId);
+        console.log(`[숲토킹] 탭 ${message.tabId} 종료 대기 해제`);
+      }
+
+      sendResponse({ success: true });
+      break;
+
+    // ⭐ 녹화 중지됨 (저장 없이 중지된 경우)
+    case 'RECORDING_STOPPED':
+      console.log(`[숲토킹] 녹화 중지됨: tabId=${message.tabId}`);
+      state.recordings.delete(message.tabId);
+      updateBadge();
+
+      // 대기 중인 탭 종료가 있으면 resolve
+      if (state.pendingTabClose.has(message.tabId)) {
+        const pending = state.pendingTabClose.get(message.tabId);
+        clearTimeout(pending.timeoutId);
+        pending.resolve(true);
+        state.pendingTabClose.delete(message.tabId);
+      }
+
+      sendResponse({ success: true });
+      break;
+
+    // ⭐ 현재 탭 ID 조회 (Content Script용)
+    case 'GET_CURRENT_TAB_ID':
+      sendResponse({ tabId: tabId });
+      break;
+
     default:
       sendResponse({ success: false, error: '알 수 없는 메시지 타입' });
   }
@@ -1025,10 +1138,19 @@ async function handleMessage(message, sender, sendResponse) {
 // ===== 탭 닫힘 감지 =====
 
 chrome.tabs.onRemoved.addListener((tabId) => {
+  // ⭐ v3.5.10: 녹화 중인 탭이 강제 종료된 경우 경고
   if (state.recordings.has(tabId)) {
-    console.log('[숲토킹] 녹화 중인 탭이 닫힘:', tabId);
+    console.warn(`[숲토킹] 녹화 중인 탭 ${tabId}이 강제 종료됨 - 데이터 유실 가능`);
     state.recordings.delete(tabId);
     updateBadge();
+  }
+
+  // ⭐ v3.5.10: 대기 중인 탭 종료 해제
+  if (state.pendingTabClose.has(tabId)) {
+    const pending = state.pendingTabClose.get(tabId);
+    clearTimeout(pending.timeoutId);
+    pending.resolve(false);  // 탭이 이미 닫혔으므로 false
+    state.pendingTabClose.delete(tabId);
   }
 });
 
@@ -1085,4 +1207,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.5.6 로드됨 (Content Script 자동 주입)');
+console.log('[숲토킹] Background Service Worker v3.5.10 로드됨 (자동 녹화 안전 종료 시스템)');
