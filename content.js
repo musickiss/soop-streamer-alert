@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.3 - Content Script (ISOLATED) =====
+// ===== 숲토킹 v3.5.9.2 - Content Script (ISOLATED) =====
 // MAIN world와 Background 사이의 메시지 브릿지 + 분할 저장 지원
 
 (function() {
@@ -160,19 +160,32 @@
         return true;
 
       case 'START_RECORDING':
-        // MAIN world로 명령 전달
+        // ⭐ v3.5.9.2: 상세 로깅 추가
+        console.log('[숲토킹 Content] ========== START_RECORDING 메시지 수신 ==========');
+        console.log('[숲토킹 Content] message:', JSON.stringify(message, null, 2));
+        console.log(`[숲토킹 Content]   - streamerId: "${message.streamerId}"`);
+        console.log(`[숲토킹 Content]   - nickname: "${message.nickname}"`);
+        console.log(`[숲토킹 Content]   - quality: "${message.quality}" (타입: ${typeof message.quality})`);
+
+        const qualityToSend = message.quality || 'ultra';
+        if (!message.quality) {
+          console.warn('[숲토킹 Content] ⚠️ quality 누락! 기본값 "ultra" 사용');
+        }
+
+        console.log(`[숲토킹 Content] MAIN world로 전달할 quality: "${qualityToSend}"`);
+        console.log('[숲토킹 Content] ================================================');
+
+        // MAIN world로 녹화 시작 명령 전달
         window.postMessage({
           type: 'SOOPTALKING_RECORDER_COMMAND',
           command: 'START_RECORDING',
           params: {
             streamerId: message.streamerId,
             nickname: message.nickname,
-            quality: message.quality || 'ultra'  // ⭐ 기본값: 원본급 (v3.5.9)
+            quality: qualityToSend
           }
         }, '*');
-
-        // 결과는 비동기로 전달되므로 일단 성공 응답
-        sendResponse({ success: true, message: '녹화 명령 전달됨' });
+        sendResponse({ success: true });
         return true;
 
       case 'STOP_RECORDING':
@@ -204,5 +217,5 @@
     url: window.location.href
   }).catch(() => {});
 
-  console.log('[숲토킹 Content] v3.5.3 ISOLATED 브릿지 로드됨 (분할 저장 지원)');
+  console.log('[숲토킹 Content] v3.5.9.2 ISOLATED 브릿지 로드됨 (분할 저장 지원)');
 })();

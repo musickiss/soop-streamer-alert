@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 =====
 // content-main.js - MAIN world Canvas 녹화 스크립트
-// v3.5.9.1 - Part2 이후 파일 재생 불가 문제 해결
+// v3.5.9.2 - 품질 설정 파라미터 전달 및 로깅 강화
 
 (function() {
   'use strict';
@@ -12,7 +12,7 @@
   }
   window.__SOOPTALKING_RECORDER_LOADED__ = true;
 
-  console.log('[숲토킹 Recorder] v3.5.9.1 로드됨');
+  console.log('[숲토킹 Recorder] v3.5.9.2 로드됨');
 
   // ===== 설정 =====
   const CONFIG = {
@@ -94,30 +94,23 @@
   }
 
   function getBestMimeType(quality) {
-    let config;
-    switch (quality) {
-      case 'ultra':
-        config = CONFIG.ULTRA_QUALITY;
-        break;
-      case 'high':
-        config = CONFIG.HIGH_QUALITY;
-        break;
-      case 'standard':
-        config = CONFIG.STANDARD_QUALITY;
-        break;
-      default:
-        config = CONFIG.ULTRA_QUALITY;  // 기본값: 원본급
-    }
+    const qualityConfig = getQualityConfig(quality);
 
-    for (const codec of config.CODEC_PRIORITY) {
-      const mime = `video/webm;codecs=${codec},opus`;
-      if (MediaRecorder.isTypeSupported(mime)) {
-        console.log(`[숲토킹 Recorder] 코덱 선택: ${codec.toUpperCase()}`);
-        return mime;
+    console.log(`[숲토킹 Recorder] getBestMimeType 호출: quality = "${quality}"`);
+    console.log(`[숲토킹 Recorder]   코덱 우선순위: [${qualityConfig.CODEC_PRIORITY.join(', ')}]`);
+
+    for (const codec of qualityConfig.CODEC_PRIORITY) {
+      const mimeType = `video/webm;codecs=${codec},opus`;
+      const isSupported = MediaRecorder.isTypeSupported(mimeType);
+      console.log(`[숲토킹 Recorder]   - ${codec}: ${isSupported ? '지원됨 ✓' : '미지원 ✗'}`);
+
+      if (isSupported) {
+        console.log(`[숲토킹 Recorder] ★ 코덱 선택: ${codec.toUpperCase()}`);
+        return mimeType;
       }
     }
 
-    console.log('[숲토킹 Recorder] 기본 코덱 사용: WebM');
+    console.warn('[숲토킹 Recorder] 지원되는 코덱 없음, 기본 WebM 사용');
     return 'video/webm';
   }
 
@@ -557,6 +550,20 @@
   // ===== 녹화 제어 함수 =====
 
   async function startRecording(streamerId, nickname, quality = 'ultra') {
+    // ⭐ v3.5.9.2: 최상단에 파라미터 로깅 추가
+    console.log('=========================================');
+    console.log('[숲토킹 Recorder] ★ startRecording 호출됨');
+    console.log(`[숲토킹 Recorder]   streamerId: ${streamerId}`);
+    console.log(`[숲토킹 Recorder]   nickname: ${nickname}`);
+    console.log(`[숲토킹 Recorder]   quality: ${quality} (타입: ${typeof quality})`);
+    console.log('=========================================');
+
+    // ⭐ quality 유효성 검사 추가
+    if (!quality || quality === 'undefined' || quality === 'null') {
+      console.warn(`[숲토킹 Recorder] quality가 유효하지 않음 (${quality}), 기본값 'ultra' 사용`);
+      quality = 'ultra';
+    }
+
     if (isRecording) {
       console.log('[숲토킹 Recorder] 이미 녹화 중');
       return { success: false, error: '이미 녹화 중입니다.' };
@@ -586,21 +593,17 @@
 
       console.log(`[숲토킹 Recorder] 비디오 발견: ${video.videoWidth}x${video.videoHeight}`);
 
-      // ⭐ 품질 설정 가져오기 (3단계)
-      let qualityConfig;
-      switch (quality) {
-        case 'ultra':
-          qualityConfig = CONFIG.ULTRA_QUALITY;
-          break;
-        case 'high':
-          qualityConfig = CONFIG.HIGH_QUALITY;
-          break;
-        case 'standard':
-          qualityConfig = CONFIG.STANDARD_QUALITY;
-          break;
-        default:
-          qualityConfig = CONFIG.ULTRA_QUALITY;
-      }
+      // ⭐ v3.5.9.2: 품질 설정 가져오기 (헬퍼 함수 사용 + 상세 로깅)
+      const qualityConfig = getQualityConfig(quality);
+
+      // ⭐ 녹화 설정 상세 로깅
+      console.log('[숲토킹 Recorder] ========== 녹화 설정 ==========');
+      console.log(`[숲토킹 Recorder]   품질: ${quality}`);
+      console.log(`[숲토킹 Recorder]   비트레이트: ${(qualityConfig.VIDEO_BITRATE / 1000000).toFixed(0)} Mbps`);
+      console.log(`[숲토킹 Recorder]   오디오: ${(qualityConfig.AUDIO_BITRATE / 1000).toFixed(0)} kbps`);
+      console.log(`[숲토킹 Recorder]   FPS: ${qualityConfig.TARGET_FPS}`);
+      console.log(`[숲토킹 Recorder]   코덱 우선순위: [${qualityConfig.CODEC_PRIORITY.join(', ')}]`);
+      console.log('[숲토킹 Recorder] ================================');
 
       if (!setupCanvas(video)) {
         throw new Error('Canvas 설정 실패');
@@ -632,6 +635,12 @@
 
       mediaRecorder = new MediaRecorder(canvasStream, options);
 
+      // ⭐ v3.5.9.2: 실제 적용된 설정 확인 로그
+      console.log(`[숲토킹 Recorder] MediaRecorder 생성됨`);
+      console.log(`[숲토킹 Recorder]   - mimeType: ${mediaRecorder.mimeType}`);
+      console.log(`[숲토킹 Recorder]   - videoBitsPerSecond: ${options.videoBitsPerSecond / 1000000}Mbps`);
+      console.log(`[숲토킹 Recorder]   - audioBitsPerSecond: ${options.audioBitsPerSecond / 1000}kbps`);
+
       mediaRecorder.ondataavailable = handleDataAvailable;
       mediaRecorder.onstop = handleRecordingStop;
       mediaRecorder.onerror = (event) => {
@@ -654,7 +663,9 @@
       splitWaitCount = 0;
 
       mediaRecorder.start(CONFIG.TIMESLICE);
-      console.log('[숲토킹 Recorder] MediaRecorder 시작됨');
+
+      // ⭐ v3.5.9.2: 녹화 시작 완료 로그
+      console.log(`[숲토킹 Recorder] ★ 녹화 시작 완료! (품질: ${quality}, ${(qualityConfig.VIDEO_BITRATE / 1000000).toFixed(0)}Mbps, ${qualityConfig.TARGET_FPS}fps)`);
 
       startProgressReporting();
 
@@ -1009,11 +1020,34 @@
     let result;
     switch (command) {
       case 'START_RECORDING':
-        result = await startRecording(
-          params?.streamerId,
-          params?.nickname,
-          params?.quality || 'ultra'
-        );
+        // ⭐ v3.5.9.2: 상세 파라미터 로깅
+        console.log('[숲토킹 Recorder] ========== START_RECORDING 메시지 수신 ==========');
+        console.log('[숲토킹 Recorder] params:', JSON.stringify(params, null, 2));
+
+        const { streamerId, nickname, quality } = params || {};
+
+        console.log(`[숲토킹 Recorder] 파라미터 추출 결과:`);
+        console.log(`[숲토킹 Recorder]   - streamerId: "${streamerId}"`);
+        console.log(`[숲토킹 Recorder]   - nickname: "${nickname}"`);
+        console.log(`[숲토킹 Recorder]   - quality: "${quality}" (타입: ${typeof quality})`);
+
+        // quality가 없으면 경고 후 기본값 사용
+        const finalQuality = quality || 'ultra';
+        if (!quality) {
+          console.warn('[숲토킹 Recorder] ⚠️ quality 파라미터 누락! 기본값 "ultra" 사용');
+        }
+
+        console.log(`[숲토킹 Recorder] 최종 quality: "${finalQuality}"`);
+        console.log('[숲토킹 Recorder] ================================================');
+
+        result = await startRecording(streamerId, nickname, finalQuality);
+
+        // 결과도 페이지로 전달
+        window.postMessage({
+          type: 'SOOPTALKING_RECORDING_RESULT',
+          success: result.success,
+          error: result.error
+        }, '*');
         break;
 
       case 'STOP_RECORDING':
@@ -1034,7 +1068,7 @@
         break;
 
       case 'PING':
-        result = { success: true, pong: true, version: '3.5.9.1' };
+        result = { success: true, pong: true, version: '3.5.9.2' };
         break;
 
       default:

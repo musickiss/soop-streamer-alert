@@ -156,8 +156,14 @@ async function injectContentScripts(tabId) {
 
 // ===== 녹화 관리 =====
 
-async function startRecording(tabId, streamerId, nickname) {
-  console.log('[숲토킹] 녹화 시작 요청:', streamerId, 'tabId:', tabId);
+async function startRecording(tabId, streamerId, nickname, quality = 'ultra') {
+  // ⭐ v3.5.9.2: 상세 로깅
+  console.log('[숲토킹] ========== startRecording 함수 호출 ==========');
+  console.log(`[숲토킹]   - tabId: ${tabId}`);
+  console.log(`[숲토킹]   - streamerId: "${streamerId}"`);
+  console.log(`[숲토킹]   - nickname: "${nickname}"`);
+  console.log(`[숲토킹]   - quality: "${quality}" (타입: ${typeof quality})`);
+  console.log('[숲토킹] ===============================================');
 
   // 보안: 입력 검증
   if (!tabId || typeof tabId !== 'number') {
@@ -185,10 +191,12 @@ async function startRecording(tabId, streamerId, nickname) {
     }
 
     // Content Script에 녹화 시작 명령 전송
+    console.log(`[숲토킹] Content Script로 전달: quality="${quality}"`);
     const response = await chrome.tabs.sendMessage(tabId, {
       type: 'START_RECORDING',
       streamerId: streamerId,
-      nickname: nickname
+      nickname: nickname,
+      quality: quality
     });
 
     if (response?.success) {
@@ -220,10 +228,12 @@ async function startRecording(tabId, streamerId, nickname) {
 
       // 주입 후 재시도
       try {
+        console.log(`[숲토킹] 재시도 - Content Script로 전달: quality="${quality}"`);
         const retryResponse = await chrome.tabs.sendMessage(tabId, {
           type: 'START_RECORDING',
           streamerId: streamerId,
-          nickname: nickname
+          nickname: nickname,
+          quality: quality
         });
 
         if (retryResponse?.success) {
@@ -762,10 +772,27 @@ async function handleMessage(message, sender, sendResponse) {
     // ===== 사이드패널 → Background =====
 
     case 'START_RECORDING_REQUEST':
+      // ⭐ v3.5.9.2: 상세 로깅
+      console.log('[숲토킹] ========== START_RECORDING_REQUEST 수신 ==========');
+      console.log('[숲토킹] message:', JSON.stringify(message, null, 2));
+      console.log(`[숲토킹]   - tabId: ${message.tabId}`);
+      console.log(`[숲토킹]   - streamerId: "${message.streamerId}"`);
+      console.log(`[숲토킹]   - nickname: "${message.nickname}"`);
+      console.log(`[숲토킹]   - quality: "${message.quality}" (타입: ${typeof message.quality})`);
+
+      const recordingQuality = message.quality || 'ultra';
+      if (!message.quality) {
+        console.warn('[숲토킹] ⚠️ quality 누락! 기본값 "ultra" 사용');
+      }
+
+      console.log(`[숲토킹] startRecording 호출할 quality: "${recordingQuality}"`);
+      console.log('[숲토킹] ====================================================');
+
       const startResult = await startRecording(
         message.tabId,
         message.streamerId,
-        message.nickname
+        message.nickname,
+        recordingQuality
       );
       sendResponse(startResult);
       break;

@@ -452,6 +452,14 @@
 
     showToast('녹화 시작 중...', 'info');
 
+    // ⭐ v3.5.9.2: 녹화 시작 요청 로깅
+    console.log('[숲토킹 SidePanel] ========== 녹화 시작 요청 ==========');
+    console.log(`[숲토킹 SidePanel]   - tabId: ${tabId}`);
+    console.log(`[숲토킹 SidePanel]   - streamerId: "${streamerId}"`);
+    console.log(`[숲토킹 SidePanel]   - nickname: "${nickname}"`);
+    console.log(`[숲토킹 SidePanel]   - quality: "${state.recordingQuality}"`);
+    console.log('[숲토킹 SidePanel] ========================================');
+
     try {
       // Background에 녹화 시작 요청 (tabId 기반)
       const result = await sendMessage({
