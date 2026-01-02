@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 =====
 // content-main.js - MAIN world Canvas 녹화 스크립트
-// v3.5.9 - VP9 기반 3단계 품질 설정
+// v3.5.9.1 - Part2 이후 파일 재생 불가 문제 해결
 
 (function() {
   'use strict';
@@ -12,7 +12,7 @@
   }
   window.__SOOPTALKING_RECORDER_LOADED__ = true;
 
-  console.log('[숲토킹 Recorder] v3.5.9 로드됨');
+  console.log('[숲토킹 Recorder] v3.5.9.1 로드됨');
 
   // ===== 설정 =====
   const CONFIG = {
@@ -132,6 +132,57 @@
 
     recordingStartTimestamp = timestamp;
     return `soop_${streamerId}_${timestamp}.webm`;
+  }
+
+  // ⭐ v3.5.9.1: 품질 설정 헬퍼 함수
+  function getQualityConfig(quality) {
+    switch (quality) {
+      case 'ultra':
+        return CONFIG.ULTRA_QUALITY;
+      case 'high':
+        return CONFIG.HIGH_QUALITY;
+      case 'standard':
+        return CONFIG.STANDARD_QUALITY;
+      default:
+        return CONFIG.ULTRA_QUALITY;
+    }
+  }
+
+  // ⭐ v3.5.9.1: Promise 기반 MediaRecorder 종료 대기
+  function stopMediaRecorderAndWait() {
+    return new Promise((resolve) => {
+      if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        console.log('[숲토킹 Recorder] MediaRecorder 이미 비활성 상태');
+        resolve([...recordedChunks]);
+        return;
+      }
+
+      console.log('[숲토킹 Recorder] MediaRecorder 종료 대기 시작...');
+
+      // onstop 이벤트에서 청크 반환
+      mediaRecorder.onstop = (event) => {
+        console.log('[숲토킹 Recorder] MediaRecorder 종료 완료, 청크 수집');
+        const allChunks = [...recordedChunks];
+        resolve(allChunks);
+      };
+
+      // 마지막 데이터 요청
+      try {
+        if (mediaRecorder.state === 'recording') {
+          mediaRecorder.requestData();
+        }
+      } catch (e) {
+        console.log('[숲토킹 Recorder] requestData 실패 (무시):', e.message);
+      }
+
+      // 종료 요청
+      try {
+        mediaRecorder.stop();
+      } catch (e) {
+        console.log('[숲토킹 Recorder] stop 실패:', e.message);
+        resolve([...recordedChunks]);
+      }
+    });
   }
 
   function findVideoElement() {
@@ -702,38 +753,26 @@
     }
   }
 
-  // ⭐ MediaRecorder 재시작으로 분할 저장 (안정성 강화)
+  // ⭐ v3.5.9.1: MediaRecorder 재시작 분할 (Part2+ 재생 문제 해결)
   async function splitWithRecorderRestart() {
     if (isSplitting || isSaving || !isRecording) return;
 
     isSplitting = true;
-    console.log(`[숲토킹 Recorder] 파트 ${partNumber} 분할 시작...`);
+    console.log(`[숲토킹 Recorder] 파트 ${partNumber} 분할 시작 (v3.5.9.1)...`);
     logMemoryUsage('분할 전');
 
     notifySplitStart(partNumber);
 
     try {
-      // 1. 현재 청크 복사
-      const currentChunks = [...recordedChunks];
-      recordedChunks = [];
+      // ===== 1단계: MediaRecorder 완전 종료 및 청크 수집 =====
+      console.log('[숲토킹 Recorder] 1단계: MediaRecorder 종료 대기...');
+      const allChunks = await stopMediaRecorderAndWait();
+      console.log(`[숲토킹 Recorder] 수집된 청크: ${allChunks.length}개`);
 
-      // 2. MediaRecorder 중지
-      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-        const originalOnstop = mediaRecorder.onstop;
-        mediaRecorder.onstop = null;
-
-        await new Promise(resolve => {
-          mediaRecorder.addEventListener('stop', resolve, { once: true });
-          mediaRecorder.stop();
-        });
-
-        mediaRecorder.onstop = originalOnstop;
-      }
-
-      // 3. 현재 파트 저장 (에러 처리 강화)
-      if (currentChunks.length > 0) {
+      // ===== 2단계: 현재 파트 저장 =====
+      if (allChunks.length > 0) {
         try {
-          const blob = new Blob(currentChunks, { type: 'video/webm' });
+          const blob = new Blob(allChunks, { type: 'video/webm' });
           const fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_part${partNumber}.webm`;
 
           console.log(`[숲토킹 Recorder] 파트 ${partNumber} 저장: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
@@ -741,20 +780,20 @@
         } catch (saveError) {
           console.error('[숲토킹 Recorder] 파트 저장 실패:', saveError);
           notifyError(`파트 ${partNumber} 저장 실패: ${saveError.message}`);
-          // 저장 실패해도 녹화는 계속
         }
-
-        currentChunks.length = 0;
       }
 
-      // 4. 파트 번호 증가
+      // ===== 3단계: 상태 초기화 =====
+      recordedChunks = [];  // 청크 배열 완전 초기화
       partNumber++;
       totalRecordedBytes = 0;
 
-      // 5. 대기
+      console.log(`[숲토킹 Recorder] 상태 초기화 완료, 다음 파트: ${partNumber}`);
+
+      // ===== 4단계: 잠시 대기 =====
       await new Promise(r => setTimeout(r, CONFIG.SPLIT_TRANSITION_DELAY));
 
-      // 6. ⭐ 스트림 유효성 검증 및 재생성
+      // ===== 5단계: 스트림 검증 및 새 MediaRecorder 생성 =====
       if (isRecording) {
         const streamValid = ensureValidCanvasStream();
 
@@ -767,22 +806,8 @@
           return;
         }
 
-        // 7. 새 MediaRecorder 생성 (품질 설정 3단계 적용)
-        let qualityConfig;
-        switch (currentQuality) {
-          case 'ultra':
-            qualityConfig = CONFIG.ULTRA_QUALITY;
-            break;
-          case 'high':
-            qualityConfig = CONFIG.HIGH_QUALITY;
-            break;
-          case 'standard':
-            qualityConfig = CONFIG.STANDARD_QUALITY;
-            break;
-          default:
-            qualityConfig = CONFIG.ULTRA_QUALITY;
-        }
-
+        // 새 MediaRecorder 생성 (헬퍼 함수 사용)
+        const qualityConfig = getQualityConfig(currentQuality);
         const options = {
           mimeType: currentMimeType,
           videoBitsPerSecond: qualityConfig.VIDEO_BITRATE,
@@ -798,7 +823,7 @@
         };
 
         mediaRecorder.start(CONFIG.TIMESLICE);
-        console.log(`[숲토킹 Recorder] 파트 ${partNumber} 녹화 시작 (새 MediaRecorder)`);
+        console.log(`[숲토킹 Recorder] 파트 ${partNumber} 녹화 시작 (새 MediaRecorder, 새 WebM 헤더)`);
 
         notifySplitComplete(partNumber);
       }
@@ -815,21 +840,7 @@
         console.log('[숲토킹 Recorder] 분할 실패 후 복구 시도...');
         try {
           if (ensureValidCanvasStream()) {
-            // 3단계 품질 설정
-            let qualityConfig;
-            switch (currentQuality) {
-              case 'ultra':
-                qualityConfig = CONFIG.ULTRA_QUALITY;
-                break;
-              case 'high':
-                qualityConfig = CONFIG.HIGH_QUALITY;
-                break;
-              case 'standard':
-                qualityConfig = CONFIG.STANDARD_QUALITY;
-                break;
-              default:
-                qualityConfig = CONFIG.ULTRA_QUALITY;
-            }
+            const qualityConfig = getQualityConfig(currentQuality);
             const options = {
               mimeType: currentMimeType,
               videoBitsPerSecond: qualityConfig.VIDEO_BITRATE,
@@ -1023,7 +1034,7 @@
         break;
 
       case 'PING':
-        result = { success: true, pong: true, version: '3.5.9' };
+        result = { success: true, pong: true, version: '3.5.9.1' };
         break;
 
       default:
