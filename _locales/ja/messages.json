@@ -236,5 +236,13 @@
   "toastAutoCloseDisabled": {
     "message": "自動終了が無効になりました",
     "description": "自動終了無効トースト"
+  },
+  "recording": {
+    "message": "録画中",
+    "description": "録画中セクションタイトル"
+  },
+  "noRecordings": {
+    "message": "録画中の放送はありません",
+    "description": "録画なしメッセージ"
   }
 }

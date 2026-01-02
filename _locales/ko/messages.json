@@ -236,5 +236,13 @@
   "toastAutoCloseDisabled": {
     "message": "자동 종료 비활성화됨",
     "description": "자동 종료 비활성화 토스트"
+  },
+  "recording": {
+    "message": "녹화 중",
+    "description": "녹화 중 섹션 제목"
+  },
+  "noRecordings": {
+    "message": "녹화 중인 방송이 없습니다",
+    "description": "녹화 없음 메시지"
   }
 }

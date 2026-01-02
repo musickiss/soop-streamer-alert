@@ -236,5 +236,13 @@
   "toastAutoCloseDisabled": {
     "message": "Auto close disabled",
     "description": "Auto close disabled toast"
+  },
+  "recording": {
+    "message": "Recording",
+    "description": "Recording section title"
+  },
+  "noRecordings": {
+    "message": "No active recordings",
+    "description": "No recordings message"
   }
 }

@@ -236,5 +236,13 @@
   "toastAutoCloseDisabled": {
     "message": "自動關閉已停用",
     "description": "自動關閉停用提示"
+  },
+  "recording": {
+    "message": "錄製中",
+    "description": "錄製中區域標題"
+  },
+  "noRecordings": {
+    "message": "沒有正在錄製的直播",
+    "description": "無錄製訊息"
   }
 }
