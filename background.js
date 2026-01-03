@@ -1,12 +1,13 @@
-// ===== 숲토킹 v3.5.10.2 - Background Service Worker =====
+// ===== 숲토킹 v3.5.14 - Background Service Worker =====
 // Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장 + 500MB 자동 분할 저장
-// v3.5.10.2: 핫픽스 - 녹화 중지 버튼 동작 안 함 수정 (RECORDING_STARTED 핸들러 tabId 필드 누락)
+// v3.5.14: Storage 기반 녹화 상태 영속화 - Extension Context 무효화 및 Service Worker 재시작 시에도 UI 유지
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
 const CHECK_INTERVAL_SLOW = 30000;  // 자동참여 OFF 스트리머 (30초)
 const API_URL = 'https://live.sooplive.co.kr/afreeca/player_live_api.php';
 const RECORDING_SAVE_TIMEOUT = 30000;  // 녹화 저장 최대 대기 시간 (30초)
+const STORAGE_KEY_RECORDINGS = 'activeRecordings';  // v3.5.14: Storage 키
 
 // ===== 보안 유틸리티 =====
 
@@ -404,6 +405,123 @@ function updateBadge() {
   chrome.action.setBadgeText({ text: count > 0 ? String(count) : '' });
   chrome.action.setBadgeBackgroundColor({ color: '#e74c3c' });
 }
+
+// ===== v3.5.14: Storage 기반 녹화 상태 관리 =====
+
+// Storage에서 녹화 상태 로드 (시작 시, 복구 시)
+async function loadRecordingsFromStorage() {
+  try {
+    const result = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
+    const recordings = result[STORAGE_KEY_RECORDINGS] || {};
+
+    // 유효한 녹화만 필터링 (탭 존재 + stale 체크)
+    const now = Date.now();
+    const validRecordings = {};
+    const invalidTabIds = [];
+
+    for (const [tabIdStr, rec] of Object.entries(recordings)) {
+      const tabId = parseInt(tabIdStr);
+
+      // 탭 존재 확인
+      try {
+        const tab = await chrome.tabs.get(tabId);
+        if (tab && tab.url && tab.url.includes('play.sooplive.co.kr')) {
+          // 마지막 업데이트가 2분 이내인 경우만 유효
+          if (now - (rec.lastUpdate || 0) < 120000) {
+            validRecordings[tabIdStr] = rec;
+            state.recordings.set(tabId, rec);
+          } else {
+            console.log('[숲토킹] Stale 녹화 상태 제거 (2분 초과):', tabIdStr);
+            invalidTabIds.push(tabIdStr);
+          }
+        } else {
+          invalidTabIds.push(tabIdStr);
+        }
+      } catch (e) {
+        // 탭이 존재하지 않음
+        console.log('[숲토킹] 존재하지 않는 탭 녹화 상태 제거:', tabIdStr);
+        invalidTabIds.push(tabIdStr);
+      }
+    }
+
+    // 정리된 상태 저장
+    if (invalidTabIds.length > 0) {
+      await chrome.storage.local.set({ [STORAGE_KEY_RECORDINGS]: validRecordings });
+    }
+
+    updateBadge();
+    console.log('[숲토킹] Storage에서 녹화 상태 로드 완료:', Object.keys(validRecordings).length, '개');
+  } catch (error) {
+    console.error('[숲토킹] 녹화 상태 로드 실패:', error);
+  }
+}
+
+// 메모리 Map의 특정 항목을 Storage에 동기화
+async function saveRecordingToStorage(tabId, recordingData) {
+  try {
+    const result = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
+    const recordings = result[STORAGE_KEY_RECORDINGS] || {};
+
+    recordings[tabId] = {
+      ...recordingData,
+      tabId: tabId,
+      lastUpdate: Date.now()
+    };
+
+    await chrome.storage.local.set({ [STORAGE_KEY_RECORDINGS]: recordings });
+    console.log('[숲토킹] 녹화 상태 storage 저장:', tabId);
+  } catch (error) {
+    console.error('[숲토킹] 녹화 상태 저장 실패:', error);
+  }
+}
+
+// Storage에서 특정 녹화 제거
+async function removeRecordingFromStorage(tabId) {
+  try {
+    const result = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
+    const recordings = result[STORAGE_KEY_RECORDINGS] || {};
+
+    if (recordings[tabId]) {
+      delete recordings[tabId];
+      await chrome.storage.local.set({ [STORAGE_KEY_RECORDINGS]: recordings });
+      console.log('[숲토킹] 녹화 상태 storage 제거:', tabId);
+    }
+  } catch (error) {
+    console.error('[숲토킹] 녹화 상태 제거 실패:', error);
+  }
+}
+
+// 전체 메모리 Map을 Storage에 동기화
+async function syncAllRecordingsToStorage() {
+  try {
+    const recordings = {};
+    for (const [tabId, rec] of state.recordings.entries()) {
+      recordings[tabId] = {
+        ...rec,
+        lastUpdate: Date.now()
+      };
+    }
+    await chrome.storage.local.set({ [STORAGE_KEY_RECORDINGS]: recordings });
+  } catch (error) {
+    console.error('[숲토킹] 전체 녹화 상태 동기화 실패:', error);
+  }
+}
+
+// Storage 변경 감지 (content.js에서 직접 저장한 경우 동기화)
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'local' || !changes[STORAGE_KEY_RECORDINGS]) return;
+
+  const newRecordings = changes[STORAGE_KEY_RECORDINGS].newValue || {};
+
+  // 메모리 Map 업데이트 (Storage가 source of truth)
+  state.recordings.clear();
+  for (const [tabIdStr, rec] of Object.entries(newRecordings)) {
+    state.recordings.set(parseInt(tabIdStr), rec);
+  }
+
+  updateBadge();
+  console.log('[숲토킹] Storage 변경 감지 → 메모리 동기화, 녹화 수:', state.recordings.size);
+});
 
 // ===== 스트리머 모니터링 (5초/30초 분리) =====
 
@@ -884,10 +1002,55 @@ async function handleMessage(message, sender, sendResponse) {
       break;
 
     case 'GET_ALL_RECORDINGS':
-      sendResponse({
-        success: true,
-        data: Array.from(state.recordings.values())
-      });
+      // ⭐ v3.5.14: Storage에서 직접 읽기 (최신 상태 보장)
+      try {
+        const result = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
+        const recordings = result[STORAGE_KEY_RECORDINGS] || {};
+
+        // 유효성 검사 (탭 존재 여부)
+        const validRecordings = [];
+        const invalidTabIds = [];
+
+        for (const [tabIdStr, rec] of Object.entries(recordings)) {
+          try {
+            const tab = await chrome.tabs.get(parseInt(tabIdStr));
+            if (tab && tab.url?.includes('play.sooplive.co.kr')) {
+              validRecordings.push({ ...rec, tabId: parseInt(tabIdStr) });
+            } else {
+              invalidTabIds.push(tabIdStr);
+            }
+          } catch (e) {
+            invalidTabIds.push(tabIdStr);
+          }
+        }
+
+        // 무효한 항목 정리
+        if (invalidTabIds.length > 0) {
+          for (const tabIdStr of invalidTabIds) {
+            delete recordings[tabIdStr];
+          }
+          await chrome.storage.local.set({ [STORAGE_KEY_RECORDINGS]: recordings });
+
+          // 메모리도 동기화
+          state.recordings.clear();
+          for (const rec of validRecordings) {
+            state.recordings.set(rec.tabId, rec);
+          }
+          updateBadge();
+        }
+
+        sendResponse({
+          success: true,
+          data: validRecordings
+        });
+      } catch (error) {
+        console.error('[숲토킹] GET_ALL_RECORDINGS 오류:', error);
+        // 폴백: 메모리에서 읽기
+        sendResponse({
+          success: true,
+          data: Array.from(state.recordings.values())
+        });
+      }
       break;
 
     case 'GET_STATE':
@@ -949,14 +1112,20 @@ async function handleMessage(message, sender, sendResponse) {
     case 'RECORDING_STARTED_FROM_PAGE':
       console.log('[숲토킹] 녹화 시작됨 (페이지에서):', message.streamerId);
       if (tabId && !state.recordings.has(tabId)) {
-        state.recordings.set(tabId, {
+        const recordingData = {
           tabId,
           streamerId: message.streamerId,
           nickname: message.nickname,
           startTime: Date.now(),
-          totalBytes: 0
-        });
+          totalBytes: 0,
+          lastUpdate: Date.now()
+        };
+
+        state.recordings.set(tabId, recordingData);
         updateBadge();
+
+        // ⭐ v3.5.14: Storage에도 저장 (content.js에서 이미 저장했을 수 있지만 확실히)
+        await saveRecordingToStorage(tabId, recordingData);
       }
       broadcastToSidepanel({
         type: 'RECORDING_STARTED_UPDATE',
@@ -964,6 +1133,7 @@ async function handleMessage(message, sender, sendResponse) {
         streamerId: message.streamerId,
         nickname: message.nickname
       });
+      sendResponse({ success: true });
       break;
 
     case 'RECORDING_PROGRESS_FROM_PAGE':
@@ -987,6 +1157,9 @@ async function handleMessage(message, sender, sendResponse) {
       if (tabId) {
         state.recordings.delete(tabId);
         updateBadge();
+
+        // ⭐ v3.5.14: Storage에서도 제거
+        await removeRecordingFromStorage(tabId);
       }
       broadcastToSidepanel({
         type: 'RECORDING_STOPPED_UPDATE',
@@ -997,6 +1170,7 @@ async function handleMessage(message, sender, sendResponse) {
         duration: message.duration,
         saved: message.saved
       });
+      sendResponse({ success: true });
       break;
 
     case 'RECORDING_ERROR_FROM_PAGE':
@@ -1004,12 +1178,16 @@ async function handleMessage(message, sender, sendResponse) {
       if (tabId) {
         state.recordings.delete(tabId);
         updateBadge();
+
+        // ⭐ v3.5.14: Storage에서도 제거
+        await removeRecordingFromStorage(tabId);
       }
       broadcastToSidepanel({
         type: 'RECORDING_ERROR_UPDATE',
         tabId: tabId,
         error: message.error
       });
+      sendResponse({ success: true });
       break;
 
     case 'SAVE_RECORDING_FROM_PAGE':
@@ -1165,12 +1343,27 @@ async function handleMessage(message, sender, sendResponse) {
 
 // ===== 탭 닫힘 감지 =====
 
-chrome.tabs.onRemoved.addListener((tabId) => {
-  // ⭐ v3.5.10: 녹화 중인 탭이 강제 종료된 경우 경고
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  // ⭐ v3.5.14: 녹화 중인 탭이 강제 종료된 경우 경고 및 storage 정리
   if (state.recordings.has(tabId)) {
     console.warn(`[숲토킹] 녹화 중인 탭 ${tabId}이 강제 종료됨 - 데이터 유실 가능`);
+    const recording = state.recordings.get(tabId);
+
+    // 메모리에서 제거
     state.recordings.delete(tabId);
     updateBadge();
+
+    // ⭐ v3.5.14: Storage에서도 제거
+    await removeRecordingFromStorage(tabId);
+
+    // Side Panel에 알림
+    try {
+      chrome.runtime.sendMessage({
+        type: 'RECORDING_TAB_CLOSED',
+        tabId: tabId,
+        streamerId: recording?.streamerId
+      }).catch(() => {});
+    } catch (e) {}
   }
 
   // ⭐ v3.5.10: 대기 중인 탭 종료 해제
@@ -1226,6 +1419,10 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   state.isInitialized = true;
 
   await loadSettings();
+
+  // ⭐ v3.5.14: Storage에서 녹화 상태 복구
+  await loadRecordingsFromStorage();
+
   console.log('[숲토킹] 초기 설정 로드 완료');
 
   if (state.isMonitoring) {
@@ -1235,4 +1432,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.5.10.2 로드됨 (녹화 중지 수정)');
+console.log('[숲토킹] Background Service Worker v3.5.14 로드됨 (Storage 기반 상태 관리)');

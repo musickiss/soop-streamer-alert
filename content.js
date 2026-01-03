@@ -1,5 +1,5 @@
-// ===== 숲토킹 v3.5.10.1 - Content Script (ISOLATED) =====
-// MAIN world와 Background 사이의 메시지 브릿지 + 분할 저장 지원 + 안전 종료
+// ===== 숲토킹 v3.5.14 - Content Script (ISOLATED) =====
+// MAIN world와 Background 사이의 메시지 브릿지 + 분할 저장 지원 + 안전 종료 + Storage 기반 상태 관리
 
 (function() {
   'use strict';
@@ -28,15 +28,79 @@
     return match ? match[1] : null;
   }
 
-  // ⭐ v3.5.10: 현재 탭 ID 가져오기
+  // ===== v3.5.14: Storage 기반 녹화 상태 관리 =====
+  const STORAGE_KEY_RECORDINGS = 'activeRecordings';
+
+  // 녹화 상태를 storage에 직접 저장
+  async function saveRecordingStateToStorage(tabId, recordingData) {
+    try {
+      const result = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
+      const recordings = result[STORAGE_KEY_RECORDINGS] || {};
+
+      recordings[tabId] = {
+        ...recordingData,
+        tabId: tabId,
+        lastUpdate: Date.now()
+      };
+
+      await chrome.storage.local.set({ [STORAGE_KEY_RECORDINGS]: recordings });
+      console.log('[숲토킹 Content] 녹화 상태 storage 저장:', tabId);
+    } catch (error) {
+      console.error('[숲토킹 Content] 녹화 상태 저장 실패:', error);
+    }
+  }
+
+  // 녹화 상태를 storage에서 제거
+  async function removeRecordingStateFromStorage(tabId) {
+    try {
+      const result = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
+      const recordings = result[STORAGE_KEY_RECORDINGS] || {};
+
+      if (recordings[tabId]) {
+        delete recordings[tabId];
+        await chrome.storage.local.set({ [STORAGE_KEY_RECORDINGS]: recordings });
+        console.log('[숲토킹 Content] 녹화 상태 storage 제거:', tabId);
+      }
+    } catch (error) {
+      console.error('[숲토킹 Content] 녹화 상태 제거 실패:', error);
+    }
+  }
+
+  // 녹화 진행 상태 업데이트 (storage)
+  async function updateRecordingProgressInStorage(tabId, totalBytes, elapsedTime, partNumber) {
+    try {
+      const result = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
+      const recordings = result[STORAGE_KEY_RECORDINGS] || {};
+
+      if (recordings[tabId]) {
+        recordings[tabId].totalBytes = totalBytes;
+        recordings[tabId].elapsedTime = elapsedTime;
+        recordings[tabId].partNumber = partNumber || 1;
+        recordings[tabId].lastUpdate = Date.now();
+
+        await chrome.storage.local.set({ [STORAGE_KEY_RECORDINGS]: recordings });
+      }
+    } catch (error) {
+      // 진행 상태 업데이트 실패는 조용히 무시 (다음 주기에 재시도)
+    }
+  }
+
+  // 현재 탭 ID 캐시 (비동기 조회 최소화)
+  let cachedTabId = null;
+
   async function getCurrentTabId() {
+    if (cachedTabId) return cachedTabId;
+
     try {
       const response = await chrome.runtime.sendMessage({ type: 'GET_CURRENT_TAB_ID' });
-      return response?.tabId;
+      if (response?.tabId) {
+        cachedTabId = response.tabId;
+        return cachedTabId;
+      }
     } catch (e) {
-      console.warn('[숲토킹 Content] 탭 ID 조회 실패:', e);
-      return null;
+      console.warn('[숲토킹 Content] 탭 ID 조회 실패:', e.message);
     }
+    return null;
   }
 
   // ===== MAIN world → Background 메시지 브릿지 =====
@@ -72,31 +136,88 @@
 
     switch (type) {
       case 'SOOPTALKING_RECORDING_STARTED':
+        // ⭐ v3.5.14: Storage에 먼저 저장 (background 통신 실패해도 상태 유지)
+        getCurrentTabId().then(tabId => {
+          if (tabId) {
+            saveRecordingStateToStorage(tabId, {
+              streamerId: data.streamerId,
+              nickname: data.nickname,
+              startTime: Date.now(),
+              totalBytes: 0,
+              elapsedTime: 0,
+              partNumber: 1
+            });
+          }
+        });
+
+        // Background에도 알림 (실패해도 storage에는 저장됨)
         safeSendMessage({
           type: 'RECORDING_STARTED_FROM_PAGE',
-          ...data
-        }).catch(() => {});
+          streamerId: data.streamerId,
+          nickname: data.nickname,
+          recordingId: data.recordingId
+        }).catch(err => {
+          console.log('[숲토킹 Content] RECORDING_STARTED 전송 실패 (storage에는 저장됨):', err.message);
+        });
         break;
 
       case 'SOOPTALKING_RECORDING_PROGRESS':
+        // ⭐ v3.5.14: Storage에 직접 업데이트 (background 통신 불필요)
+        getCurrentTabId().then(tabId => {
+          if (tabId) {
+            updateRecordingProgressInStorage(
+              tabId,
+              data.totalBytes,
+              data.elapsedTime,
+              data.partNumber
+            );
+          }
+        });
+
+        // Background에도 알림 (선택적 - 실패 무시)
         safeSendMessage({
           type: 'RECORDING_PROGRESS_FROM_PAGE',
-          ...data
+          streamerId: data.streamerId,
+          totalBytes: data.totalBytes,
+          elapsedTime: data.elapsedTime,
+          partNumber: data.partNumber
         }).catch(() => {});
         break;
 
       case 'SOOPTALKING_RECORDING_STOPPED':
+        // ⭐ v3.5.14: Storage에서 제거
+        getCurrentTabId().then(tabId => {
+          if (tabId) {
+            removeRecordingStateFromStorage(tabId);
+          }
+        });
+
         safeSendMessage({
           type: 'RECORDING_STOPPED_FROM_PAGE',
-          ...data
-        }).catch(() => {});
+          streamerId: data.streamerId,
+          totalBytes: data.totalBytes,
+          duration: data.duration,
+          saved: data.saved
+        }).catch(err => {
+          console.log('[숲토킹 Content] RECORDING_STOPPED 전송 실패:', err.message);
+        });
         break;
 
       case 'SOOPTALKING_RECORDING_ERROR':
+        // ⭐ v3.5.14: 에러 시에도 Storage에서 제거
+        getCurrentTabId().then(tabId => {
+          if (tabId) {
+            removeRecordingStateFromStorage(tabId);
+          }
+        });
+
         safeSendMessage({
           type: 'RECORDING_ERROR_FROM_PAGE',
-          ...data
-        }).catch(() => {});
+          error: data.error,
+          streamerId: data.streamerId
+        }).catch(err => {
+          console.log('[숲토킹 Content] RECORDING_ERROR 전송 실패:', err.message);
+        });
         break;
 
       case 'SOOPTALKING_SAVE_RECORDING':
@@ -270,5 +391,12 @@
     url: window.location.href
   }).catch(() => {});
 
-  console.log('[숲토킹 Content] v3.5.10.1 ISOLATED 브릿지 로드됨 (핫픽스)');
+  // ⭐ v3.5.14: 초기화 시 탭 ID 미리 캐시
+  getCurrentTabId().then(tabId => {
+    if (tabId) {
+      console.log('[숲토킹 Content] 탭 ID 캐시됨:', tabId);
+    }
+  });
+
+  console.log('[숲토킹 Content] v3.5.14 ISOLATED 브릿지 로드됨 (Storage 기반 상태 관리)');
 })();

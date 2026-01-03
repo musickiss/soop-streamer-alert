@@ -1,9 +1,12 @@
-// ===== 숲토킹 v3.5.3 - 사이드패널 =====
+// ===== 숲토킹 v3.5.14 - 사이드패널 =====
 // Downloads API 기반 안정화 버전, Background와 메시지 통신
-// 리사이저블 레이아웃 지원 + 분할 저장 알림
+// 리사이저블 레이아웃 지원 + 분할 저장 알림 + Storage 기반 상태 관리
 
 (function() {
   'use strict';
+
+  // ===== v3.5.14: Storage 기반 녹화 상태 =====
+  const STORAGE_KEY_RECORDINGS = 'activeRecordings';
 
   // ===== 상태 =====
   const state = {
@@ -536,35 +539,80 @@
   // ===== 녹화 목록 =====
   async function updateActiveRecordingList() {
     try {
-      const result = await sendMessage({ type: 'GET_ALL_RECORDINGS' });
-      const recordings = result?.success && Array.isArray(result.data) ? result.data : [];
+      // ⭐ v3.5.14: Storage에서 직접 읽기 (background 통신 불필요)
+      const result = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
+      const recordingsObj = result[STORAGE_KEY_RECORDINGS] || {};
 
+      // 유효한 녹화만 필터링 (탭 존재 여부 확인)
+      const validRecordings = [];
+      const invalidTabIds = [];
+
+      for (const [tabIdStr, rec] of Object.entries(recordingsObj)) {
+        const tabId = parseInt(tabIdStr);
+        try {
+          const tab = await chrome.tabs.get(tabId);
+          if (tab && tab.url?.includes('play.sooplive.co.kr')) {
+            validRecordings.push({
+              ...rec,
+              tabId: tabId
+            });
+          } else {
+            invalidTabIds.push(tabIdStr);
+          }
+        } catch (e) {
+          // 탭이 존재하지 않음
+          invalidTabIds.push(tabIdStr);
+        }
+      }
+
+      // 무효한 항목 정리 (Storage에서 제거)
+      if (invalidTabIds.length > 0) {
+        const cleanedRecordings = { ...recordingsObj };
+        for (const tabIdStr of invalidTabIds) {
+          delete cleanedRecordings[tabIdStr];
+        }
+        await chrome.storage.local.set({ [STORAGE_KEY_RECORDINGS]: cleanedRecordings });
+        console.log('[사이드패널] 무효한 녹화 상태 정리:', invalidTabIds.length, '개');
+      }
+
+      const recordings = validRecordings;
+
+      // UI 업데이트: 녹화 개수
       if (elements.recordingCount) {
         elements.recordingCount.textContent = recordings.length;
       }
 
+      // UI 업데이트: 빈 메시지
       if (elements.noRecordingMessage) {
         elements.noRecordingMessage.style.display = recordings.length === 0 ? 'block' : 'none';
       }
 
       if (!elements.activeRecordingList) return;
 
+      // 녹화 없으면 목록 비우기
       if (recordings.length === 0) {
         elements.activeRecordingList.innerHTML = '';
         return;
       }
 
+      // 녹화 카드 렌더링
       elements.activeRecordingList.innerHTML = recordings.map(rec => {
-        const elapsed = rec.elapsedTime || Math.floor((Date.now() - rec.startTime) / 1000);
+        const elapsed = rec.elapsedTime || Math.floor((Date.now() - (rec.startTime || Date.now())) / 1000);
         const timeStr = formatDuration(elapsed);
         const sizeStr = formatBytes(rec.totalBytes || 0);
         const displayName = escapeHtml(rec.nickname || rec.streamerId || '알 수 없음');
 
+        // ⭐ v3.5.14: 마지막 업데이트 시간 확인 (30초 이상 지났으면 경고)
+        const lastUpdate = rec.lastUpdate || rec.startTime || Date.now();
+        const isStale = (Date.now() - lastUpdate) > 30000;
+        const staleWarning = isStale ? '<span class="stale-warning" title="상태 업데이트 지연 - 녹화는 계속 진행 중일 수 있습니다">⚠️</span>' : '';
+
         return `
-          <div class="recording-card" data-tab-id="${rec.tabId}">
+          <div class="recording-card" data-tab-id="${rec.tabId}" data-streamer-id="${escapeHtml(rec.streamerId || '')}">
             <div class="recording-card-header">
               <span class="recording-indicator"></span>
               <span class="recording-streamer-name">${displayName}</span>
+              ${staleWarning}
               <span class="recording-quality-info" title="${getRecordingQualityTooltip()}">ⓘ</span>
             </div>
             <div class="recording-card-stats">
@@ -585,7 +633,7 @@
         `;
       }).join('');
 
-      // 중지 버튼 이벤트 (tabId 사용)
+      // 중지 버튼 이벤트 바인딩
       elements.activeRecordingList.querySelectorAll('.recording-stop-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const tabId = parseInt(btn.dataset.tabId);
@@ -595,14 +643,31 @@
 
     } catch (error) {
       console.error('[사이드패널] 녹화 목록 업데이트 오류:', error);
+
+      // ⭐ v3.5.14: 폴백 - background에서 읽기 시도
+      try {
+        const result = await sendMessage({ type: 'GET_ALL_RECORDINGS' });
+        const recordings = result?.success && Array.isArray(result.data) ? result.data : [];
+
+        if (elements.recordingCount) {
+          elements.recordingCount.textContent = recordings.length;
+        }
+        if (elements.noRecordingMessage) {
+          elements.noRecordingMessage.style.display = recordings.length === 0 ? 'block' : 'none';
+        }
+      } catch (e) {
+        console.error('[사이드패널] 폴백도 실패:', e);
+      }
     }
   }
 
   // 현재 탭 녹화 상태 동기화
   async function syncCurrentTabRecordingState() {
     try {
-      const result = await sendMessage({ type: 'GET_ALL_RECORDINGS' });
-      const recordings = result?.success && Array.isArray(result.data) ? result.data : [];
+      // ⭐ v3.5.14: Storage에서 직접 읽기
+      const result = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
+      const recordingsObj = result[STORAGE_KEY_RECORDINGS] || {};
+      const recordings = Object.values(recordingsObj);
 
       // 현재 탭에서 녹화 중인지 확인
       const currentRecording = recordings.find(rec => rec.tabId === state.currentSoopTabId);
@@ -621,6 +686,17 @@
       updateRecordingButton();
     } catch (error) {
       console.error('[사이드패널] 녹화 상태 동기화 오류:', error);
+
+      // 폴백: background 요청
+      try {
+        const result = await sendMessage({ type: 'GET_ALL_RECORDINGS' });
+        if (result?.success) {
+          const recordings = result.data || [];
+          const currentRecording = recordings.find(rec => rec.tabId === state.currentSoopTabId);
+          state.currentTabRecording = currentRecording || null;
+          updateRecordingButton();
+        }
+      } catch (e) {}
     }
   }
 
@@ -1463,10 +1539,36 @@
         updateCurrentStream();
       }
     });
+
+    // ⭐ v3.5.14: Storage 변경 감지 (실시간 UI 업데이트)
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === 'local' && changes[STORAGE_KEY_RECORDINGS]) {
+        console.log('[사이드패널] 녹화 상태 storage 변경 감지');
+        updateActiveRecordingList();
+        syncCurrentTabRecordingState();
+      }
+    });
   }
 
   // ===== 초기화 =====
   async function init() {
+    // ⭐ v3.5.14: stale-warning 스타일 동적 추가
+    const staleStyle = document.createElement('style');
+    staleStyle.textContent = `
+      .stale-warning {
+        color: #ffa500;
+        margin-left: 4px;
+        font-size: 12px;
+        cursor: help;
+        animation: stale-blink 1.5s ease-in-out infinite;
+      }
+      @keyframes stale-blink {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+      }
+    `;
+    document.head.appendChild(staleStyle);
+
     initElements();
     applyI18n();
 
