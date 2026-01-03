@@ -1,5 +1,6 @@
-// ===== 숲토킹 v3.5.14 - Content Script (ISOLATED) =====
+// ===== 숲토킹 v3.5.15 - Content Script (ISOLATED) =====
 // MAIN world와 Background 사이의 메시지 브릿지 + 분할 저장 지원 + 안전 종료 + Storage 기반 상태 관리
+// v3.5.15: Progress 쓰로틀링 (15초) - Storage 쓰기 66% 감소
 
 (function() {
   'use strict';
@@ -30,6 +31,10 @@
 
   // ===== v3.5.14: Storage 기반 녹화 상태 관리 =====
   const STORAGE_KEY_RECORDINGS = 'activeRecordings';
+
+  // ⭐ v3.5.15: Progress 쓰로틀링 (15초)
+  const PROGRESS_SAVE_INTERVAL = 15000;
+  let lastProgressSaveTime = 0;
 
   // 녹화 상태를 storage에 직접 저장
   async function saveRecordingStateToStorage(tabId, recordingData) {
@@ -67,7 +72,15 @@
   }
 
   // 녹화 진행 상태 업데이트 (storage)
+  // ⭐ v3.5.15: 쓰로틀링 적용 (15초마다 저장)
   async function updateRecordingProgressInStorage(tabId, totalBytes, elapsedTime, partNumber) {
+    // 쓰로틀링: 마지막 저장 후 15초 이내면 스킵
+    const now = Date.now();
+    if (now - lastProgressSaveTime < PROGRESS_SAVE_INTERVAL) {
+      return;  // 스킵
+    }
+    lastProgressSaveTime = now;
+
     try {
       const result = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
       const recordings = result[STORAGE_KEY_RECORDINGS] || {};
@@ -79,6 +92,7 @@
         recordings[tabId].lastUpdate = Date.now();
 
         await chrome.storage.local.set({ [STORAGE_KEY_RECORDINGS]: recordings });
+        console.log('[숲토킹 Content] Progress storage 저장 (쓰로틀링)');
       }
     } catch (error) {
       // 진행 상태 업데이트 실패는 조용히 무시 (다음 주기에 재시도)
@@ -398,5 +412,5 @@
     }
   });
 
-  console.log('[숲토킹 Content] v3.5.14 ISOLATED 브릿지 로드됨 (Storage 기반 상태 관리)');
+  console.log('[숲토킹 Content] v3.5.15 ISOLATED 브릿지 로드됨 (Progress 쓰로틀링 적용)');
 })();

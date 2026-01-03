@@ -1,6 +1,7 @@
-// ===== 숲토킹 v3.5.14 - Background Service Worker =====
+// ===== 숲토킹 v3.5.15 - Background Service Worker =====
 // Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장 + 500MB 자동 분할 저장
 // v3.5.14: Storage 기반 녹화 상태 영속화 - Extension Context 무효화 및 Service Worker 재시작 시에도 UI 유지
+// v3.5.15: Progress 쓰로틀링 (15초) + onStartup 초기화 강화
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -101,6 +102,7 @@ chrome.runtime.onStartup.addListener(async () => {
   }
   state.isInitialized = true;
   await loadSettings();
+  await loadRecordingsFromStorage();  // ⭐ v3.5.15: 녹화 상태 복구 추가
   if (state.isMonitoring) {
     startMonitoring();
   }
@@ -1432,4 +1434,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.5.14 로드됨 (Storage 기반 상태 관리)');
+console.log('[숲토킹] Background Service Worker v3.5.15 로드됨 (Progress 쓰로틀링 + 초기화 강화)');
