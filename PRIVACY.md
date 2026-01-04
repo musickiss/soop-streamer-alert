@@ -1,22 +1,42 @@
 # 개인정보처리방침 (Privacy Policy)
 
-**최종 수정일:** 2025년 1월 1일
+**최종 수정일:** 2025년 1월 5일
 
 ## 개요
 
-"숲토킹 - SOOP 스트리머 방송 알림" 크롬 확장 프로그램(이하 "본 확장프로그램")은 사용자의 개인정보를 수집, 저장, 전송하지 않습니다.
+"숲토킹 - SOOP 스트리머 방송 알림" 크롬 확장 프로그램(이하 "본 확장프로그램")은 서비스 개선을 위해 익명의 사용 통계만 수집하며, 개인을 식별할 수 있는 정보는 수집하지 않습니다.
 
 ---
 
 ## 수집하는 정보
 
-**본 확장프로그램은 어떠한 개인정보도 수집하지 않습니다.**
+### 익명 사용 통계 (v3.6.0+)
 
-- 사용자 식별 정보 (이름, 이메일 등) 수집 안 함
-- 로그인 정보 및 인증 정보 수집 안 함
-- 쿠키 및 세션 정보 수집 안 함
-- 브라우징 기록 수집 안 함
-- 위치 정보 수집 안 함
+본 확장프로그램은 서비스 개선을 위해 Google Analytics 4 (GA4)를 통해 **익명의 사용 통계**를 수집합니다.
+
+| 수집 항목 | 설명 | 예시 |
+|----------|------|------|
+| 확장프로그램 버전 | 사용 중인 버전 | `3.6.0` |
+| 기능 사용 이벤트 | 어떤 기능이 사용되는지 | 녹화 시작, 모니터링 ON/OFF |
+| 브라우저 언어 | 다국어 지원 개선용 | `ko`, `en`, `ja` |
+| 익명 세션 ID | 세션 구분용 (무작위 생성) | `abc123xyz` |
+
+#### ❌ 수집하지 않는 정보
+
+- 사용자 식별 정보 (이름, 이메일, IP 주소 등)
+- 로그인 정보 및 인증 정보
+- 쿠키 및 세션 정보
+- 브라우징 기록
+- 위치 정보
+- 스트리머 ID 또는 시청 정보
+- 녹화 파일 정보
+
+#### ⚙️ 통계 수집 비활성화 (옵트아웃)
+
+통계 수집을 원하지 않으시면 설정에서 언제든지 비활성화할 수 있습니다:
+1. Side Panel 열기
+2. ⚙️ 설정 클릭
+3. "익명 사용 통계 수집" 옵션 OFF
 
 ---
 
@@ -59,11 +79,12 @@
 | 대상 | 목적 | 수집 정보 |
 |------|------|----------|
 | SOOP 공식 API (`sooplive.co.kr`) | 스트리머 방송 상태 확인 | 없음 (공개된 방송 정보만 조회) |
+| Google Analytics (`google-analytics.com`) | 익명 사용 통계 수집 | 위 "수집하는 정보" 섹션 참조 |
 
-- 사용자 데이터를 외부 서버로 전송하지 않습니다.
-- 분석 도구(Analytics)를 사용하지 않습니다.
+- 개인 식별 가능한 데이터를 외부 서버로 전송하지 않습니다.
+- 익명 사용 통계만 Google Analytics로 전송됩니다 (비활성화 가능).
 - 광고 네트워크와 연동하지 않습니다.
-- 제3자와 데이터를 공유하지 않습니다.
+- 제3자와 개인정보를 공유하지 않습니다.
 
 ---
 
@@ -116,23 +137,43 @@
 
 # Privacy Policy (English)
 
-**Last Updated:** January 1, 2025
+**Last Updated:** January 5, 2025
 
 ## Overview
 
-The "SOOPtalking - SOOP Streamer Live Alert" Chrome extension (hereinafter "this extension") does not collect, store, or transmit any personal information from users.
+The "SOOPtalking - SOOP Streamer Live Alert" Chrome extension (hereinafter "this extension") collects only anonymous usage statistics to improve the service and does not collect any personally identifiable information.
 
 ---
 
 ## Information We Collect
 
-**This extension does not collect any personal information.**
+### Anonymous Usage Statistics (v3.6.0+)
 
-- No collection of user identification information (name, email, etc.)
-- No collection of login or authentication information
-- No collection of cookies or session information
-- No collection of browsing history
-- No collection of location information
+This extension collects **anonymous usage statistics** through Google Analytics 4 (GA4) to improve the service.
+
+| Collected Item | Description | Example |
+|---------------|-------------|---------|
+| Extension version | Version in use | `3.6.0` |
+| Feature usage events | Which features are used | Recording start, Monitoring ON/OFF |
+| Browser language | For multilingual support improvement | `ko`, `en`, `ja` |
+| Anonymous session ID | For session distinction (randomly generated) | `abc123xyz` |
+
+#### ❌ Information NOT Collected
+
+- User identification information (name, email, IP address, etc.)
+- Login or authentication information
+- Cookies or session information
+- Browsing history
+- Location information
+- Streamer IDs or viewing information
+- Recording file information
+
+#### ⚙️ Opt-out of Statistics Collection
+
+If you do not want statistics to be collected, you can disable it at any time in settings:
+1. Open Side Panel
+2. Click ⚙️ Settings
+3. Turn OFF "Anonymous usage statistics"
 
 ---
 
@@ -170,16 +211,17 @@ The copyright of recorded content belongs to the respective streamer and SOOP.
 
 ## External Communication
 
-This extension communicates externally only for the following purpose:
+This extension communicates externally only for the following purposes:
 
 | Target | Purpose | Information Collected |
 |--------|---------|----------------------|
 | SOOP Official API (`sooplive.co.kr`) | Check streamer broadcast status | None (only queries publicly available broadcast information) |
+| Google Analytics (`google-analytics.com`) | Anonymous usage statistics | See "Information We Collect" section above |
 
-- User data is not transmitted to external servers.
-- No analytics tools are used.
+- No personally identifiable data is transmitted to external servers.
+- Only anonymous usage statistics are sent to Google Analytics (can be disabled).
 - No integration with advertising networks.
-- No data sharing with third parties.
+- No sharing of personal information with third parties.
 
 ---
 
