@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.22 - 사이드패널 =====
+// ===== 숲토킹 v3.5.23 - 사이드패널 =====
 
 (function() {
   'use strict';
@@ -1181,14 +1181,19 @@
         });
 
         if (result?.success && result.streamer) {
-          // 기존 설정 복원
-          if (streamer.autoJoin !== undefined || streamer.autoRecord !== undefined) {
+          // 모든 설정 복원 (autoJoin, autoRecord, autoClose)
+          const hasSettings = streamer.autoJoin !== undefined ||
+                              streamer.autoRecord !== undefined ||
+                              streamer.autoClose !== undefined;
+
+          if (hasSettings) {
             await sendMessage({
               type: 'UPDATE_STREAMER',
               streamerId,
               updates: {
                 autoJoin: streamer.autoJoin || false,
-                autoRecord: streamer.autoRecord || false
+                autoRecord: streamer.autoRecord || false,
+                autoClose: streamer.autoClose || false
               }
             });
           }
