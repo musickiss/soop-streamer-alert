@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.21 - Content Script (ISOLATED) =====
+// ===== 숲토킹 v3.5.24 - Content Script (ISOLATED) =====
 
 (function() {
   'use strict';
@@ -131,7 +131,8 @@
     // ⭐ v3.5.10: 안전 종료용 알림 메시지
     'SOOPTALKING_RECORDING_STARTED_NOTIFY',
     'SOOPTALKING_RECORDING_SAVED_NOTIFY',
-    'SOOPTALKING_RECORDING_STOPPED_NOTIFY'
+    'SOOPTALKING_RECORDING_STOPPED_NOTIFY',
+    'SOOPTALKING_RECORDING_LOST'  // ⭐ v3.5.24: 녹화 손실 메시지 추가
   ];
 
   window.addEventListener('message', (e) => {
@@ -321,6 +322,24 @@
           }).catch(e => console.log('[숲토킹 Content] RECORDING_STOPPED 전송 실패:', e));
         });
         break;
+
+      // ⭐ v3.5.24: 녹화 손실 알림 (beforeunload에서 전송)
+      case 'SOOPTALKING_RECORDING_LOST':
+        console.warn('[숲토킹 Content] 녹화 손실 알림 수신:', data.streamerId);
+        // Storage에서 녹화 상태 제거 시도
+        getCurrentTabId().then(tabId => {
+          if (tabId) {
+            removeRecordingStateFromStorage(tabId);
+          }
+        });
+        // Background에 알림 (실패해도 무시)
+        safeSendMessage({
+          type: 'RECORDING_LOST_FROM_PAGE',
+          streamerId: data.streamerId,
+          totalBytes: data.totalBytes,
+          elapsedTime: data.elapsedTime
+        }).catch(() => {});
+        break;
     }
   });
 
@@ -410,5 +429,35 @@
     }
   });
 
-  console.log('[숲토킹 Content] v3.5.16 ISOLATED 브릿지 로드됨');
+  // ⭐ v3.5.24: 초기화 시 Background와 녹화 상태 동기화
+  // (새로고침 후 불일치 상태 해결)
+  getCurrentTabId().then(async (tabId) => {
+    if (!tabId) return;
+
+    try {
+      // Storage에서 이 탭의 녹화 상태 확인
+      const result = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
+      const recordings = result[STORAGE_KEY_RECORDINGS] || {};
+
+      if (recordings[tabId]) {
+        // 녹화 상태가 남아있지만, 실제 녹화 중이 아님 (새로고침됨)
+        console.log('[숲토킹 Content] 불일치 상태 감지 - 이전 녹화 상태 정리:', tabId);
+
+        // Storage에서 제거
+        delete recordings[tabId];
+        await chrome.storage.local.set({ [STORAGE_KEY_RECORDINGS]: recordings });
+
+        // Background에도 알림
+        safeSendMessage({
+          type: 'RECORDING_STATE_CLEANUP',
+          tabId: tabId,
+          reason: 'page_reloaded'
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.log('[숲토킹 Content] 상태 동기화 실패:', e.message);
+    }
+  });
+
+  console.log('[숲토킹 Content] v3.5.24 ISOLATED 브릿지 로드됨');
 })();

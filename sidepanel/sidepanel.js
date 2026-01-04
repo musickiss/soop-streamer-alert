@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.23 - 사이드패널 =====
+// ===== 숲토킹 v3.5.24 - 사이드패널 =====
 
 (function() {
   'use strict';
@@ -1529,6 +1529,23 @@
           }
           // 토스트 표시
           showToast(`파트 ${message.partNumber} 녹화 중`, 'info');
+          break;
+
+        // ⭐ v3.5.24: 녹화 손실 알림 (새로고침으로 인한)
+        case 'RECORDING_LOST_BY_REFRESH':
+          console.warn('[사이드패널] 녹화 손실:', message.streamerId);
+
+          // 현재 탭 녹화 상태 정리
+          if (state.currentTabRecording?.tabId === message.tabId) {
+            state.currentTabRecording = null;
+          }
+
+          // UI 업데이트
+          updateRecordingButton();
+          updateActiveRecordingList();
+
+          // 사용자에게 알림
+          showToast(`⚠️ ${message.streamerId} 녹화가 새로고침으로 중단되었습니다. (${formatDuration(message.elapsedTime)} 손실)`, 'error');
           break;
       }
     });

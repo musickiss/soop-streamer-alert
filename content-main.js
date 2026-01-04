@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.21 - Content Script (MAIN) =====
+// ===== 숲토킹 v3.5.24 - Content Script (MAIN) =====
 // MAIN world Canvas 녹화 스크립트
 
 (function() {
@@ -548,9 +548,34 @@
     }
   }
 
-  window.addEventListener('beforeunload', () => {
-    console.log('[숲토킹 Recorder] 탭 종료, 리소스 정리');
+  // ⭐ v3.5.24: beforeunload에서 녹화 상태 알림 및 경고
+  window.addEventListener('beforeunload', (event) => {
+    console.log('[숲토킹 Recorder] 탭 종료/새로고침 감지');
 
+    // 녹화 중인 경우 경고 및 알림
+    if (isRecording) {
+      console.warn('[숲토킹 Recorder] ⚠️ 녹화 중 페이지 이탈 - 데이터 손실 발생');
+
+      // Background에 녹화 손실 알림 (동기적으로 시도)
+      try {
+        // postMessage로 손실 알림 전송
+        window.postMessage({
+          type: 'SOOPTALKING_RECORDING_LOST',
+          streamerId: currentStreamerId,
+          totalBytes: totalRecordedBytes,
+          elapsedTime: recordingStartTime ? Math.floor((Date.now() - recordingStartTime) / 1000) : 0
+        }, '*');
+      } catch (e) {
+        console.log('[숲토킹 Recorder] 손실 알림 전송 실패:', e.message);
+      }
+
+      // 사용자에게 경고 표시 (브라우저가 지원하는 경우)
+      event.preventDefault();
+      event.returnValue = '녹화가 진행 중입니다. 페이지를 떠나면 녹화 데이터가 손실됩니다.';
+      return event.returnValue;
+    }
+
+    // 오디오 리소스 정리
     if (audioCtx) {
       try {
         audioCtx.close();

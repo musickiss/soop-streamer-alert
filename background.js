@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.21 - Background Service Worker =====
+// ===== 숲토킹 v3.5.24 - Background Service Worker =====
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -33,6 +33,18 @@ function sanitizeFilename(str) {
     .replace(/\.\./g, '_')
     .replace(/\s+/g, '_')
     .substring(0, 100);
+}
+
+// ===== v3.5.24: 시간 포맷 헬퍼 (녹화 손실 알림용) =====
+function formatDuration(seconds) {
+  if (!seconds || seconds < 0) return '0:00';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) {
+    return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+  return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
 // ===== 스트리머 닉네임 업데이트 헬퍼 (v3.5.12) =====
@@ -1360,6 +1372,28 @@ async function handleMessage(message, sender, sendResponse) {
       sendResponse({ tabId: tabId });
       break;
 
+    // ⭐ v3.5.24: 페이지 새로고침으로 인한 상태 정리
+    case 'RECORDING_STATE_CLEANUP':
+      console.log(`[숲토킹] 녹화 상태 정리 요청: tabId=${message.tabId}, reason=${message.reason}`);
+      if (message.tabId && state.recordings.has(message.tabId)) {
+        state.recordings.delete(message.tabId);
+        updateBadge();
+      }
+      sendResponse({ success: true });
+      break;
+
+    // ⭐ v3.5.24: 페이지에서 녹화 손실 알림
+    case 'RECORDING_LOST_FROM_PAGE':
+      console.warn(`[숲토킹] 녹화 손실 (페이지에서): ${message.streamerId}, ${message.elapsedTime}초`);
+      // 이미 onUpdated에서 처리했을 수 있으므로 중복 체크
+      if (tabId && state.recordings.has(tabId)) {
+        state.recordings.delete(tabId);
+        await removeRecordingFromStorage(tabId);
+        updateBadge();
+      }
+      sendResponse({ success: true });
+      break;
+
     default:
       sendResponse({ success: false, error: '알 수 없는 메시지 타입' });
   }
@@ -1399,10 +1433,45 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   }
 });
 
-// ===== VOD 리다이렉트 감지 (방송 종료 시 VOD 페이지로 이동) =====
+// ===== 탭 새로고침/URL 변경 감지 (녹화 상태 정리) =====
 
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
-  // URL 변경 감지
+  // ⭐ v3.5.24: 탭 로딩 시작 감지 (새로고침 포함)
+  if (changeInfo.status === 'loading' && state.recordings.has(tabId)) {
+    console.warn(`[숲토킹] 녹화 중인 탭 ${tabId} 새로고침/이동 감지`);
+
+    const recording = state.recordings.get(tabId);
+    const streamerId = recording?.streamerId || 'unknown';
+    const elapsedTime = recording?.startTime
+      ? Math.floor((Date.now() - recording.startTime) / 1000)
+      : 0;
+
+    // 녹화 상태 정리
+    state.recordings.delete(tabId);
+    await removeRecordingFromStorage(tabId);
+    updateBadge();
+
+    // 대기 중인 탭 종료 해제
+    if (state.pendingTabClose.has(tabId)) {
+      const pending = state.pendingTabClose.get(tabId);
+      clearTimeout(pending.timeoutId);
+      pending.resolve(false);
+      state.pendingTabClose.delete(tabId);
+    }
+
+    // Side Panel에 녹화 손실 알림
+    broadcastToSidepanel({
+      type: 'RECORDING_LOST_BY_REFRESH',
+      tabId: tabId,
+      streamerId: streamerId,
+      elapsedTime: elapsedTime,
+      message: `${streamerId} 녹화가 새로고침으로 인해 중단되었습니다. (${formatDuration(elapsedTime)} 분량 손실)`
+    });
+
+    console.log(`[숲토킹] 녹화 상태 정리 완료: ${streamerId}, 손실 시간: ${elapsedTime}초`);
+  }
+
+  // URL 변경 감지 (기존 VOD 리다이렉트 로직 유지)
   if (changeInfo.url) {
     const url = changeInfo.url;
 
@@ -1456,4 +1525,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.5.18 로드됨 (자동 녹화 품질 설정 통합)');
+console.log('[숲토킹] Background Service Worker v3.5.24 로드됨 (녹화 중 새로고침 상태 불일치 해결)');
