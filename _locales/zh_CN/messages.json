@@ -248,5 +248,17 @@
   "qualityApplyInfo": {
     "message": "所选画质将同时应用于手动和自动录制。",
     "description": "录制画质信息提示"
+  },
+  "qualityUltra": {
+    "message": "原画",
+    "description": "录制质量 - 原画 (30Mbps)"
+  },
+  "qualityHigh": {
+    "message": "高清",
+    "description": "录制质量 - 高清 (15Mbps)"
+  },
+  "qualityStandard": {
+    "message": "标准",
+    "description": "录制质量 - 标准 (8Mbps)"
   }
 }

@@ -248,5 +248,17 @@
   "qualityApplyInfo": {
     "message": "選択した画質は手動・自動録画の両方に適用されます。",
     "description": "録画画質情報ツールチップ"
+  },
+  "qualityUltra": {
+    "message": "最高画質",
+    "description": "録画品質 - 最高画質 (30Mbps)"
+  },
+  "qualityHigh": {
+    "message": "高画質",
+    "description": "録画品質 - 高画質 (15Mbps)"
+  },
+  "qualityStandard": {
+    "message": "標準",
+    "description": "録画品質 - 標準 (8Mbps)"
   }
 }

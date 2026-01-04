@@ -248,5 +248,17 @@
   "qualityApplyInfo": {
     "message": "Selected quality applies to both manual and auto recording.",
     "description": "Recording quality info tooltip"
+  },
+  "qualityUltra": {
+    "message": "Ultra",
+    "description": "Recording quality - Ultra (30Mbps)"
+  },
+  "qualityHigh": {
+    "message": "High",
+    "description": "Recording quality - High (15Mbps)"
+  },
+  "qualityStandard": {
+    "message": "Standard",
+    "description": "Recording quality - Standard (8Mbps)"
   }
 }
