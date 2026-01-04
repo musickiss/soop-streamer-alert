@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.21 - 사이드패널 =====
+// ===== 숲토킹 v3.5.22 - 사이드패널 =====
 
 (function() {
   'use strict';
@@ -296,6 +296,9 @@
         stabilityNote = '';
     }
 
+    // ⭐ v3.5.22: 데이터 손실 경고 문구 (다국어 지원)
+    const dataLossWarning = i18n('recordingDataLossWarning') || '탭/브라우저 비정상 종료 시 현재 녹화 중인 내용이 손실될 수 있습니다.';
+
     elements.recordingQualityInfoTooltip.innerHTML = `
       <p class="tooltip-title">⚠️ 녹화 품질 안내</p>
       <p><strong>현재 설정: ${qualityName}</strong></p>
@@ -305,6 +308,7 @@
       <p>• ${stabilityNote}</p>
       <p style="margin-top: 8px;">백그라운드 탭은 브라우저가 리소스를 제한하여 <strong>프레임 드랍</strong>이 발생할 수 있습니다.</p>
       <p class="tooltip-tip">💡 <strong>권장:</strong> 녹화 탭을 새 창으로 분리하거나 활성 상태로 유지하세요.</p>
+      <p class="tooltip-tip" style="color: #ff6b6b; margin-top: 6px;">⚠️ ${dataLossWarning}</p>
     `;
   }
 

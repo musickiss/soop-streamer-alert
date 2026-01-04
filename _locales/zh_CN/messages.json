@@ -260,5 +260,9 @@
   "qualityStandard": {
     "message": "标准",
     "description": "录制质量 - 标准 (8Mbps)"
+  },
+  "recordingDataLossWarning": {
+    "message": "如果标签页或浏览器异常关闭，当前录制中的内容可能会丢失。",
+    "description": "录制数据丢失警告"
   }
 }

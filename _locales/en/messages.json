@@ -260,5 +260,9 @@
   "qualityStandard": {
     "message": "Standard",
     "description": "Recording quality - Standard (8Mbps)"
+  },
+  "recordingDataLossWarning": {
+    "message": "If the tab or browser closes unexpectedly, unsaved recording data may be lost.",
+    "description": "Recording data loss warning"
   }
 }

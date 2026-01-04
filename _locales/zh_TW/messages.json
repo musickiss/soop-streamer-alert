@@ -260,5 +260,9 @@
   "qualityStandard": {
     "message": "標準",
     "description": "錄製品質 - 標準 (8Mbps)"
+  },
+  "recordingDataLossWarning": {
+    "message": "如果標籤頁或瀏覽器異常關閉，當前錄製中的內容可能會遺失。",
+    "description": "錄製資料遺失警告"
   }
 }

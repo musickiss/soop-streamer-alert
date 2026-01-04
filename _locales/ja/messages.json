@@ -260,5 +260,9 @@
   "qualityStandard": {
     "message": "標準",
     "description": "録画品質 - 標準 (8Mbps)"
+  },
+  "recordingDataLossWarning": {
+    "message": "タブやブラウザが異常終了すると、録画中のデータが失われる可能性があります。",
+    "description": "録画データ損失警告"
   }
 }

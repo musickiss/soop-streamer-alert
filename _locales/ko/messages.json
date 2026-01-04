@@ -260,5 +260,9 @@
   "qualityStandard": {
     "message": "표준",
     "description": "녹화 품질 - 표준 (8Mbps)"
+  },
+  "recordingDataLossWarning": {
+    "message": "탭/브라우저 비정상 종료 시 현재 녹화 중인 내용이 손실될 수 있습니다.",
+    "description": "녹화 데이터 손실 경고 문구"
   }
 }
