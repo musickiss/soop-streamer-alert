@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.26 - Content Script (ISOLATED) =====
+// ===== 숲토킹 v3.6.0 - Content Script (ISOLATED) =====
 
 (function() {
   'use strict';
@@ -132,7 +132,8 @@
     'SOOPTALKING_RECORDING_STARTED_NOTIFY',
     'SOOPTALKING_RECORDING_SAVED_NOTIFY',
     'SOOPTALKING_RECORDING_STOPPED_NOTIFY',
-    'SOOPTALKING_RECORDING_LOST'  // ⭐ v3.5.24: 녹화 손실 메시지 추가
+    'SOOPTALKING_RECORDING_LOST',  // ⭐ v3.5.24: 녹화 손실 메시지 추가
+    'SOOPTALKING_ANALYTICS_ERROR'  // ⭐ v3.6.0: 녹화 오류 Analytics
   ];
 
   window.addEventListener('message', (e) => {
@@ -338,6 +339,14 @@
           streamerId: data.streamerId,
           totalBytes: data.totalBytes,
           elapsedTime: data.elapsedTime
+        }).catch(() => {});
+        break;
+
+      // ⭐ v3.6.0: 녹화 오류 Analytics 이벤트 전달
+      case 'SOOPTALKING_ANALYTICS_ERROR':
+        safeSendMessage({
+          type: 'ANALYTICS_RECORDING_ERROR',
+          errorType: data.errorType
         }).catch(() => {});
         break;
     }

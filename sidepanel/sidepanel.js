@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.26 - 사이드패널 =====
+// ===== 숲토킹 v3.6.0 - 사이드패널 =====
 
 (function() {
   'use strict';
@@ -1395,6 +1395,15 @@
     elements.recordingQualitySelect?.addEventListener('change', (e) => {
       state.recordingQuality = e.target.value;
       chrome.storage.local.set({ recordingQuality: state.recordingQuality });
+
+      // ⭐ v3.6.0: 품질 변경 이벤트
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        chrome.runtime.sendMessage({
+          type: 'ANALYTICS_QUALITY_CHANGE',
+          quality: state.recordingQuality
+        }).catch(() => {});
+      }
+
       // ⭐ 3단계 품질 토스트 메시지
       const qualityNames = {
         'ultra': '원본급 (30Mbps)',

@@ -1,4 +1,7 @@
-// ===== 숲토킹 v3.5.26 - Background Service Worker =====
+// ===== 숲토킹 v3.6.0 - Background Service Worker =====
+
+// ⭐ v3.6.0: GA4 익명 통계 모듈 로드
+importScripts('analytics.js');
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -93,7 +96,7 @@ const state = {
 
 // ===== 초기화 =====
 
-chrome.runtime.onInstalled.addListener(async () => {
+chrome.runtime.onInstalled.addListener(async (details) => {
   const version = chrome.runtime.getManifest().version;
   console.log(`[숲토킹] v${version} 설치됨`);
   if (state.isInitialized) {
@@ -102,6 +105,18 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
   state.isInitialized = true;
   await loadSettings();
+
+  // ⭐ v3.6.0: Analytics 초기화 및 설치/업데이트 이벤트
+  if (typeof SOOPAnalytics !== 'undefined') {
+    await SOOPAnalytics.init();
+    const manifest = chrome.runtime.getManifest();
+
+    if (details.reason === 'install') {
+      SOOPAnalytics.trackInstall(manifest.version);
+    } else if (details.reason === 'update') {
+      SOOPAnalytics.trackUpdate(details.previousVersion, manifest.version);
+    }
+  }
 });
 
 chrome.runtime.onStartup.addListener(async () => {
@@ -113,6 +128,12 @@ chrome.runtime.onStartup.addListener(async () => {
   state.isInitialized = true;
   await loadSettings();
   await loadRecordingsFromStorage();  // ⭐ v3.5.15: 녹화 상태 복구 추가
+
+  // ⭐ v3.6.0: Analytics 초기화
+  if (typeof SOOPAnalytics !== 'undefined') {
+    await SOOPAnalytics.init();
+  }
+
   if (state.isMonitoring) {
     startMonitoring();
   }
@@ -243,6 +264,12 @@ async function startRecording(tabId, streamerId, nickname, quality = 'high') {
         totalBytes: 0
       });
       updateBadge();
+
+      // ⭐ v3.6.0: 녹화 시작 이벤트
+      if (typeof SOOPAnalytics !== 'undefined') {
+        SOOPAnalytics.trackRecordingStart(quality);
+      }
+
       return { success: true, tabId, streamerId, nickname };
     } else {
       return { success: false, error: response?.error || '녹화 시작 실패' };
@@ -570,6 +597,11 @@ function startMonitoring() {
 
   state.isMonitoringStarting = false;
   console.log('[숲토킹] 모니터링 시작 (5초/30초 분리)');
+
+  // ⭐ v3.6.0: 모니터링 시작 이벤트
+  if (typeof SOOPAnalytics !== 'undefined') {
+    SOOPAnalytics.trackMonitoringToggle(true, state.favoriteStreamers.length);
+  }
 }
 
 function stopMonitoring() {
@@ -586,6 +618,11 @@ function stopMonitoring() {
   }
 
   console.log('[숲토킹] 모니터링 중지');
+
+  // ⭐ v3.6.0: 모니터링 중지 이벤트
+  if (typeof SOOPAnalytics !== 'undefined') {
+    SOOPAnalytics.trackMonitoringToggle(false, state.favoriteStreamers.length);
+  }
 }
 
 async function checkFastStreamers() {
@@ -657,6 +694,11 @@ async function checkAndProcessStreamer(streamer) {
       if (streamer.autoJoin) {
         const tab = await openStreamerTab(streamer.id);
 
+        // ⭐ v3.6.0: 자동 참여 이벤트
+        if (typeof SOOPAnalytics !== 'undefined') {
+          SOOPAnalytics.trackAutoJoin();
+        }
+
         // 자동 녹화
         if (streamer.autoRecord && tab?.id) {
           // 탭 로드 완료 대기
@@ -706,6 +748,11 @@ async function checkAndProcessStreamer(streamer) {
               console.log('[숲토킹] 자동 녹화 재시도:', retryCount);
               await new Promise(r => setTimeout(r, 2000));
               return tryStartRecording();
+            }
+
+            // ⭐ v3.6.0: 자동 녹화 이벤트 (tryStartRecording 성공 시)
+            if (result?.success && typeof SOOPAnalytics !== 'undefined') {
+              SOOPAnalytics.trackAutoRecordingStart(autoRecordQuality);
             }
 
             return result;
@@ -1303,6 +1350,12 @@ async function handleMessage(message, sender, sendResponse) {
         streamerId: message.streamerId,
         partNumber: message.partNumber
       });
+
+      // ⭐ v3.6.0: 파일 분할 이벤트
+      if (typeof SOOPAnalytics !== 'undefined') {
+        SOOPAnalytics.trackFileSplit(message.partNumber);
+      }
+
       sendResponse({ success: true });
       break;
 
@@ -1327,6 +1380,20 @@ async function handleMessage(message, sender, sendResponse) {
     case 'RECORDING_SAVED':
       console.log(`[숲토킹] 녹화 저장 완료: tabId=${message.tabId}, streamerId=${message.streamerId}`);
       console.log(`[숲토킹]   파일: ${message.fileName}, 크기: ${(message.fileSize / 1024 / 1024).toFixed(2)}MB`);
+
+      // ⭐ v3.6.0: 녹화 완료 이벤트
+      if (typeof SOOPAnalytics !== 'undefined') {
+        const rec = state.recordings.get(message.tabId);
+        const durationSec = rec ? Math.floor((Date.now() - rec.startTime) / 1000) : 0;
+        const sizeMB = message.fileSize ? Math.round(message.fileSize / 1024 / 1024) : 0;
+        // recordingQuality는 storage에서 가져와야 하지만 여기서는 간단히 처리
+        chrome.storage.local.get(['recordingQuality']).then(result => {
+          const quality = result.recordingQuality || 'ultra';
+          SOOPAnalytics.trackRecordingStop(quality, durationSec, sizeMB);
+        }).catch(() => {
+          SOOPAnalytics.trackRecordingStop('unknown', durationSec, sizeMB);
+        });
+      }
 
       // 녹화 상태 제거
       state.recordings.delete(message.tabId);
@@ -1384,6 +1451,22 @@ async function handleMessage(message, sender, sendResponse) {
         state.recordings.delete(tabId);
         await removeRecordingFromStorage(tabId);
         updateBadge();
+      }
+      sendResponse({ success: true });
+      break;
+
+    // ⭐ v3.6.0: 품질 변경 이벤트 (sidepanel에서 전송)
+    case 'ANALYTICS_QUALITY_CHANGE':
+      if (typeof SOOPAnalytics !== 'undefined') {
+        SOOPAnalytics.trackQualityChange(message.quality);
+      }
+      sendResponse({ success: true });
+      break;
+
+    // ⭐ v3.6.0: 녹화 오류 이벤트 (content에서 전송)
+    case 'ANALYTICS_RECORDING_ERROR':
+      if (typeof SOOPAnalytics !== 'undefined') {
+        SOOPAnalytics.trackRecordingError(message.errorType);
       }
       sendResponse({ success: true });
       break;
@@ -1510,6 +1593,11 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   // ⭐ v3.5.14: Storage에서 녹화 상태 복구
   await loadRecordingsFromStorage();
 
+  // ⭐ v3.6.0: Analytics 초기화
+  if (typeof SOOPAnalytics !== 'undefined') {
+    await SOOPAnalytics.init();
+  }
+
   console.log('[숲토킹] 초기 설정 로드 완료');
 
   if (state.isMonitoring) {
@@ -1519,4 +1607,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log(`[숲토킹] Background v${chrome.runtime.getManifest().version} 로드됨`);
+console.log('[숲토킹] Background Service Worker v3.6.0 로드됨 (GA4 익명 통계 추가)');

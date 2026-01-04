@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.26 - Content Script (MAIN) =====
+// ===== 숲토킹 v3.6.0 - Content Script (MAIN) =====
 // MAIN world Canvas 녹화 스크립트
 
 (function() {
@@ -695,6 +695,12 @@
         console.error('[숲토킹 Recorder] MediaRecorder 오류:', event.error);
         console.error('[숲토킹 Recorder] 오류 스택:', event.error?.stack);
         notifyError(event.error?.message || '녹화 오류');
+
+        // ⭐ v3.6.0: 녹화 오류 이벤트 전송 (content → background)
+        window.postMessage({
+          type: 'SOOPTALKING_ANALYTICS_ERROR',
+          errorType: event.error?.name || 'unknown'
+        }, '*');
       };
 
       currentStreamerId = streamerId;
