@@ -60,7 +60,6 @@
   let totalRecordedBytes = 0;
   let partNumber = 1;
   let isRecording = false;
-  let isSaving = false;
   let isSplitting = false;
   let currentQuality = 'high';
   let currentMimeType = null;
@@ -700,7 +699,6 @@
       recordingStartTime = Date.now();
       generateFileName(streamerId, quality);
       isRecording = true;
-      isSaving = false;
       isSplitting = false;
       stopRetryCount = 0;
       splitWaitCount = 0;
@@ -745,21 +743,6 @@
       }
     }
     splitWaitCount = 0;
-
-    // 저장 중이면 대기
-    if (isSaving) {
-      stopRetryCount++;
-
-      if (stopRetryCount > CONFIG.MAX_STOP_RETRIES) {
-        console.log('[숲토킹 Recorder] 저장 대기 초과, 강제 종료');
-        isSaving = false;
-      } else {
-        console.log(`[숲토킹 Recorder] 저장 완료 대기 중... (${stopRetryCount}/${CONFIG.MAX_STOP_RETRIES})`);
-        setTimeout(() => stopRecording(), 500);
-        return { success: true, pending: true };
-      }
-    }
-    stopRetryCount = 0;
 
     const elapsed = Date.now() - recordingStartTime;
     if (elapsed < CONFIG.MIN_RECORD_TIME) {
@@ -999,6 +982,16 @@
       fileSize: blob.size
     }, '*');
     console.log(`[숲토킹 Recorder] 녹화 저장 완료 알림 전송: ${fileName}`);
+
+    // ⭐ v3.5.20: Blob URL 메모리 누수 방지 (5분 후 자동 해제)
+    setTimeout(() => {
+      try {
+        URL.revokeObjectURL(blobUrl);
+        console.log(`[숲토킹 Recorder] Blob URL 해제됨: ${fileName}`);
+      } catch (e) {
+        // 이미 해제되었거나 유효하지 않은 경우 무시
+      }
+    }, 300000);
   }
 
   function startProgressReporting() {
@@ -1087,6 +1080,8 @@
 
   window.addEventListener('message', async (event) => {
     if (event.source !== window) return;
+    // v3.5.20: origin 검증 추가 (보안 강화)
+    if (!event.origin.includes('sooplive.co.kr')) return;
     if (!event.data || event.data.type !== 'SOOPTALKING_RECORDER_COMMAND') return;
 
     const { command, params } = event.data;

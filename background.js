@@ -1102,6 +1102,24 @@ async function handleMessage(message, sender, sendResponse) {
       sendResponse(updateResult);
       break;
 
+    case 'REORDER_STREAMERS':
+      // v3.5.20: 스트리머 순서 변경 저장
+      if (Array.isArray(message.streamers)) {
+        const isValid = message.streamers.every(s =>
+          s && typeof s.id === 'string' && isValidStreamerId(s.id)
+        );
+        if (isValid) {
+          state.favoriteStreamers = message.streamers;
+          await saveSettings();
+          sendResponse({ success: true });
+        } else {
+          sendResponse({ success: false, error: '유효하지 않은 스트리머 데이터' });
+        }
+      } else {
+        sendResponse({ success: false, error: '스트리머 배열이 필요합니다' });
+      }
+      break;
+
     case 'UPDATE_SETTINGS':
       state.settings = { ...state.settings, ...message.settings };
       await saveSettings();
