@@ -31,13 +31,6 @@
 - 스트리머 ID 또는 시청 정보
 - 녹화 파일 정보
 
-#### ⚙️ 통계 수집 비활성화 (옵트아웃)
-
-통계 수집을 원하지 않으시면 설정에서 언제든지 비활성화할 수 있습니다:
-1. Side Panel 열기
-2. ⚙️ 설정 클릭
-3. "익명 사용 통계 수집" 옵션 OFF
-
 ---
 
 ## 데이터 저장
@@ -82,7 +75,7 @@
 | Google Analytics (`google-analytics.com`) | 익명 사용 통계 수집 | 위 "수집하는 정보" 섹션 참조 |
 
 - 개인 식별 가능한 데이터를 외부 서버로 전송하지 않습니다.
-- 익명 사용 통계만 Google Analytics로 전송됩니다 (비활성화 가능).
+- 익명 사용 통계만 Google Analytics로 전송됩니다.
 - 광고 네트워크와 연동하지 않습니다.
 - 제3자와 개인정보를 공유하지 않습니다.
 
@@ -168,13 +161,6 @@ This extension collects **anonymous usage statistics** through Google Analytics 
 - Streamer IDs or viewing information
 - Recording file information
 
-#### ⚙️ Opt-out of Statistics Collection
-
-If you do not want statistics to be collected, you can disable it at any time in settings:
-1. Open Side Panel
-2. Click ⚙️ Settings
-3. Turn OFF "Anonymous usage statistics"
-
 ---
 
 ## Data Storage
@@ -219,7 +205,7 @@ This extension communicates externally only for the following purposes:
 | Google Analytics (`google-analytics.com`) | Anonymous usage statistics | See "Information We Collect" section above |
 
 - No personally identifiable data is transmitted to external servers.
-- Only anonymous usage statistics are sent to Google Analytics (can be disabled).
+- Only anonymous usage statistics are sent to Google Analytics.
 - No integration with advertising networks.
 - No sharing of personal information with third parties.
 
