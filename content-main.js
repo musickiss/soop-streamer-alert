@@ -1,6 +1,5 @@
-// ===== 숲토킹 - SOOP 스트리머 방송 알림 =====
-// content-main.js - MAIN world Canvas 녹화 스크립트
-// v3.5.16 - 자동 녹화 즉시 종료 버그 수정 (비디오 상태 체크 완화)
+// ===== 숲토킹 v3.5.21 - Content Script (MAIN) =====
+// MAIN world Canvas 녹화 스크립트
 
 (function() {
   'use strict';
