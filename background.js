@@ -1,4 +1,5 @@
-// ===== 숲토킹 v3.5.16 - Background Service Worker =====
+// ===== 숲토킹 v3.5.17 - Background Service Worker =====
+// v3.5.17: 자동 녹화 재시도 로직 개선 - 불필요한 재시도 방지
 // v3.5.16: 자동 녹화 비디오 대기 시간 증가 (2초 → 5초)
 // Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장 + 500MB 자동 분할 저장
 // v3.5.14: Storage 기반 녹화 상태 영속화 - Extension Context 무효화 및 Service Worker 재시작 시에도 UI 유지
@@ -202,9 +203,10 @@ async function startRecording(tabId, streamerId, nickname, quality = 'ultra') {
   streamerId = sanitizedId;
   nickname = sanitizeFilename(nickname) || streamerId;
 
-  // 이미 녹화 중인지 확인
+  // ⭐ v3.5.17: 이미 녹화 중이면 성공으로 처리 (재시도 방지)
   if (state.recordings.has(tabId)) {
-    return { success: false, error: '이미 녹화 중입니다.' };
+    console.log('[숲토킹] 이미 녹화 중 - 성공으로 처리:', tabId);
+    return { success: true, alreadyRecording: true };
   }
 
   try {
@@ -1436,4 +1438,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.5.16 로드됨 (자동 녹화 비디오 대기 시간 증가)');
+console.log('[숲토킹] Background Service Worker v3.5.17 로드됨 (자동 녹화 재시도 로직 개선)');
