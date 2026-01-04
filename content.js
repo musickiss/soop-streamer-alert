@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.25 - Content Script (ISOLATED) =====
+// ===== 숲토킹 v3.5.26 - Content Script (ISOLATED) =====
 
 (function() {
   'use strict';
@@ -457,5 +457,5 @@
     }
   });
 
-  console.log('[숲토킹 Content] v3.5.25 로드됨');
+  console.log('[숲토킹 Content] 로드됨');
 })();

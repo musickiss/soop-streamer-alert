@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.25 - Content Script (MAIN) =====
+// ===== 숲토킹 v3.5.26 - Content Script (MAIN) =====
 // MAIN world Canvas 녹화 스크립트
 
 (function() {
@@ -11,7 +11,7 @@
   }
   window.__SOOPTALKING_RECORDER_LOADED__ = true;
 
-  console.log('[숲토킹 Recorder] v3.5.10 로드됨');
+  console.log('[숲토킹 Recorder] 로드됨');
 
   // ===== 설정 =====
   const CONFIG = {

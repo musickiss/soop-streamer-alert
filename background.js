@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.25 - Background Service Worker =====
+// ===== 숲토킹 v3.5.26 - Background Service Worker =====
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -94,7 +94,8 @@ const state = {
 // ===== 초기화 =====
 
 chrome.runtime.onInstalled.addListener(async () => {
-  console.log('[숲토킹] v3.5.6 설치됨');
+  const version = chrome.runtime.getManifest().version;
+  console.log(`[숲토킹] v${version} 설치됨`);
   if (state.isInitialized) {
     console.log('[숲토킹] 이미 초기화됨 - onInstalled 스킵');
     return;
@@ -1518,4 +1519,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background v3.5.25 로드됨');
+console.log(`[숲토킹] Background v${chrome.runtime.getManifest().version} 로드됨`);
