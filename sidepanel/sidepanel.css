@@ -2011,3 +2011,79 @@ body {
 .avatar.clickable:active {
   transform: scale(1.05);
 }
+
+/* ===== v3.5.18: 녹화 품질 안내 툴팁 ===== */
+.quality-info-tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+}
+
+.quality-info-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 12px;
+  font-style: normal;
+  color: #888;
+  cursor: help;
+  transition: color 0.2s ease;
+}
+
+.quality-info-icon:hover {
+  color: var(--soop-primary);
+}
+
+.quality-info-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 220px;
+  padding: 10px 12px;
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  font-size: 11px;
+  font-weight: 400;
+  color: #ccc;
+  line-height: 1.5;
+  text-align: center;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  z-index: 1000;
+  transition: all 0.2s ease;
+}
+
+.quality-info-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-bottom: 6px solid rgba(255, 255, 255, 0.15);
+}
+
+.quality-info-tooltip::after {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 5px solid #1a1a2e;
+}
+
+.quality-info-tooltip-wrapper:hover .quality-info-tooltip {
+  opacity: 1;
+  visibility: visible;
+}

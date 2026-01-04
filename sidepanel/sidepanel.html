@@ -67,7 +67,13 @@
     <!-- 현재 시청 중 섹션 (상단 고정) -->
     <section class="section now-watching" id="nowWatching">
         <div class="section-header">
-          <div class="section-title">📺 <span data-i18n="nowWatching">현재 시청 중</span></div>
+          <div class="section-title">📺 <span data-i18n="nowWatching">현재 시청 중</span>
+            <!-- ⭐ v3.5.18: 품질 안내 툴팁 -->
+            <div class="quality-info-tooltip-wrapper">
+              <span class="quality-info-icon">ⓘ</span>
+              <div class="quality-info-tooltip" data-i18n="qualityApplyInfo">선택한 녹화 품질은 수동/자동 녹화 모두에 적용됩니다.</div>
+            </div>
+          </div>
           <select id="recordingQualitySelect" class="quality-select" title="녹화 품질 선택">
             <option value="ultra" selected>원본급 (30Mbps)</option>
             <option value="high">고품질 (15Mbps)</option>

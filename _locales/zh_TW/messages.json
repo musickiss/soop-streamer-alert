@@ -244,5 +244,9 @@
   "noRecordings": {
     "message": "沒有正在錄製的直播",
     "description": "無錄製訊息"
+  },
+  "qualityApplyInfo": {
+    "message": "所選畫質將同時套用於手動和自動錄製。",
+    "description": "錄製畫質資訊提示"
   }
 }

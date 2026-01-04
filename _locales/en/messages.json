@@ -244,5 +244,9 @@
   "noRecordings": {
     "message": "No active recordings",
     "description": "No recordings message"
+  },
+  "qualityApplyInfo": {
+    "message": "Selected quality applies to both manual and auto recording.",
+    "description": "Recording quality info tooltip"
   }
 }

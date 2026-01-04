@@ -1,4 +1,5 @@
-// ===== 숲토킹 v3.5.17 - Background Service Worker =====
+// ===== 숲토킹 v3.5.18 - Background Service Worker =====
+// v3.5.18: 자동 녹화 품질 설정 통합 - 수동/자동 품질 통일
 // v3.5.17: 자동 녹화 재시도 로직 개선 - 불필요한 재시도 방지
 // v3.5.16: 자동 녹화 비디오 대기 시간 증가 (2초 → 5초)
 // Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장 + 500MB 자동 분할 저장
@@ -181,7 +182,7 @@ async function injectContentScripts(tabId) {
 
 // ===== 녹화 관리 =====
 
-async function startRecording(tabId, streamerId, nickname, quality = 'ultra') {
+async function startRecording(tabId, streamerId, nickname, quality = 'high') {
   // ⭐ v3.5.9.2: 상세 로깅
   console.log('[숲토킹] ========== startRecording 함수 호출 ==========');
   console.log(`[숲토킹]   - tabId: ${tabId}`);
@@ -665,6 +666,11 @@ async function checkAndProcessStreamer(streamer) {
             return;
           }
 
+          // ⭐ v3.5.18: 사용자가 선택한 품질을 자동 녹화에도 적용
+          const qualityData = await chrome.storage.local.get('recordingQuality');
+          const autoRecordQuality = qualityData.recordingQuality || 'high';
+          console.log('[숲토킹] 자동 녹화 품질:', autoRecordQuality);
+
           // 녹화 시작 (최대 3회 재시도)
           let retryCount = 0;
           const maxRetries = 3;
@@ -681,7 +687,7 @@ async function checkAndProcessStreamer(streamer) {
               return { success: false, error: '탭 확인 실패' };
             }
 
-            const result = await startRecording(tab.id, streamer.id, streamer.nickname || streamer.id);
+            const result = await startRecording(tab.id, streamer.id, streamer.nickname || streamer.id, autoRecordQuality);
 
             if (!result.success && retryCount < maxRetries) {
               retryCount++;
@@ -1438,4 +1444,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.5.17 로드됨 (자동 녹화 재시도 로직 개선)');
+console.log('[숲토킹] Background Service Worker v3.5.18 로드됨 (자동 녹화 품질 설정 통합)');

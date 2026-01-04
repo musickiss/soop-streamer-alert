@@ -244,5 +244,9 @@
   "noRecordings": {
     "message": "録画中の放送はありません",
     "description": "録画なしメッセージ"
+  },
+  "qualityApplyInfo": {
+    "message": "選択した画質は手動・自動録画の両方に適用されます。",
+    "description": "録画画質情報ツールチップ"
   }
 }
