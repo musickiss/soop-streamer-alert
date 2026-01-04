@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.24 - Content Script (MAIN) =====
+// ===== 숲토킹 v3.5.25 - Content Script (MAIN) =====
 // MAIN world Canvas 녹화 스크립트
 
 (function() {
@@ -602,18 +602,11 @@
   // ===== 녹화 제어 함수 =====
 
   async function startRecording(streamerId, nickname, quality = 'ultra') {
-    // ⭐ v3.5.9.2: 최상단에 파라미터 로깅 추가
-    console.log('=========================================');
-    console.log('[숲토킹 Recorder] ★ startRecording 호출됨');
-    console.log(`[숲토킹 Recorder]   streamerId: ${streamerId}`);
-    console.log(`[숲토킹 Recorder]   nickname: ${nickname}`);
-    console.log(`[숲토킹 Recorder]   quality: ${quality} (타입: ${typeof quality})`);
-    console.log('=========================================');
+    console.log(`[숲토킹 Recorder] 녹화 시작: ${streamerId} (${quality || 'high'})`);
 
-    // ⭐ quality 유효성 검사 추가
+    // quality 유효성 검사
     if (!quality || quality === 'undefined' || quality === 'null') {
-      console.warn(`[숲토킹 Recorder] quality가 유효하지 않음 (${quality}), 기본값 'ultra' 사용`);
-      quality = 'ultra';
+      quality = 'high';
     }
 
     if (isRecording) {
@@ -662,14 +655,7 @@
       // ⭐ v3.5.9.2: 품질 설정 가져오기 (헬퍼 함수 사용 + 상세 로깅)
       const qualityConfig = getQualityConfig(quality);
 
-      // ⭐ 녹화 설정 상세 로깅
-      console.log('[숲토킹 Recorder] ========== 녹화 설정 ==========');
-      console.log(`[숲토킹 Recorder]   품질: ${quality}`);
-      console.log(`[숲토킹 Recorder]   비트레이트: ${(qualityConfig.VIDEO_BITRATE / 1000000).toFixed(0)} Mbps`);
-      console.log(`[숲토킹 Recorder]   오디오: ${(qualityConfig.AUDIO_BITRATE / 1000).toFixed(0)} kbps`);
-      console.log(`[숲토킹 Recorder]   FPS: ${qualityConfig.TARGET_FPS}`);
-      console.log(`[숲토킹 Recorder]   코덱 우선순위: [${qualityConfig.CODEC_PRIORITY.join(', ')}]`);
-      console.log('[숲토킹 Recorder] ================================');
+      console.log(`[숲토킹 Recorder] 설정: ${(qualityConfig.VIDEO_BITRATE / 1000000).toFixed(0)}Mbps ${qualityConfig.TARGET_FPS}fps`);
 
       if (!setupCanvas(video)) {
         throw new Error('Canvas 설정 실패');
@@ -701,11 +687,7 @@
 
       mediaRecorder = new MediaRecorder(canvasStream, options);
 
-      // ⭐ v3.5.9.2: 실제 적용된 설정 확인 로그
-      console.log(`[숲토킹 Recorder] MediaRecorder 생성됨`);
-      console.log(`[숲토킹 Recorder]   - mimeType: ${mediaRecorder.mimeType}`);
-      console.log(`[숲토킹 Recorder]   - videoBitsPerSecond: ${options.videoBitsPerSecond / 1000000}Mbps`);
-      console.log(`[숲토킹 Recorder]   - audioBitsPerSecond: ${options.audioBitsPerSecond / 1000}kbps`);
+      // MediaRecorder 생성 완료
 
       mediaRecorder.ondataavailable = handleDataAvailable;
       mediaRecorder.onstop = handleRecordingStop;
@@ -729,8 +711,7 @@
 
       mediaRecorder.start(CONFIG.TIMESLICE);
 
-      // ⭐ v3.5.9.2: 녹화 시작 완료 로그
-      console.log(`[숲토킹 Recorder] ★ 녹화 시작 완료! (품질: ${quality}, ${(qualityConfig.VIDEO_BITRATE / 1000000).toFixed(0)}Mbps, ${qualityConfig.TARGET_FPS}fps)`);
+      console.log(`[숲토킹 Recorder] ✓ 녹화 시작됨`);
 
       startProgressReporting();
 
@@ -1114,25 +1095,9 @@
     let result;
     switch (command) {
       case 'START_RECORDING':
-        // ⭐ v3.5.9.2: 상세 파라미터 로깅
-        console.log('[숲토킹 Recorder] ========== START_RECORDING 메시지 수신 ==========');
-        console.log('[숲토킹 Recorder] params:', JSON.stringify(params, null, 2));
-
+        // 메시지 수신 로그 생략 - startRecording 함수 내에서 로깅
         const { streamerId, nickname, quality } = params || {};
-
-        console.log(`[숲토킹 Recorder] 파라미터 추출 결과:`);
-        console.log(`[숲토킹 Recorder]   - streamerId: "${streamerId}"`);
-        console.log(`[숲토킹 Recorder]   - nickname: "${nickname}"`);
-        console.log(`[숲토킹 Recorder]   - quality: "${quality}" (타입: ${typeof quality})`);
-
-        // quality가 없으면 경고 후 기본값 사용
         const finalQuality = quality || 'ultra';
-        if (!quality) {
-          console.warn('[숲토킹 Recorder] ⚠️ quality 파라미터 누락! 기본값 "ultra" 사용');
-        }
-
-        console.log(`[숲토킹 Recorder] 최종 quality: "${finalQuality}"`);
-        console.log('[숲토킹 Recorder] ================================================');
 
         result = await startRecording(streamerId, nickname, finalQuality);
 

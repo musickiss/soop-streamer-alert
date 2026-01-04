@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.24 - Content Script (ISOLATED) =====
+// ===== 숲토킹 v3.5.25 - Content Script (ISOLATED) =====
 
 (function() {
   'use strict';
@@ -90,7 +90,7 @@
         recordings[tabId].lastUpdate = Date.now();
 
         await chrome.storage.local.set({ [STORAGE_KEY_RECORDINGS]: recordings });
-        console.log('[숲토킹 Content] Progress storage 저장 (쓰로틀링)');
+        // Progress 저장 로그 생략 (15초마다 발생하므로)
       }
     } catch (error) {
       // 진행 상태 업데이트 실패는 조용히 무시 (다음 주기에 재시도)
@@ -424,9 +424,7 @@
 
   // ⭐ v3.5.14: 초기화 시 탭 ID 미리 캐시
   getCurrentTabId().then(tabId => {
-    if (tabId) {
-      console.log('[숲토킹 Content] 탭 ID 캐시됨:', tabId);
-    }
+    // 캐시 완료 - 로그 생략
   });
 
   // ⭐ v3.5.24: 초기화 시 Background와 녹화 상태 동기화
@@ -459,5 +457,5 @@
     }
   });
 
-  console.log('[숲토킹 Content] v3.5.24 ISOLATED 브릿지 로드됨');
+  console.log('[숲토킹 Content] v3.5.25 로드됨');
 })();

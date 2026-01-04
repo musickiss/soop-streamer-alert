@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.24 - 사이드패널 =====
+// ===== 숲토킹 v3.5.25 - 사이드패널 =====
 
 (function() {
   'use strict';
@@ -458,12 +458,7 @@
     showToast('녹화 시작 중...', 'info');
 
     // ⭐ v3.5.9.2: 녹화 시작 요청 로깅
-    console.log('[숲토킹 SidePanel] ========== 녹화 시작 요청 ==========');
-    console.log(`[숲토킹 SidePanel]   - tabId: ${tabId}`);
-    console.log(`[숲토킹 SidePanel]   - streamerId: "${streamerId}"`);
-    console.log(`[숲토킹 SidePanel]   - nickname: "${nickname}"`);
-    console.log(`[숲토킹 SidePanel]   - quality: "${state.recordingQuality}"`);
-    console.log('[숲토킹 SidePanel] ========================================');
+    console.log(`[사이드패널] 녹화 요청: ${streamerId}`);
 
     try {
       // Background에 녹화 시작 요청 (tabId 기반)
@@ -1567,7 +1562,7 @@
     // ⭐ v3.5.14: Storage 변경 감지 (실시간 UI 업데이트)
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName === 'local' && changes[STORAGE_KEY_RECORDINGS]) {
-        console.log('[사이드패널] 녹화 상태 storage 변경 감지');
+        // Storage 변경 → UI 동기화
         updateActiveRecordingList();
         syncCurrentTabRecordingState();
       }

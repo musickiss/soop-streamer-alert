@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.24 - Background Service Worker =====
+// ===== 숲토킹 v3.5.25 - Background Service Worker =====
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -248,20 +248,21 @@ async function startRecording(tabId, streamerId, nickname, quality = 'high') {
     }
 
   } catch (error) {
-    console.error('[숲토킹] 녹화 시작 실패:', error);
+    // Content Script 연결 실패는 예상된 상황 - 자동 주입으로 복구 시도
+    const isConnectionError = error.message?.includes('Receiving end') ||
+                              error.message?.includes('Could not establish');
 
-    // Content Script 없으면 자동 주입 시도
-    if (error.message?.includes('Receiving end') || error.message?.includes('Could not establish')) {
-      console.log('[숲토킹] Content Script 연결 실패 - 자동 주입 시도');
+    if (isConnectionError) {
+      console.log('[숲토킹] Content Script 미연결 - 자동 주입 시도');
 
       const injectResult = await injectContentScripts(tabId);
       if (!injectResult.success) {
+        console.warn('[숲토킹] 스크립트 주입 실패:', injectResult.error);
         return { success: false, error: '스크립트 주입 실패. 페이지를 새로고침 해주세요.' };
       }
 
       // 주입 후 재시도
       try {
-        console.log(`[숲토킹] 재시도 - Content Script로 전달: quality="${quality}"`);
         const retryResponse = await chrome.tabs.sendMessage(tabId, {
           type: 'START_RECORDING',
           streamerId: streamerId,
@@ -278,17 +279,20 @@ async function startRecording(tabId, streamerId, nickname, quality = 'high') {
             totalBytes: 0
           });
           updateBadge();
-          console.log('[숲토킹] Content Script 주입 후 녹화 시작 성공');
+          console.log('[숲토킹] 녹화 시작 성공 (스크립트 자동 주입)');
           return { success: true, tabId, streamerId, nickname };
         } else {
+          console.warn('[숲토킹] 재시도 후 녹화 시작 실패:', retryResponse?.error);
           return { success: false, error: retryResponse?.error || '녹화 시작 실패' };
         }
       } catch (retryError) {
-        console.error('[숲토킹] 재시도 실패:', retryError);
-        return { success: false, error: '스크립트 주입 후에도 실패. 페이지를 새로고침 해주세요.' };
+        console.error('[숲토킹] 녹화 시작 최종 실패:', retryError.message);
+        return { success: false, error: '페이지를 새로고침 후 다시 시도해주세요.' };
       }
     }
 
+    // 예상치 못한 에러만 console.error
+    console.error('[숲토킹] 녹화 시작 실패:', error.message);
     return { success: false, error: error.message };
   }
 }
@@ -532,7 +536,8 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
   }
 
   updateBadge();
-  console.log('[숲토킹] Storage 변경 감지 → 메모리 동기화, 녹화 수:', state.recordings.size);
+  // 디버깅 필요 시에만 활성화
+  // console.log('[숲토킹] Storage 동기화:', state.recordings.size);
 });
 
 // ===== 스트리머 모니터링 (5초/30초 분리) =====
@@ -989,21 +994,9 @@ async function handleMessage(message, sender, sendResponse) {
     // ===== 사이드패널 → Background =====
 
     case 'START_RECORDING_REQUEST':
-      // ⭐ v3.5.9.2: 상세 로깅
-      console.log('[숲토킹] ========== START_RECORDING_REQUEST 수신 ==========');
-      console.log('[숲토킹] message:', JSON.stringify(message, null, 2));
-      console.log(`[숲토킹]   - tabId: ${message.tabId}`);
-      console.log(`[숲토킹]   - streamerId: "${message.streamerId}"`);
-      console.log(`[숲토킹]   - nickname: "${message.nickname}"`);
-      console.log(`[숲토킹]   - quality: "${message.quality}" (타입: ${typeof message.quality})`);
+      console.log(`[숲토킹] 녹화 요청: ${message.streamerId} (${message.quality || 'high'})`);
 
-      const recordingQuality = message.quality || 'ultra';
-      if (!message.quality) {
-        console.warn('[숲토킹] ⚠️ quality 누락! 기본값 "ultra" 사용');
-      }
-
-      console.log(`[숲토킹] startRecording 호출할 quality: "${recordingQuality}"`);
-      console.log('[숲토킹] ====================================================');
+      const recordingQuality = message.quality || 'high';
 
       const startResult = await startRecording(
         message.tabId,
@@ -1141,7 +1134,7 @@ async function handleMessage(message, sender, sendResponse) {
     // ===== Content Script (MAIN) → Background =====
 
     case 'CONTENT_SCRIPT_LOADED':
-      console.log('[숲토킹] Content Script 로드됨:', message.streamerId);
+      // 정상 동작 - 로그 생략
       sendResponse({ success: true });
       break;
 
@@ -1525,4 +1518,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.5.24 로드됨 (녹화 중 새로고침 상태 불일치 해결)');
+console.log('[숲토킹] Background v3.5.25 로드됨');
