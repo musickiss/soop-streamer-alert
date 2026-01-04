@@ -1,4 +1,4 @@
-# 📺 숲토킹 (SOOPtalking) v3.5.15
+# 📺 숲토킹 (SOOPtalking) v3.5.16
 
 SOOP(구 아프리카TV) 스트리머 방송 알림 및 녹화 Chrome 확장 프로그램
 
@@ -113,7 +113,8 @@ SOOP(구 아프리카TV) 스트리머 방송 알림 및 녹화 Chrome 확장 프
 
 | 버전 | 주요 변경 |
 |------|-----------|
-| **v3.5.15** | Progress 쓰로틀링 (15초) - Storage 쓰기 66% 감소, onStartup 초기화 강화 |
+| **v3.5.16** | 자동 녹화 즉시 종료 버그 수정 - 비디오 상태 체크 완화, 자동재생 시도, 대기 시간 증가 |
+| v3.5.15 | Progress 쓰로틀링 (15초) - Storage 쓰기 66% 감소, onStartup 초기화 강화 |
 | v3.5.14 | Storage 기반 녹화 상태 영속화 - Extension 새로고침/Service Worker 재시작 시에도 UI 유지 |
 | v3.5.13 | 다국어 누락 키 추가 (recording, noRecordings) |
 | v3.5.12 | 닉네임 자동 업데이트, 방송국 바로가기 (아바타 클릭) |

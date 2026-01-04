@@ -1,6 +1,6 @@
 // ===== 숲토킹 - SOOP 스트리머 방송 알림 =====
 // content-main.js - MAIN world Canvas 녹화 스크립트
-// v3.5.11 - 녹화 파일명에 품질 정보 추가
+// v3.5.16 - 자동 녹화 즉시 종료 버그 수정 (비디오 상태 체크 완화)
 
 (function() {
   'use strict';
@@ -43,7 +43,7 @@
     PROGRESS_INTERVAL: 5000,
     CANVAS_DRAW_INTERVAL: 8,
     MIN_RECORD_TIME: 2000,
-    MAX_VIDEO_UNAVAILABLE: 60,
+    MAX_VIDEO_UNAVAILABLE: 750,  // 60 → 750 (약 6초로 확장)
     MAX_STOP_RETRIES: 10,
     MAX_SPLIT_WAIT: 20,           // ⭐ 분할 대기 최대 횟수 (10초)
     SPLIT_TRANSITION_DELAY: 300,
@@ -386,17 +386,30 @@
         }
       }
 
-      if (sourceVideo.paused || sourceVideo.ended ||
-          sourceVideo.readyState < 2 || sourceVideo.videoWidth === 0) {
+      // ⭐ v3.5.16: 비디오 상태 체크 완화 - paused 상태는 자동재생 정책으로 인한 것일 수 있음
+      const videoUnavailable = sourceVideo.ended ||
+          sourceVideo.readyState < 2 || sourceVideo.videoWidth === 0;
 
+      // paused 상태는 별도 처리 (자동재생 시도)
+      if (sourceVideo.paused && !sourceVideo.ended && sourceVideo.readyState >= 2) {
+        // 자동재생 시도 (Chrome 정책으로 실패할 수 있음)
+        sourceVideo.play().catch(() => {});
+      }
+
+      if (videoUnavailable) {
         videoUnavailableCount++;
+
+        // ⭐ 로그 추가 (디버깅용)
+        if (videoUnavailableCount % 100 === 0) {
+          console.log(`[숲토킹 Recorder] 비디오 상태 불안정 (${videoUnavailableCount}/${CONFIG.MAX_VIDEO_UNAVAILABLE}): ` +
+            `paused=${sourceVideo.paused}, ended=${sourceVideo.ended}, readyState=${sourceVideo.readyState}, videoWidth=${sourceVideo.videoWidth}`);
+        }
 
         if (videoUnavailableCount > CONFIG.MAX_VIDEO_UNAVAILABLE) {
           console.log('[숲토킹 Recorder] video 장시간 비정상 상태, 녹화 중지');
           stopRecording();
           return;
         }
-
         return;
       }
 
@@ -596,15 +609,29 @@
         throw new Error('비디오 요소를 찾을 수 없습니다.');
       }
 
+      // ⭐ v3.5.16: 비디오 로딩 + 재생 대기 강화
       if (video.readyState < 2) {
         console.log('[숲토킹 Recorder] 비디오 로딩 대기...');
         await new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error('비디오 로딩 타임아웃')), 10000);
+          const timeout = setTimeout(() => reject(new Error('비디오 로딩 타임아웃')), 15000);  // 10초 → 15초
           video.addEventListener('loadeddata', () => {
             clearTimeout(timeout);
             resolve();
           }, { once: true });
         });
+      }
+
+      // ⭐ v3.5.16: 비디오 재생 상태 확인 및 자동재생 시도
+      if (video.paused) {
+        console.log('[숲토킹 Recorder] 비디오가 paused 상태, 재생 시도...');
+        try {
+          await video.play();
+          console.log('[숲토킹 Recorder] 비디오 재생 시작됨');
+        } catch (e) {
+          console.log('[숲토킹 Recorder] 자동재생 실패 (Chrome 정책), 녹화는 계속 시도:', e.message);
+        }
+        // 재생 시도 후 잠시 대기
+        await new Promise(r => setTimeout(r, 500));
       }
 
       console.log(`[숲토킹 Recorder] 비디오 발견: ${video.videoWidth}x${video.videoHeight}`);

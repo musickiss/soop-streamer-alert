@@ -1,4 +1,5 @@
-// ===== 숲토킹 v3.5.15 - Background Service Worker =====
+// ===== 숲토킹 v3.5.16 - Background Service Worker =====
+// v3.5.16: 자동 녹화 비디오 대기 시간 증가 (2초 → 5초)
 // Downloads API 기반 안정화 버전 + 5초/30초 분리 모니터링 + 방송 종료 시 녹화 안전 저장 + 500MB 자동 분할 저장
 // v3.5.14: Storage 기반 녹화 상태 영속화 - Extension Context 무효화 및 Service Worker 재시작 시에도 UI 유지
 // v3.5.15: Progress 쓰로틀링 (15초) + onStartup 초기화 강화
@@ -646,8 +647,9 @@ async function checkAndProcessStreamer(streamer) {
           // 탭 로드 완료 대기
           await waitForTabComplete(tab.id, 15000);
 
-          // 비디오 요소 로드 대기 (추가 2초)
-          await new Promise(r => setTimeout(r, 2000));
+          // ⭐ v3.5.16: 비디오 요소 로드 대기 (2초 → 5초로 증가)
+          await new Promise(r => setTimeout(r, 5000));
+          console.log('[숲토킹] 비디오 로드 대기 완료, 녹화 시작 시도');
 
           // 탭 유효성 재확인 (탭이 닫혔거나 URL이 변경되었을 수 있음)
           try {
@@ -1434,4 +1436,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.5.15 로드됨 (Progress 쓰로틀링 + 초기화 강화)');
+console.log('[숲토킹] Background Service Worker v3.5.16 로드됨 (자동 녹화 비디오 대기 시간 증가)');

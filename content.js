@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.5.15 - Content Script (ISOLATED) =====
+// ===== 숲토킹 v3.5.16 - Content Script (ISOLATED) =====
 // MAIN world와 Background 사이의 메시지 브릿지 + 분할 저장 지원 + 안전 종료 + Storage 기반 상태 관리
 // v3.5.15: Progress 쓰로틀링 (15초) - Storage 쓰기 66% 감소
 
@@ -412,5 +412,5 @@
     }
   });
 
-  console.log('[숲토킹 Content] v3.5.15 ISOLATED 브릿지 로드됨 (Progress 쓰로틀링 적용)');
+  console.log('[숲토킹 Content] v3.5.16 ISOLATED 브릿지 로드됨');
 })();
