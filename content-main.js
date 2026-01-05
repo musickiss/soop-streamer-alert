@@ -1,5 +1,6 @@
-// ===== 숲토킹 v3.6.0 - Content Script (MAIN) =====
+// ===== 숲토킹 v3.6.2 - Content Script (MAIN) =====
 // MAIN world Canvas 녹화 스크립트
+// v3.6.2 - 500MB 분할 녹화 수정 (requestData 인터벌 추가)
 
 (function() {
   'use strict';
@@ -38,6 +39,7 @@
     },
     // 공통 설정
     TIMESLICE: 2000,
+    REQUEST_DATA_INTERVAL: 5000,  // ⭐ v3.6.2: 5초마다 requestData 호출
     MAX_FILE_SIZE: 500 * 1024 * 1024,  // 500MB 유지
     PROGRESS_INTERVAL: 5000,
     CANVAS_DRAW_INTERVAL: 8,
@@ -60,6 +62,7 @@
   let partNumber = 1;
   let isRecording = false;
   let isSplitting = false;
+  let requestDataIntervalId = null;  // ⭐ v3.6.2: requestData 인터벌 ID
   let currentQuality = 'high';
   let currentMimeType = null;
 
@@ -720,6 +723,7 @@
       console.log(`[숲토킹 Recorder] ✓ 녹화 시작됨`);
 
       startProgressReporting();
+      startRequestDataInterval();  // ⭐ v3.6.2: requestData 인터벌 시작
 
       notifyRecordingStarted(streamerId, nickname);
 
@@ -775,6 +779,7 @@
         clearInterval(progressIntervalId);
         progressIntervalId = null;
       }
+      stopRequestDataInterval();  // ⭐ v3.6.2: requestData 인터벌 중지
 
       if (mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();
@@ -794,8 +799,12 @@
       recordedChunks.push(event.data);
       totalRecordedBytes += event.data.size;
 
-      if (totalRecordedBytes >= CONFIG.MAX_FILE_SIZE && !isSaving && !isSplitting) {
-        console.log('[숲토킹 Recorder] 파일 크기 제한 도달, MediaRecorder 재시작 분할');
+      // ⭐ v3.6.2: 상세 로깅 추가
+      console.log(`[숲토킹 Recorder] 데이터 수신: +${formatBytes(event.data.size)}, 총 ${formatBytes(totalRecordedBytes)} (${recordedChunks.length}개 청크)`);
+
+      // 500MB 분할 조건 확인
+      if (totalRecordedBytes >= CONFIG.MAX_FILE_SIZE && !isSplitting) {
+        console.log(`[숲토킹 Recorder] ★ 분할 트리거! ${formatBytes(totalRecordedBytes)} >= ${formatBytes(CONFIG.MAX_FILE_SIZE)}`);
         splitWithRecorderRestart();
       }
     }
@@ -873,6 +882,7 @@
         };
 
         mediaRecorder.start(CONFIG.TIMESLICE);
+        startRequestDataInterval();  // ⭐ v3.6.2: 새 파트에서도 인터벌 시작
         console.log(`[숲토킹 Recorder] 파트 ${partNumber} 녹화 시작 (새 MediaRecorder, 새 WebM 헤더)`);
 
         notifySplitComplete(partNumber);
@@ -919,6 +929,7 @@
 
     console.log('[숲토킹 Recorder] MediaRecorder 중지됨');
 
+    stopRequestDataInterval();  // ⭐ v3.6.2: 인터벌 정리
     finalizeRecording();
 
     cleanupCanvas();
@@ -1003,6 +1014,48 @@
         // 이미 해제되었거나 유효하지 않은 경우 무시
       }
     }, 300000);
+  }
+
+  // ===== v3.6.2: requestData 인터벌 관리 =====
+
+  function startRequestDataInterval() {
+    if (requestDataIntervalId) {
+      clearInterval(requestDataIntervalId);
+    }
+
+    requestDataIntervalId = setInterval(() => {
+      if (!isRecording || !mediaRecorder) {
+        stopRequestDataInterval();
+        return;
+      }
+
+      if (mediaRecorder.state === 'recording') {
+        try {
+          mediaRecorder.requestData();
+          console.log('[숲토킹 Recorder] requestData() 호출 - 현재 누적:', formatBytes(totalRecordedBytes));
+        } catch (e) {
+          console.warn('[숲토킹 Recorder] requestData 실패:', e.message);
+        }
+      }
+    }, CONFIG.REQUEST_DATA_INTERVAL);
+
+    console.log('[숲토킹 Recorder] requestData 인터벌 시작 (5초 주기)');
+  }
+
+  function stopRequestDataInterval() {
+    if (requestDataIntervalId) {
+      clearInterval(requestDataIntervalId);
+      requestDataIntervalId = null;
+      console.log('[숲토킹 Recorder] requestData 인터벌 중지');
+    }
+  }
+
+  function formatBytes(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 
   function startProgressReporting() {
@@ -1147,6 +1200,6 @@
     }, '*');
   });
 
-  console.log('[숲토킹 Recorder] 메시지 리스너 등록 완료');
+  console.log('[숲토킹 Recorder] v3.6.2 메시지 리스너 등록 완료 (분할 녹화 수정)');
 
 })();
