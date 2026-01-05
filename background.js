@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.6.0 - Background Service Worker =====
+// ===== 숲토킹 v3.6.7 - Background Service Worker =====
 
 // ⭐ v3.6.0: GA4 익명 통계 모듈 (ES6 Module)
 import * as Analytics from './analytics.js';
@@ -1502,40 +1502,95 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
 
 // ===== 탭 새로고침/URL 변경 감지 (녹화 상태 정리) =====
 
+// ⭐ v3.6.7: 녹화 상태 정리 헬퍼 함수
+async function cleanupRecordingState(tabId, streamerId, reason) {
+  if (!state.recordings.has(tabId)) return;
+
+  const recording = state.recordings.get(tabId);
+  const elapsedTime = recording?.startTime
+    ? Math.floor((Date.now() - recording.startTime) / 1000)
+    : 0;
+
+  console.warn(`[숲토킹] 녹화 상태 정리: ${streamerId} (${reason})`);
+
+  // 녹화 상태 정리
+  state.recordings.delete(tabId);
+  await removeRecordingFromStorage(tabId);
+  updateBadge();
+
+  // 대기 중인 탭 종료 해제
+  if (state.pendingTabClose.has(tabId)) {
+    const pending = state.pendingTabClose.get(tabId);
+    clearTimeout(pending.timeoutId);
+    pending.resolve(false);
+    state.pendingTabClose.delete(tabId);
+  }
+
+  // Side Panel에 녹화 손실 알림
+  broadcastToSidepanel({
+    type: 'RECORDING_LOST_BY_REFRESH',
+    tabId: tabId,
+    streamerId: streamerId,
+    elapsedTime: elapsedTime,
+    message: `${streamerId} 녹화가 ${reason}으로 인해 중단되었습니다. (${formatDuration(elapsedTime)} 분량 손실)`
+  });
+
+  console.log(`[숲토킹] 녹화 상태 정리 완료: ${streamerId}, 손실 시간: ${elapsedTime}초`);
+}
+
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
-  // ⭐ v3.5.24: 탭 로딩 시작 감지 (새로고침 포함)
+  // ⭐ v3.6.7: 탭 로딩 시작 감지 - 지연 삭제로 새로고침 취소 대응
   if (changeInfo.status === 'loading' && state.recordings.has(tabId)) {
-    console.warn(`[숲토킹] 녹화 중인 탭 ${tabId} 새로고침/이동 감지`);
+    console.warn(`[숲토킹] 녹화 중인 탭 ${tabId} 새로고침/이동 감지 - 확인 대기`);
 
     const recording = state.recordings.get(tabId);
     const streamerId = recording?.streamerId || 'unknown';
-    const elapsedTime = recording?.startTime
-      ? Math.floor((Date.now() - recording.startTime) / 1000)
-      : 0;
 
-    // 녹화 상태 정리
-    state.recordings.delete(tabId);
-    await removeRecordingFromStorage(tabId);
-    updateBadge();
-
-    // 대기 중인 탭 종료 해제
-    if (state.pendingTabClose.has(tabId)) {
-      const pending = state.pendingTabClose.get(tabId);
-      clearTimeout(pending.timeoutId);
-      pending.resolve(false);
-      state.pendingTabClose.delete(tabId);
+    // 기존 대기 중인 삭제 타이머가 있으면 취소
+    if (state.pendingRecordingCleanup?.has(tabId)) {
+      clearTimeout(state.pendingRecordingCleanup.get(tabId));
     }
 
-    // Side Panel에 녹화 손실 알림
-    broadcastToSidepanel({
-      type: 'RECORDING_LOST_BY_REFRESH',
-      tabId: tabId,
-      streamerId: streamerId,
-      elapsedTime: elapsedTime,
-      message: `${streamerId} 녹화가 새로고침으로 인해 중단되었습니다. (${formatDuration(elapsedTime)} 분량 손실)`
-    });
+    // 500ms 후 페이지 상태 확인 후 삭제 결정
+    const timeoutId = setTimeout(async () => {
+      state.pendingRecordingCleanup?.delete(tabId);
 
-    console.log(`[숲토킹] 녹화 상태 정리 완료: ${streamerId}, 손실 시간: ${elapsedTime}초`);
+      // 녹화 상태가 아직 존재하는지 확인
+      if (!state.recordings.has(tabId)) {
+        return; // 이미 다른 곳에서 정리됨
+      }
+
+      // content script에 PING으로 연결 상태 확인
+      try {
+        const tab = await chrome.tabs.get(tabId);
+        if (!tab || !tab.url?.includes('play.sooplive.co.kr')) {
+          // 탭이 없거나 URL이 변경됨 → 실제 이동/새로고침
+          await cleanupRecordingState(tabId, streamerId, '페이지 이동');
+          return;
+        }
+
+        // content script PING
+        const response = await chrome.tabs.sendMessage(tabId, { type: 'PING' })
+          .catch(() => null);
+
+        if (!response?.success) {
+          // content script 응답 없음 → 새로고침 진행됨
+          await cleanupRecordingState(tabId, streamerId, '새로고침');
+        } else {
+          // content script 응답 있음 → 취소됨, 녹화 유지
+          console.log(`[숲토킹] 탭 ${tabId} 새로고침 취소됨 - 녹화 유지`);
+        }
+      } catch (e) {
+        // 탭 접근 실패 → 탭이 닫힘
+        await cleanupRecordingState(tabId, streamerId, '탭 닫힘');
+      }
+    }, 500);
+
+    // 대기 중인 타이머 저장
+    if (!state.pendingRecordingCleanup) {
+      state.pendingRecordingCleanup = new Map();
+    }
+    state.pendingRecordingCleanup.set(tabId, timeoutId);
   }
 
   // URL 변경 감지 (기존 VOD 리다이렉트 로직 유지)

@@ -1,6 +1,6 @@
-// ===== 숲토킹 v3.6.6 - Content Script (MAIN) =====
+// ===== 숲토킹 v3.6.7 - Content Script (MAIN) =====
 // MAIN world Canvas 녹화 스크립트
-// v3.6.6 - 분할 크기 설정 적용 버그 수정
+// v3.6.7 - 새로고침 취소 시 녹화 유지 버그 수정
 
 (function() {
   'use strict';
@@ -553,28 +553,18 @@
     }
   }
 
-  // ⭐ v3.5.24: beforeunload에서 녹화 상태 알림 및 경고
+  // ⭐ v3.6.7: beforeunload에서 경고만 표시 (상태 변경 없음)
+  // 실제 페이지 언로드는 background.js에서 tabs.onUpdated로 감지
   window.addEventListener('beforeunload', (event) => {
     console.log('[숲토킹 Recorder] 탭 종료/새로고침 감지');
 
-    // 녹화 중인 경우 경고 및 알림
+    // 녹화 중인 경우 경고만 표시 (상태 변경 없음)
     if (isRecording) {
-      console.warn('[숲토킹 Recorder] ⚠️ 녹화 중 페이지 이탈 - 데이터 손실 발생');
+      console.log('[숲토킹 Recorder] 녹화 중 - 확인 팝업 표시');
 
-      // Background에 녹화 손실 알림 (동기적으로 시도)
-      try {
-        // postMessage로 손실 알림 전송
-        window.postMessage({
-          type: 'SOOPTALKING_RECORDING_LOST',
-          streamerId: currentStreamerId,
-          totalBytes: totalRecordedBytes,
-          elapsedTime: recordingStartTime ? Math.floor((Date.now() - recordingStartTime) / 1000) : 0
-        }, '*');
-      } catch (e) {
-        console.log('[숲토킹 Recorder] 손실 알림 전송 실패:', e.message);
-      }
+      // ⭐ v3.6.7: 손실 알림 제거 - 취소 시에도 녹화 유지를 위해
+      // 실제 페이지 종료는 background.js에서 PING으로 감지
 
-      // 사용자에게 경고 표시 (브라우저가 지원하는 경우)
       event.preventDefault();
       event.returnValue = '녹화가 진행 중입니다. 페이지를 떠나면 녹화 데이터가 손실됩니다.';
       return event.returnValue;
