@@ -1,6 +1,6 @@
-// ===== 숲토킹 v3.6.2 - Content Script (MAIN) =====
+// ===== 숲토킹 v3.6.3 - Content Script (MAIN) =====
 // MAIN world Canvas 녹화 스크립트
-// v3.6.2 - 500MB 분할 녹화 수정 (requestData 인터벌 추가)
+// v3.6.3 - 분할 녹화 requestData 인터벌 관리 수정
 
 (function() {
   'use strict';
@@ -732,6 +732,7 @@
     } catch (error) {
       console.error('[숲토킹 Recorder] 녹화 시작 실패:', error);
       console.error('[숲토킹 Recorder] 오류 스택:', error.stack);
+      stopRequestDataInterval();  // ⭐ v3.6.3: 실패 시 인터벌 정리
       cleanupCanvas();
       isRecording = false;
       return { success: false, error: error.message };
@@ -799,8 +800,10 @@
       recordedChunks.push(event.data);
       totalRecordedBytes += event.data.size;
 
-      // ⭐ v3.6.2: 상세 로깅 추가
-      console.log(`[숲토킹 Recorder] 데이터 수신: +${formatBytes(event.data.size)}, 총 ${formatBytes(totalRecordedBytes)} (${recordedChunks.length}개 청크)`);
+      // ⭐ v3.6.3: 로깅 간소화 (10개마다 또는 첫번째)
+      if (recordedChunks.length % 10 === 0 || recordedChunks.length === 1) {
+        console.log('[숲토킹 Recorder] 청크 #' + recordedChunks.length + ': 누적 ' + formatBytes(totalRecordedBytes) + ' / ' + formatBytes(CONFIG.MAX_FILE_SIZE));
+      }
 
       // 500MB 분할 조건 확인
       if (totalRecordedBytes >= CONFIG.MAX_FILE_SIZE && !isSplitting) {
@@ -821,6 +824,9 @@
     notifySplitStart(partNumber);
 
     try {
+      // ⭐ v3.6.3: 0단계 - 기존 인터벌 중지 (무효한 MediaRecorder에 호출 방지)
+      stopRequestDataInterval();
+      console.log('[숲토킹 Recorder] 0단계: requestData 인터벌 중지');
       // ===== 1단계: MediaRecorder 완전 종료 및 청크 수집 =====
       console.log('[숲토킹 Recorder] 1단계: MediaRecorder 종료 대기...');
       const allChunks = await stopMediaRecorderAndWait();
@@ -883,6 +889,7 @@
 
         mediaRecorder.start(CONFIG.TIMESLICE);
         startRequestDataInterval();  // ⭐ v3.6.2: 새 파트에서도 인터벌 시작
+        console.log('[숲토킹 Recorder] 6단계: requestData 인터벌 재시작');
         console.log(`[숲토킹 Recorder] 파트 ${partNumber} 녹화 시작 (새 MediaRecorder, 새 WebM 헤더)`);
 
         notifySplitComplete(partNumber);
@@ -910,7 +917,9 @@
             mediaRecorder.ondataavailable = handleDataAvailable;
             mediaRecorder.onstop = handleRecordingStop;
             mediaRecorder.start(CONFIG.TIMESLICE);
+            startRequestDataInterval();  // ⭐ v3.6.3: 복구 후 인터벌 재시작
             console.log('[숲토킹 Recorder] 복구 성공, 녹화 재개');
+            console.log('[숲토킹 Recorder] 복구 후 requestData 인터벌 재시작');
           }
         } catch (recoveryError) {
           console.error('[숲토킹 Recorder] 복구 실패:', recoveryError);
@@ -1200,6 +1209,6 @@
     }, '*');
   });
 
-  console.log('[숲토킹 Recorder] v3.6.2 메시지 리스너 등록 완료 (분할 녹화 수정)');
+  console.log('[숲토킹 Recorder] v3.6.3 메시지 리스너 등록 완료 (분할 인터벌 관리 수정)');
 
 })();
