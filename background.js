@@ -206,13 +206,14 @@ async function injectContentScripts(tabId) {
 
 // ===== 녹화 관리 =====
 
-async function startRecording(tabId, streamerId, nickname, quality = 'high') {
+async function startRecording(tabId, streamerId, nickname, quality = 'high', splitSize = 500) {
   // ⭐ v3.5.9.2: 상세 로깅
   console.log('[숲토킹] ========== startRecording 함수 호출 ==========');
   console.log(`[숲토킹]   - tabId: ${tabId}`);
   console.log(`[숲토킹]   - streamerId: "${streamerId}"`);
   console.log(`[숲토킹]   - nickname: "${nickname}"`);
   console.log(`[숲토킹]   - quality: "${quality}" (타입: ${typeof quality})`);
+  console.log(`[숲토킹]   - splitSize: ${splitSize}MB`);
   console.log('[숲토킹] ===============================================');
 
   // 보안: 입력 검증
@@ -242,12 +243,13 @@ async function startRecording(tabId, streamerId, nickname, quality = 'high') {
     }
 
     // Content Script에 녹화 시작 명령 전송
-    console.log(`[숲토킹] Content Script로 전달: quality="${quality}"`);
+    console.log(`[숲토킹] Content Script로 전달: quality="${quality}", splitSize=${splitSize}MB`);
     const response = await chrome.tabs.sendMessage(tabId, {
       type: 'START_RECORDING',
       streamerId: streamerId,
       nickname: nickname,
-      quality: quality
+      quality: quality,
+      splitSize: splitSize
     });
 
     if (response?.success) {
@@ -285,11 +287,13 @@ async function startRecording(tabId, streamerId, nickname, quality = 'high') {
 
       // 주입 후 재시도
       try {
+        console.log(`[숲토킹] 재시도 - Content Script로 전달: quality="${quality}", splitSize=${splitSize}MB`);
         const retryResponse = await chrome.tabs.sendMessage(tabId, {
           type: 'START_RECORDING',
           streamerId: streamerId,
           nickname: nickname,
-          quality: quality
+          quality: quality,
+          splitSize: splitSize
         });
 
         if (retryResponse?.success) {
@@ -1030,15 +1034,17 @@ async function handleMessage(message, sender, sendResponse) {
     // ===== 사이드패널 → Background =====
 
     case 'START_RECORDING_REQUEST':
-      console.log(`[숲토킹] 녹화 요청: ${message.streamerId} (${message.quality || 'high'})`);
+      console.log(`[숲토킹] 녹화 요청: ${message.streamerId} (${message.quality || 'high'}, 분할: ${message.splitSize || 500}MB)`);
 
       const recordingQuality = message.quality || 'high';
+      const recordingSplitSize = message.splitSize || 500;
 
       const startResult = await startRecording(
         message.tabId,
         message.streamerId,
         message.nickname,
-        recordingQuality
+        recordingQuality,
+        recordingSplitSize
       );
       sendResponse(startResult);
       break;

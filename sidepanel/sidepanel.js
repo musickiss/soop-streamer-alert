@@ -20,6 +20,7 @@
     filter: 'all',
     expandedStreamerId: null,
     recordingQuality: 'ultra',  // 'ultra' = 원본급(30Mbps), 'high' = 고품질(15Mbps), 'standard' = 표준(8Mbps)
+    splitSize: 500,  // 분할 크기 (MB): 500 / 1024 / 2048
     // 현재 탭 녹화 상태 (sessionId 기반)
     currentTabRecording: null
   };
@@ -78,6 +79,7 @@
     elements.storageProgressFill = document.getElementById('storageProgressFill');
 
     elements.recordingQualitySelect = document.getElementById('recordingQualitySelect');
+    elements.splitSizeSelect = document.getElementById('splitSizeSelect');
     elements.recordingQualityInfoTooltip = document.getElementById('recordingQualityInfoTooltip');
 
     elements.toast = document.getElementById('toast');
@@ -467,7 +469,8 @@
         tabId: tabId,
         streamerId: streamerId,
         nickname: nickname,
-        quality: state.recordingQuality
+        quality: state.recordingQuality,
+        splitSize: state.splitSize || 500
       });
 
       if (result?.success) {
@@ -1419,6 +1422,18 @@
       updateRecordingQualityInfoBox();
     });
 
+    // 분할 크기 드롭다운
+    elements.splitSizeSelect?.addEventListener('change', (e) => {
+      state.splitSize = parseInt(e.target.value, 10);
+      chrome.storage.local.set({ splitSize: state.splitSize });
+      const sizeNames = {
+        500: '500MB',
+        1024: '1GB',
+        2048: '2GB'
+      };
+      showToast(`분할 크기: ${sizeNames[state.splitSize] || state.splitSize + 'MB'} 설정됨`, 'success');
+    });
+
     // 필터
     elements.filterSelect?.addEventListener('change', (e) => {
       state.filter = e.target.value;
@@ -1609,12 +1624,18 @@
     // 상태 로드
     await loadState();
 
-    // 녹화 품질 설정 로드
-    chrome.storage.local.get(['recordingQuality'], (result) => {
+    // 녹화 품질 및 분할 크기 설정 로드
+    chrome.storage.local.get(['recordingQuality', 'splitSize'], (result) => {
       if (result.recordingQuality) {
         state.recordingQuality = result.recordingQuality;
         if (elements.recordingQualitySelect) {
           elements.recordingQualitySelect.value = state.recordingQuality;
+        }
+      }
+      if (result.splitSize) {
+        state.splitSize = result.splitSize;
+        if (elements.splitSizeSelect) {
+          elements.splitSizeSelect.value = state.splitSize.toString();
         }
       }
       // 품질 안내박스 초기화

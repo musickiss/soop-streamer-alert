@@ -1,6 +1,6 @@
-// ===== 숲토킹 v3.6.4 - Content Script (MAIN) =====
+// ===== 숲토킹 v3.6.5 - Content Script (MAIN) =====
 // MAIN world Canvas 녹화 스크립트
-// v3.6.4 - isSaving 변수 미정의 핫픽스
+// v3.6.5 - 분할 녹화 크기 설정 기능 추가
 
 (function() {
   'use strict';
@@ -66,6 +66,7 @@
   let requestDataIntervalId = null;  // ⭐ v3.6.2: requestData 인터벌 ID
   let currentQuality = 'high';
   let currentMimeType = null;
+  let currentSplitSize = 500;  // MB 단위
 
   // ===== Canvas 관련 변수 =====
   let recordingCanvas = null;
@@ -605,13 +606,22 @@
 
   // ===== 녹화 제어 함수 =====
 
-  async function startRecording(streamerId, nickname, quality = 'ultra') {
-    console.log(`[숲토킹 Recorder] 녹화 시작: ${streamerId} (${quality || 'high'})`);
+  async function startRecording(streamerId, nickname, quality = 'ultra', splitSize = 500) {
+    console.log(`[숲토킹 Recorder] 녹화 시작: ${streamerId} (${quality || 'high'}, 분할: ${splitSize}MB)`);
 
     // quality 유효성 검사
     if (!quality || quality === 'undefined' || quality === 'null') {
       quality = 'high';
     }
+
+    // ⭐ v3.6.5: 분할 크기 설정 (MB → Bytes 변환)
+    if (!splitSize || splitSize < 100) {
+      console.warn(`[숲토킹 Recorder] splitSize가 유효하지 않음 (${splitSize}), 기본값 500MB 사용`);
+      splitSize = 500;
+    }
+    currentSplitSize = splitSize;
+    CONFIG.MAX_FILE_SIZE = splitSize * 1024 * 1024;
+    console.log(`[숲토킹 Recorder] ★ 분할 크기 설정: ${splitSize}MB (${CONFIG.MAX_FILE_SIZE} bytes)`);
 
     if (isRecording) {
       console.log('[숲토킹 Recorder] 이미 녹화 중');
@@ -1165,10 +1175,11 @@
     switch (command) {
       case 'START_RECORDING':
         // 메시지 수신 로그 생략 - startRecording 함수 내에서 로깅
-        const { streamerId, nickname, quality } = params || {};
+        const { streamerId, nickname, quality, splitSize } = params || {};
         const finalQuality = quality || 'ultra';
+        const finalSplitSize = splitSize || 500;
 
-        result = await startRecording(streamerId, nickname, finalQuality);
+        result = await startRecording(streamerId, nickname, finalQuality, finalSplitSize);
 
         // 결과도 페이지로 전달
         window.postMessage({

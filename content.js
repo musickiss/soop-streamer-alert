@@ -407,13 +407,18 @@
         console.log(`[숲토킹 Content]   - streamerId: "${message.streamerId}"`);
         console.log(`[숲토킹 Content]   - nickname: "${message.nickname}"`);
         console.log(`[숲토킹 Content]   - quality: "${message.quality}" (타입: ${typeof message.quality})`);
+        console.log(`[숲토킹 Content]   - splitSize: ${message.splitSize}MB`);
 
         const qualityToSend = message.quality || 'ultra';
+        const splitSizeToSend = message.splitSize || 500;
         if (!message.quality) {
           console.warn('[숲토킹 Content] ⚠️ quality 누락! 기본값 "ultra" 사용');
         }
+        if (!message.splitSize) {
+          console.warn('[숲토킹 Content] ⚠️ splitSize 누락! 기본값 500MB 사용');
+        }
 
-        console.log(`[숲토킹 Content] MAIN world로 전달할 quality: "${qualityToSend}"`);
+        console.log(`[숲토킹 Content] MAIN world로 전달할 quality: "${qualityToSend}", splitSize: ${splitSizeToSend}MB`);
         console.log('[숲토킹 Content] ================================================');
 
         // MAIN world로 녹화 시작 명령 전달
@@ -423,7 +428,8 @@
           params: {
             streamerId: message.streamerId,
             nickname: message.nickname,
-            quality: qualityToSend
+            quality: qualityToSend,
+            splitSize: splitSizeToSend
           }
         }, '*');
         sendResponse({ success: true });
