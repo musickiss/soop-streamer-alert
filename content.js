@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.6.0 - Content Script (ISOLATED) =====
+// ===== 숲토킹 v3.6.1 - Content Script (ISOLATED) =====
 
 (function() {
   'use strict';
@@ -36,6 +36,12 @@
 
   // 녹화 상태를 storage에 직접 저장
   async function saveRecordingStateToStorage(tabId, recordingData) {
+    // ⭐ v3.6.1: Context 유효성 체크 추가
+    if (!isExtensionContextValid()) {
+      console.log('[숲토킹 Content] 녹화 상태 저장 스킵 (context 무효)');
+      return;
+    }
+
     try {
       const result = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
       const recordings = result[STORAGE_KEY_RECORDINGS] || {};
@@ -49,12 +55,23 @@
       await chrome.storage.local.set({ [STORAGE_KEY_RECORDINGS]: recordings });
       console.log('[숲토킹 Content] 녹화 상태 storage 저장:', tabId);
     } catch (error) {
+      // Extension context invalidated 오류는 조용히 무시
+      if (error.message?.includes('Extension context invalidated')) {
+        console.log('[숲토킹 Content] 녹화 상태 저장 스킵 (context 무효화됨)');
+        return;
+      }
       console.error('[숲토킹 Content] 녹화 상태 저장 실패:', error);
     }
   }
 
   // 녹화 상태를 storage에서 제거
   async function removeRecordingStateFromStorage(tabId) {
+    // ⭐ v3.6.1: Context 유효성 체크 추가
+    if (!isExtensionContextValid()) {
+      console.log('[숲토킹 Content] 녹화 상태 제거 스킵 (context 무효)');
+      return;
+    }
+
     try {
       const result = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
       const recordings = result[STORAGE_KEY_RECORDINGS] || {};
@@ -65,6 +82,11 @@
         console.log('[숲토킹 Content] 녹화 상태 storage 제거:', tabId);
       }
     } catch (error) {
+      // Extension context invalidated 오류는 조용히 무시
+      if (error.message?.includes('Extension context invalidated')) {
+        console.log('[숲토킹 Content] 녹화 상태 제거 스킵 (context 무효화됨)');
+        return;
+      }
       console.error('[숲토킹 Content] 녹화 상태 제거 실패:', error);
     }
   }
@@ -72,6 +94,11 @@
   // 녹화 진행 상태 업데이트 (storage)
   // ⭐ v3.5.15: 쓰로틀링 적용 (15초마다 저장)
   async function updateRecordingProgressInStorage(tabId, totalBytes, elapsedTime, partNumber) {
+    // ⭐ v3.6.1: Context 유효성 체크 추가
+    if (!isExtensionContextValid()) {
+      return;  // 조용히 스킵
+    }
+
     // 쓰로틀링: 마지막 저장 후 15초 이내면 스킵
     const now = Date.now();
     if (now - lastProgressSaveTime < PROGRESS_SAVE_INTERVAL) {
@@ -93,7 +120,7 @@
         // Progress 저장 로그 생략 (15초마다 발생하므로)
       }
     } catch (error) {
-      // 진행 상태 업데이트 실패는 조용히 무시 (다음 주기에 재시도)
+      // Extension context invalidated 포함 모든 오류 조용히 무시 (다음 주기에 재시도)
     }
   }
 
@@ -466,5 +493,5 @@
     }
   });
 
-  console.log('[숲토킹 Content] 로드됨');
+  console.log('[숲토킹 Content] v3.6.1 ISOLATED 브릿지 로드됨 (Context 유효성 체크 강화)');
 })();
