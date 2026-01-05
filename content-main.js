@@ -1,6 +1,6 @@
-// ===== 숲토킹 v3.6.3 - Content Script (MAIN) =====
+// ===== 숲토킹 v3.6.4 - Content Script (MAIN) =====
 // MAIN world Canvas 녹화 스크립트
-// v3.6.3 - 분할 녹화 requestData 인터벌 관리 수정
+// v3.6.4 - isSaving 변수 미정의 핫픽스
 
 (function() {
   'use strict';
@@ -61,6 +61,7 @@
   let totalRecordedBytes = 0;
   let partNumber = 1;
   let isRecording = false;
+  let isSaving = false;    // ⭐ v3.6.4: 누락된 변수 추가
   let isSplitting = false;
   let requestDataIntervalId = null;  // ⭐ v3.6.2: requestData 인터벌 ID
   let currentQuality = 'high';
