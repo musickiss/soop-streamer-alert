@@ -713,9 +713,12 @@ async function checkAndProcessStreamer(streamer) {
           }
 
           // ⭐ v3.5.18: 사용자가 선택한 품질을 자동 녹화에도 적용
-          const qualityData = await chrome.storage.local.get('recordingQuality');
-          const autoRecordQuality = qualityData.recordingQuality || 'high';
+          // ⭐ v3.6.6: 분할 크기도 함께 로드
+          const settingsData = await chrome.storage.local.get(['recordingQuality', 'splitSize']);
+          const autoRecordQuality = settingsData.recordingQuality || 'high';
+          const autoSplitSize = settingsData.splitSize || 500;
           console.log('[숲토킹] 자동 녹화 품질:', autoRecordQuality);
+          console.log('[숲토킹] 자동 녹화 분할 크기:', autoSplitSize + 'MB');
 
           // 녹화 시작 (최대 3회 재시도)
           let retryCount = 0;
@@ -733,7 +736,7 @@ async function checkAndProcessStreamer(streamer) {
               return { success: false, error: '탭 확인 실패' };
             }
 
-            const result = await startRecording(tab.id, streamer.id, streamer.nickname || streamer.id, autoRecordQuality);
+            const result = await startRecording(tab.id, streamer.id, streamer.nickname || streamer.id, autoRecordQuality, autoSplitSize);
 
             if (!result.success && retryCount < maxRetries) {
               retryCount++;

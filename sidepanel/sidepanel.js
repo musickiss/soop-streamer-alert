@@ -463,14 +463,21 @@
     console.log(`[사이드패널] 녹화 요청: ${streamerId}`);
 
     try {
+      // ⭐ v3.6.6: 녹화 시작 직전에 storage에서 최신 설정 다시 읽기
+      const storageData = await chrome.storage.local.get(['recordingQuality', 'splitSize']);
+      const currentQuality = storageData.recordingQuality || state.recordingQuality || 'ultra';
+      const currentSplitSize = storageData.splitSize || state.splitSize || 500;
+
+      console.log(`[사이드패널] 녹화 설정 - 품질: ${currentQuality}, 분할: ${currentSplitSize}MB`);
+
       // Background에 녹화 시작 요청 (tabId 기반)
       const result = await sendMessage({
         type: 'START_RECORDING_REQUEST',
         tabId: tabId,
         streamerId: streamerId,
         nickname: nickname,
-        quality: state.recordingQuality,
-        splitSize: state.splitSize || 500
+        quality: currentQuality,
+        splitSize: currentSplitSize
       });
 
       if (result?.success) {

@@ -1,6 +1,6 @@
-// ===== 숲토킹 v3.6.5 - Content Script (MAIN) =====
+// ===== 숲토킹 v3.6.6 - Content Script (MAIN) =====
 // MAIN world Canvas 녹화 스크립트
-// v3.6.5 - 분할 녹화 크기 설정 기능 추가
+// v3.6.6 - 분할 크기 설정 적용 버그 수정
 
 (function() {
   'use strict';
