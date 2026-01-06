@@ -1,6 +1,7 @@
-// ===== 숲토킹 v3.6.7 - Content Script (MAIN) =====
+// ===== 숲토킹 v3.7.0 - Content Script (MAIN) =====
 // MAIN world Canvas 녹화 스크립트
-// v3.6.7 - 새로고침 취소 시 녹화 유지 버그 수정
+// v3.7.0 - requestAnimationFrame + captureStream(0) 기반 프레임 동기화 녹화
+//        - H.264 하드웨어 가속 코덱 우선 적용
 
 (function() {
   'use strict';
@@ -16,26 +17,27 @@
 
   // ===== 설정 =====
   const CONFIG = {
-    // ⭐ 원본급 (Ultra) - VP9 30Mbps - 기본값
+    // ⭐ 원본급 (Ultra) - 30Mbps - 기본값
+    // H.264 우선: 하드웨어 가속 지원이 좋아 CPU 부하 낮음
     ULTRA_QUALITY: {
       VIDEO_BITRATE: 30000000,    // 30 Mbps
       AUDIO_BITRATE: 320000,      // 320 kbps
       TARGET_FPS: 60,
-      CODEC_PRIORITY: ['vp9', 'vp8']
+      CODEC_PRIORITY: ['avc1.640034', 'avc1.4d0034', 'vp9', 'vp8']  // H.264 High/Main 우선
     },
-    // ⭐ 고품질 (High) - VP9 15Mbps
+    // ⭐ 고품질 (High) - 15Mbps
     HIGH_QUALITY: {
       VIDEO_BITRATE: 15000000,    // 15 Mbps
       AUDIO_BITRATE: 192000,      // 192 kbps
       TARGET_FPS: 60,
-      CODEC_PRIORITY: ['vp9', 'vp8']
+      CODEC_PRIORITY: ['avc1.640028', 'avc1.4d0028', 'vp9', 'vp8']  // H.264 High/Main 우선
     },
-    // ⭐ 표준 (Standard) - VP8 8Mbps
+    // ⭐ 표준 (Standard) - 8Mbps
     STANDARD_QUALITY: {
       VIDEO_BITRATE: 8000000,     // 8 Mbps
       AUDIO_BITRATE: 128000,      // 128 kbps
       TARGET_FPS: 30,
-      CODEC_PRIORITY: ['vp8', 'vp9']  // VP8 우선
+      CODEC_PRIORITY: ['avc1.42001f', 'vp8', 'vp9']  // H.264 Baseline 우선
     },
     // 공통 설정
     TIMESLICE: 2000,
@@ -58,7 +60,8 @@
   let currentStreamerId = null;
   let currentNickname = null;
   let progressIntervalId = null;
-  let totalRecordedBytes = 0;
+  let totalRecordedBytes = 0;       // 현재 파트의 바이트 (분할 시 리셋)
+  let sessionTotalBytes = 0;        // ⭐ v3.7.0: 전체 세션 누적 바이트 (UI 표시용)
   let partNumber = 1;
   let isRecording = false;
   let isSaving = false;    // ⭐ v3.6.4: 누락된 변수 추가
@@ -349,22 +352,40 @@
     return true;
   }
 
+  // ⭐ v3.7.0: requestAnimationFrame + requestFrame() 기반 프레임 동기화 녹화
+  let rafId = null;  // requestAnimationFrame ID
+  let canvasVideoTrack = null;  // captureStream의 video track (requestFrame용)
+  let isBackgroundTab = false;  // 백그라운드 탭 여부
+  let bgIntervalId = null;  // 백그라운드용 setInterval ID
+
   function startCanvasDrawing(video, targetFps) {
     sourceVideo = video;
     videoUnavailableCount = 0;
 
+    // 기존 타이머/RAF 정리
     if (drawIntervalId) {
       clearInterval(drawIntervalId);
+      drawIntervalId = null;
+    }
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+    if (bgIntervalId) {
+      clearInterval(bgIntervalId);
+      bgIntervalId = null;
     }
 
-    const minInterval = Math.floor(1000 / targetFps);
+    const frameInterval = 1000 / targetFps;
     let lastDrawTime = 0;
+    let frameCount = 0;
+    let lastFpsLogTime = performance.now();
 
-    drawIntervalId = setInterval(() => {
-      if (!sourceVideo) {
-        return;
-      }
+    // ===== 프레임 그리기 로직 =====
+    function performDraw(timestamp) {
+      if (!sourceVideo || !isRecording) return false;
 
+      // 비디오 요소 DOM 존재 확인
       if (!document.body.contains(sourceVideo)) {
         console.log('[숲토킹 Recorder] video 요소 DOM에서 제거됨, 새 video 탐색...');
         const newVideo = findVideoElement();
@@ -373,9 +394,7 @@
           sourceVideo = newVideo;
           recordingCanvas.width = newVideo.videoWidth || recordingCanvas.width;
           recordingCanvas.height = newVideo.videoHeight || recordingCanvas.height;
-
           reconnectAudioToNewVideo(newVideo);
-
           console.log('[숲토킹 Recorder] 새 video로 전환');
           videoUnavailableCount = 0;
         } else {
@@ -383,47 +402,43 @@
           if (videoUnavailableCount > CONFIG.MAX_VIDEO_UNAVAILABLE) {
             console.log('[숲토킹 Recorder] video를 찾을 수 없음, 녹화 중지');
             stopRecording();
-            return;
+            return false;
           }
-          return;
+          return true;
         }
       }
 
-      // ⭐ v3.5.16: 비디오 상태 체크 완화 - paused 상태는 자동재생 정책으로 인한 것일 수 있음
+      // 비디오 상태 체크
       const videoUnavailable = sourceVideo.ended ||
           sourceVideo.readyState < 2 || sourceVideo.videoWidth === 0;
 
-      // paused 상태는 별도 처리 (자동재생 시도)
+      // paused 상태는 자동재생 시도
       if (sourceVideo.paused && !sourceVideo.ended && sourceVideo.readyState >= 2) {
-        // 자동재생 시도 (Chrome 정책으로 실패할 수 있음)
         sourceVideo.play().catch(() => {});
       }
 
       if (videoUnavailable) {
         videoUnavailableCount++;
-
-        // ⭐ 로그 추가 (디버깅용)
         if (videoUnavailableCount % 100 === 0) {
-          console.log(`[숲토킹 Recorder] 비디오 상태 불안정 (${videoUnavailableCount}/${CONFIG.MAX_VIDEO_UNAVAILABLE}): ` +
-            `paused=${sourceVideo.paused}, ended=${sourceVideo.ended}, readyState=${sourceVideo.readyState}, videoWidth=${sourceVideo.videoWidth}`);
+          console.log(`[숲토킹 Recorder] 비디오 상태 불안정 (${videoUnavailableCount}/${CONFIG.MAX_VIDEO_UNAVAILABLE})`);
         }
-
         if (videoUnavailableCount > CONFIG.MAX_VIDEO_UNAVAILABLE) {
           console.log('[숲토킹 Recorder] video 장시간 비정상 상태, 녹화 중지');
           stopRecording();
-          return;
+          return false;
         }
-        return;
+        return true;
       }
 
       videoUnavailableCount = 0;
 
-      const now = performance.now();
-      if (now - lastDrawTime < minInterval) {
-        return;
+      // 프레임 간격 체크
+      if (timestamp - lastDrawTime < frameInterval) {
+        return true;
       }
 
       try {
+        // 해상도 변경 감지
         if (recordingCanvas.width !== sourceVideo.videoWidth ||
             recordingCanvas.height !== sourceVideo.videoHeight) {
           if (sourceVideo.videoWidth > 0 && sourceVideo.videoHeight > 0) {
@@ -433,22 +448,118 @@
           }
         }
 
+        // Canvas에 프레임 그리기
         recordingCtx.drawImage(sourceVideo, 0, 0, recordingCanvas.width, recordingCanvas.height);
-        lastDrawTime = now;
+
+        // ⭐ 명시적 프레임 요청 (captureStream(0) 사용 시)
+        if (canvasVideoTrack && canvasVideoTrack.requestFrame) {
+          canvasVideoTrack.requestFrame();
+        }
+
+        lastDrawTime = timestamp;
+        frameCount++;
+
+        // FPS 로깅 (10초마다)
+        if (timestamp - lastFpsLogTime >= 10000) {
+          const fps = frameCount / ((timestamp - lastFpsLogTime) / 1000);
+          console.log(`[숲토킹 Recorder] 녹화 FPS: ${fps.toFixed(1)}`);
+          frameCount = 0;
+          lastFpsLogTime = timestamp;
+        }
 
       } catch (e) {
         console.log('[숲토킹 Recorder] drawImage 실패:', e.message);
       }
-    }, CONFIG.CANVAS_DRAW_INTERVAL);
 
-    console.log('[숲토킹 Recorder] Canvas 그리기 시작');
+      return true;
+    }
+
+    // ===== requestAnimationFrame 루프 (포그라운드) =====
+    function rafLoop(timestamp) {
+      if (!isRecording || isBackgroundTab) return;
+
+      if (performDraw(timestamp)) {
+        rafId = requestAnimationFrame(rafLoop);
+      }
+    }
+
+    // ===== setInterval 폴백 (백그라운드 탭) =====
+    function startBackgroundFallback() {
+      if (bgIntervalId) return;
+
+      bgIntervalId = setInterval(() => {
+        if (!isRecording) {
+          clearInterval(bgIntervalId);
+          bgIntervalId = null;
+          return;
+        }
+        performDraw(performance.now());
+      }, Math.max(frameInterval, 100));  // 백그라운드에서는 최소 100ms (10fps)
+
+      console.log('[숲토킹 Recorder] 백그라운드 모드 전환 (setInterval 폴백)');
+    }
+
+    // ===== 탭 가시성 변경 처리 =====
+    function handleVisibilityChange() {
+      if (!isRecording) return;
+
+      isBackgroundTab = document.hidden;
+
+      if (isBackgroundTab) {
+        // 포그라운드 → 백그라운드: RAF 중지, setInterval 시작
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+          rafId = null;
+        }
+        startBackgroundFallback();
+      } else {
+        // 백그라운드 → 포그라운드: setInterval 중지, RAF 재시작
+        if (bgIntervalId) {
+          clearInterval(bgIntervalId);
+          bgIntervalId = null;
+        }
+        console.log('[숲토킹 Recorder] 포그라운드 복귀 (requestAnimationFrame)');
+        rafId = requestAnimationFrame(rafLoop);
+      }
+    }
+
+    // 가시성 리스너 등록
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // ===== 시작 =====
+    isBackgroundTab = document.hidden;
+
+    if (isBackgroundTab) {
+      startBackgroundFallback();
+    } else {
+      rafId = requestAnimationFrame(rafLoop);
+    }
+
+    console.log('[숲토킹 Recorder] Canvas 그리기 시작 (requestAnimationFrame)');
   }
 
   function cleanupCanvas() {
+    // ⭐ v3.7.0: requestAnimationFrame 정리
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+
+    // ⭐ v3.7.0: 백그라운드 인터벌 정리
+    if (bgIntervalId) {
+      clearInterval(bgIntervalId);
+      bgIntervalId = null;
+    }
+
+    // 기존 setInterval 정리 (폴백용)
     if (drawIntervalId) {
       clearInterval(drawIntervalId);
       drawIntervalId = null;
     }
+
+    // ⭐ v3.7.0: video track 참조 정리
+    canvasVideoTrack = null;
+    isBackgroundTab = false;
 
     if (canvasStream) {
       canvasStream.getVideoTracks().forEach(track => {
@@ -531,9 +642,10 @@
           qualityConfig = CONFIG.ULTRA_QUALITY;
       }
 
-      // 새 Canvas 스트림 생성
-      canvasStream = recordingCanvas.captureStream(qualityConfig.TARGET_FPS);
-      console.log('[숲토킹 Recorder] Canvas 스트림 재생성됨');
+      // 새 Canvas 스트림 생성 (0 = 수동 프레임 제어)
+      canvasStream = recordingCanvas.captureStream(0);
+      canvasVideoTrack = canvasStream.getVideoTracks()[0];
+      console.log('[숲토킹 Recorder] Canvas 스트림 재생성됨 (수동 프레임 모드)');
 
       // 오디오 트랙 추가
       if (audioDest) {
@@ -665,12 +777,19 @@
         throw new Error('Canvas 설정 실패');
       }
 
+      // ⭐ v3.7.0: captureStream(0)을 먼저 생성하여 canvasVideoTrack 설정
+      // requestFrame()이 처음부터 호출될 수 있도록 순서 변경
+      canvasStream = recordingCanvas.captureStream(0);
+      canvasVideoTrack = canvasStream.getVideoTracks()[0];
+      console.log('[숲토킹 Recorder] Canvas 스트림 획득 (수동 프레임 모드)');
+
+      // ⭐ v3.7.0: isRecording을 먼저 설정해야 RAF 루프가 정상 동작
+      isRecording = true;
+
+      // Canvas 그리기 시작 (canvasVideoTrack과 isRecording이 이미 설정된 상태)
       startCanvasDrawing(video, qualityConfig.TARGET_FPS);
 
       await new Promise(r => setTimeout(r, 200));
-
-      canvasStream = recordingCanvas.captureStream(qualityConfig.TARGET_FPS);
-      console.log('[숲토킹 Recorder] Canvas 스트림 획득');
 
       const audioTrack = await getOrCreateAudioTrack(video);
       if (audioTrack) {
@@ -711,10 +830,11 @@
       currentNickname = nickname;
       recordedChunks = [];
       totalRecordedBytes = 0;
+      sessionTotalBytes = 0;  // ⭐ v3.7.0: 세션 전체 초기화
       partNumber = 1;
       recordingStartTime = Date.now();
       generateFileName(streamerId, quality);
-      isRecording = true;
+      // isRecording은 이미 위에서 설정됨 (v3.7.0)
       isSplitting = false;
       stopRetryCount = 0;
       splitWaitCount = 0;
@@ -800,10 +920,11 @@
     if (event.data && event.data.size > 0) {
       recordedChunks.push(event.data);
       totalRecordedBytes += event.data.size;
+      sessionTotalBytes += event.data.size;  // ⭐ v3.7.0: 세션 전체 누적
 
       // ⭐ v3.6.3: 로깅 간소화 (10개마다 또는 첫번째)
       if (recordedChunks.length % 10 === 0 || recordedChunks.length === 1) {
-        console.log('[숲토킹 Recorder] 청크 #' + recordedChunks.length + ': 누적 ' + formatBytes(totalRecordedBytes) + ' / ' + formatBytes(CONFIG.MAX_FILE_SIZE));
+        console.log('[숲토킹 Recorder] 청크 #' + recordedChunks.length + ': 파트 ' + formatBytes(totalRecordedBytes) + ' / 전체 ' + formatBytes(sessionTotalBytes));
       }
 
       // 500MB 분할 조건 확인
@@ -990,6 +1111,7 @@
     recordedChunks.length = 0;
     recordedChunks = [];
     totalRecordedBytes = 0;
+    sessionTotalBytes = 0;  // ⭐ v3.7.0: 세션 전체 초기화
     partNumber = 1;
   }
 
@@ -1084,7 +1206,7 @@
       window.postMessage({
         type: 'SOOPTALKING_RECORDING_PROGRESS',
         streamerId: currentStreamerId,
-        totalBytes: totalRecordedBytes,
+        totalBytes: sessionTotalBytes,  // ⭐ v3.7.0: 세션 전체 바이트 (분할 시에도 유지)
         elapsedTime: elapsedTime,
         partNumber: partNumber,
         isSplitting: isSplitting
@@ -1211,6 +1333,6 @@
     }, '*');
   });
 
-  console.log('[숲토킹 Recorder] v3.6.3 메시지 리스너 등록 완료 (분할 인터벌 관리 수정)');
+  console.log('[숲토킹 Recorder] v3.7.0 메시지 리스너 등록 완료 (rAF + captureStream(0) 프레임 동기화)');
 
 })();
