@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.7.0 - Background Service Worker =====
+// ===== 숲토킹 v3.7.2 - Background Service Worker =====
 
 // ⭐ v3.6.0: GA4 익명 통계 모듈 (ES6 Module)
 import * as Analytics from './analytics.js';
@@ -1673,4 +1673,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.7.0 로드됨');
+console.log('[숲토킹] Background Service Worker v3.7.2 로드됨');
