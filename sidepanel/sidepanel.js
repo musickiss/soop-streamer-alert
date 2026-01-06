@@ -1,4 +1,5 @@
-// ===== 숲토킹 v3.6.0 - 사이드패널 =====
+// ===== 숲토킹 v3.7.0 - 사이드패널 =====
+// ⭐ v3.7.0: 단일 품질 (4Mbps) 적용 - 품질 선택 UI 제거
 
 (function() {
   'use strict';
@@ -19,7 +20,7 @@
     currentSoopTabId: null,
     filter: 'all',
     expandedStreamerId: null,
-    recordingQuality: 'ultra',  // 'ultra' = 원본급(30Mbps), 'high' = 고품질(15Mbps), 'standard' = 표준(8Mbps)
+    // ⭐ v3.7.0: 단일 품질 (4Mbps) - recordingQuality 상태 제거
     splitSize: 500,  // 분할 크기 (MB): 500 / 1024 / 2048
     // 현재 탭 녹화 상태 (sessionId 기반)
     currentTabRecording: null
@@ -78,7 +79,7 @@
     elements.storageValue = document.getElementById('storageValue');
     elements.storageProgressFill = document.getElementById('storageProgressFill');
 
-    elements.recordingQualitySelect = document.getElementById('recordingQualitySelect');
+    // ⭐ v3.7.0: 품질 선택 제거 - splitSizeSelect만 유지
     elements.splitSizeSelect = document.getElementById('splitSizeSelect');
     elements.recordingQualityInfoTooltip = document.getElementById('recordingQualityInfoTooltip');
 
@@ -168,18 +169,9 @@
     return /[A-Z0-9가-힣]/.test(first) ? first : '📺';
   }
 
+  // ⭐ v3.7.1: 단일 품질 툴팁 (6Mbps)
   function getRecordingQualityTooltip() {
-    // ⭐ 3단계 품질 툴팁
-    switch (state.recordingQuality) {
-      case 'ultra':
-        return '원본급 (VP9 30Mbps 60fps)\n• 1시간당 약 13GB\n• 동시 녹화: 1개 권장\n• ⚠️ 고사양 PC 필요';
-      case 'high':
-        return '고품질 (VP9 15Mbps 60fps)\n• 1시간당 약 6.5GB\n• 동시 녹화: 1~2개 권장\n• 대부분의 PC에서 안정적';
-      case 'standard':
-        return '표준 (VP8 8Mbps 30fps)\n• 1시간당 약 3.5GB\n• 동시 녹화: 2~3개 가능\n• ✅ 저사양 PC에서도 안정적';
-      default:
-        return '녹화 품질 정보';
-    }
+    return '1시간 녹화 시 약 2.7GB';
   }
 
   // 파트 전환 상태 표시 (v3.5.8.2)
@@ -258,59 +250,15 @@
     }
   }
 
+  // ⭐ v3.7.0: 단일 품질 정보 박스
   function updateRecordingQualityInfoBox() {
     if (!elements.recordingQualityInfoTooltip) return;
 
-    // ⭐ 3단계 품질 정보 박스
-    let qualityName, bitrate, fps, fileSize, recommendCount, stabilityNote;
-
-    switch (state.recordingQuality) {
-      case 'ultra':
-        qualityName = '원본급';
-        bitrate = 'VP9 30Mbps';
-        fps = '60fps';
-        fileSize = '~13GB/시간';
-        recommendCount = '1개';
-        stabilityNote = '⚠️ 고사양 PC 필요';
-        break;
-      case 'high':
-        qualityName = '고품질';
-        bitrate = 'VP9 15Mbps';
-        fps = '60fps';
-        fileSize = '~6.5GB/시간';
-        recommendCount = '1~2개';
-        stabilityNote = '대부분의 PC에서 안정적';
-        break;
-      case 'standard':
-        qualityName = '표준';
-        bitrate = 'VP8 8Mbps';
-        fps = '30fps';
-        fileSize = '~3.5GB/시간';
-        recommendCount = '2~3개';
-        stabilityNote = '✅ 저사양 PC에서도 안정적';
-        break;
-      default:
-        qualityName = '알 수 없음';
-        bitrate = '-';
-        fps = '-';
-        fileSize = '-';
-        recommendCount = '-';
-        stabilityNote = '';
-    }
-
-    // ⭐ v3.5.22: 데이터 손실 경고 문구 (다국어 지원)
-    const dataLossWarning = i18n('recordingDataLossWarning') || '탭/브라우저 비정상 종료 시 현재 녹화 중인 내용이 손실될 수 있습니다.';
-
     elements.recordingQualityInfoTooltip.innerHTML = `
-      <p class="tooltip-title">⚠️ 녹화 품질 안내</p>
-      <p><strong>현재 설정: ${qualityName}</strong></p>
-      <p>• 코덱: ${bitrate} ${fps}</p>
-      <p>• 파일 크기: ${fileSize}</p>
-      <p>• 동시 녹화 권장: ${recommendCount}</p>
-      <p>• ${stabilityNote}</p>
-      <p style="margin-top: 8px;">백그라운드 탭은 브라우저가 리소스를 제한하여 <strong>프레임 드랍</strong>이 발생할 수 있습니다.</p>
-      <p class="tooltip-tip">💡 <strong>권장:</strong> 녹화 탭을 새 창으로 분리하거나 활성 상태로 유지하세요.</p>
-      <p class="tooltip-tip" style="color: #ff6b6b; margin-top: 6px;">⚠️ ${dataLossWarning}</p>
+      <p class="tooltip-title">📹 녹화 안내</p>
+      <p>• 1시간 녹화 시 약 2.7GB</p>
+      <p>• 녹화 탭이 비활성 상태면 화질이 낮아질 수 있어요</p>
+      <p style="margin-top: 6px; color: #ff6b6b;">⚠️ 탭이나 브라우저를 닫으면 녹화가 사라져요</p>
     `;
   }
 
@@ -419,6 +367,13 @@
 
   function showCurrentStream(info) {
     if (!elements.currentStreamCard) return;
+
+    // ⭐ v3.7.1: 녹화 버튼 깜빡임 방지 - 카드 표시 전에 버튼을 먼저 숨김
+    // updateRecordingButton()에서 녹화 상태에 따라 적절히 표시됨
+    if (elements.startRecordingBtn) {
+      elements.startRecordingBtn.style.display = 'none';
+    }
+
     elements.currentStreamCard.style.display = 'block';
     if (elements.notWatchingMessage) {
       elements.notWatchingMessage.style.display = 'none';
@@ -444,10 +399,28 @@
   }
 
   // ===== 녹화 기능 (video.captureStream 기반) =====
+  // ⭐ v3.7.2: 최대 4개 동시 녹화 제한
+  const MAX_CONCURRENT_RECORDINGS = 4;
+
   async function startRecording() {
     if (!state.currentStream || !state.currentSoopTabId) {
       showToast('SOOP 방송 탭을 찾을 수 없습니다.', 'error');
       return;
+    }
+
+    // ⭐ v3.7.2: 동시 녹화 개수 체크
+    try {
+      const result = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
+      const recordings = result[STORAGE_KEY_RECORDINGS] || {};
+      const currentRecordingCount = Object.keys(recordings).length;
+
+      if (currentRecordingCount >= MAX_CONCURRENT_RECORDINGS) {
+        showToast(`최대 ${MAX_CONCURRENT_RECORDINGS}개까지 동시 녹화가 가능합니다.`, 'error');
+        return;
+      }
+    } catch (e) {
+      console.warn('[사이드패널] 녹화 개수 확인 실패:', e);
+      // 체크 실패해도 녹화 시도는 진행
     }
 
     const { streamerId, nickname, tabId } = state.currentStream;
@@ -463,20 +436,19 @@
     console.log(`[사이드패널] 녹화 요청: ${streamerId}`);
 
     try {
-      // ⭐ v3.6.6: 녹화 시작 직전에 storage에서 최신 설정 다시 읽기
-      const storageData = await chrome.storage.local.get(['recordingQuality', 'splitSize']);
-      const currentQuality = storageData.recordingQuality || state.recordingQuality || 'ultra';
+      // ⭐ v3.7.0: 단일 품질 - 분할 크기만 읽기
+      const storageData = await chrome.storage.local.get(['splitSize']);
       const currentSplitSize = storageData.splitSize || state.splitSize || 500;
 
-      console.log(`[사이드패널] 녹화 설정 - 품질: ${currentQuality}, 분할: ${currentSplitSize}MB`);
+      console.log(`[사이드패널] 녹화 설정 - 품질: 4Mbps (단일), 분할: ${currentSplitSize}MB`);
 
       // Background에 녹화 시작 요청 (tabId 기반)
+      // ⭐ v3.7.0: quality 파라미터 제거 (단일 품질)
       const result = await sendMessage({
         type: 'START_RECORDING_REQUEST',
         tabId: tabId,
         streamerId: streamerId,
         nickname: nickname,
-        quality: currentQuality,
         splitSize: currentSplitSize
       });
 
@@ -527,19 +499,52 @@
     }
   }
 
-  function updateRecordingButton() {
+  // ⭐ v3.7.1: 녹화 버튼 깜빡임 방지 - Storage에서 직접 확인
+  async function updateRecordingButton() {
     if (!elements.startRecordingBtn) return;
 
-    // 현재 탭에서 녹화 중인지 확인
-    const isRecordingThisTab = state.currentTabRecording &&
-      state.currentTabRecording.tabId === state.currentSoopTabId;
-
-    if (isRecordingThisTab) {
-      elements.startRecordingBtn.style.display = 'none';
-    } else {
+    // 현재 탭 ID가 없으면 버튼 표시
+    if (!state.currentSoopTabId) {
       elements.startRecordingBtn.style.display = 'flex';
       elements.startRecordingBtn.disabled = false;
       elements.startRecordingBtn.innerHTML = '<span class="record-icon"></span><span>녹화 시작</span>';
+      return;
+    }
+
+    // Storage에서 직접 녹화 상태 확인 (state.currentTabRecording보다 정확)
+    try {
+      const result = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
+      const recordings = result[STORAGE_KEY_RECORDINGS] || {};
+      const isRecordingThisTab = !!recordings[state.currentSoopTabId];
+
+      if (isRecordingThisTab) {
+        elements.startRecordingBtn.style.display = 'none';
+        // state도 동기화
+        const rec = recordings[state.currentSoopTabId];
+        state.currentTabRecording = {
+          tabId: state.currentSoopTabId,
+          streamerId: rec.streamerId,
+          nickname: rec.nickname,
+          startTime: rec.startTime
+        };
+      } else {
+        elements.startRecordingBtn.style.display = 'flex';
+        elements.startRecordingBtn.disabled = false;
+        elements.startRecordingBtn.innerHTML = '<span class="record-icon"></span><span>녹화 시작</span>';
+        state.currentTabRecording = null;
+      }
+    } catch (e) {
+      // 폴백: 기존 state 기반 확인
+      const isRecordingThisTab = state.currentTabRecording &&
+        state.currentTabRecording.tabId === state.currentSoopTabId;
+
+      if (isRecordingThisTab) {
+        elements.startRecordingBtn.style.display = 'none';
+      } else {
+        elements.startRecordingBtn.style.display = 'flex';
+        elements.startRecordingBtn.disabled = false;
+        elements.startRecordingBtn.innerHTML = '<span class="record-icon"></span><span>녹화 시작</span>';
+      }
     }
   }
 
@@ -602,51 +607,96 @@
         return;
       }
 
-      // 녹화 카드 렌더링
-      elements.activeRecordingList.innerHTML = recordings.map(rec => {
-        const elapsed = rec.elapsedTime || Math.floor((Date.now() - (rec.startTime || Date.now())) / 1000);
-        const timeStr = formatDuration(elapsed);
-        const sizeStr = formatBytes(rec.totalBytes || 0);
-        const displayName = escapeHtml(rec.nickname || rec.streamerId || '알 수 없음');
+      // ⭐ v3.7.0: 기존 카드가 있으면 업데이트만, 없으면 새로 생성
+      const existingTabIds = new Set(
+        Array.from(elements.activeRecordingList.querySelectorAll('.recording-card'))
+          .map(card => card.dataset.tabId)
+      );
+      const newTabIds = new Set(recordings.map(rec => String(rec.tabId)));
 
-        // ⭐ v3.5.14: 마지막 업데이트 시간 확인 (30초 이상 지났으면 경고)
-        const lastUpdate = rec.lastUpdate || rec.startTime || Date.now();
-        const isStale = (Date.now() - lastUpdate) > 30000;
-        const staleWarning = isStale ? '<span class="stale-warning" title="상태 업데이트 지연 - 녹화는 계속 진행 중일 수 있습니다">⚠️</span>' : '';
-
-        return `
-          <div class="recording-card" data-tab-id="${rec.tabId}" data-streamer-id="${escapeHtml(rec.streamerId || '')}">
-            <div class="recording-card-header">
-              <span class="recording-indicator"></span>
-              <span class="recording-streamer-name">${displayName}</span>
-              ${staleWarning}
-              <span class="recording-quality-info" title="${getRecordingQualityTooltip()}">ⓘ</span>
-            </div>
-            <div class="recording-card-stats">
-              <div class="recording-stat">
-                <span>⏱️</span>
-                <span class="recording-stat-value recording-time">${timeStr}</span>
-              </div>
-              <div class="recording-stat">
-                <span>💾</span>
-                <span class="recording-stat-value recording-size">${sizeStr}</span>
-              </div>
-            </div>
-            <button class="recording-stop-btn" data-tab-id="${rec.tabId}">
-              <span>⏹</span>
-              <span>녹화 중지</span>
-            </button>
-          </div>
-        `;
-      }).join('');
-
-      // 중지 버튼 이벤트 바인딩
-      elements.activeRecordingList.querySelectorAll('.recording-stop-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const tabId = parseInt(btn.dataset.tabId);
-          if (tabId) stopRecording(tabId);
-        });
+      // 삭제된 녹화 카드 제거
+      existingTabIds.forEach(tabId => {
+        if (!newTabIds.has(tabId)) {
+          const card = elements.activeRecordingList.querySelector(`.recording-card[data-tab-id="${tabId}"]`);
+          if (card) card.remove();
+        }
       });
+
+      // 새 녹화 카드 추가 또는 기존 카드 업데이트
+      recordings.forEach(rec => {
+        const existingCard = elements.activeRecordingList.querySelector(`.recording-card[data-tab-id="${rec.tabId}"]`);
+
+        if (existingCard) {
+          // ⭐ v3.7.0: 기존 카드는 시간/용량만 업데이트 (깜빡임 방지)
+          // RECORDING_PROGRESS_UPDATE에서 이미 업데이트하므로 여기서는 stale 경고만 처리
+          const lastUpdate = rec.lastUpdate || rec.startTime || Date.now();
+          const isStale = (Date.now() - lastUpdate) > 30000;
+          const header = existingCard.querySelector('.recording-card-header');
+          const existingWarning = header?.querySelector('.stale-warning');
+
+          if (isStale && !existingWarning) {
+            const warningSpan = document.createElement('span');
+            warningSpan.className = 'stale-warning';
+            warningSpan.title = '상태 업데이트 지연 - 녹화는 계속 진행 중일 수 있습니다';
+            warningSpan.textContent = '⚠️';
+            const qualityInfo = header?.querySelector('.recording-quality-info');
+            if (qualityInfo) {
+              header.insertBefore(warningSpan, qualityInfo);
+            }
+          } else if (!isStale && existingWarning) {
+            existingWarning.remove();
+          }
+        } else {
+          // 새 카드 생성
+          const elapsed = rec.elapsedTime || Math.floor((Date.now() - (rec.startTime || Date.now())) / 1000);
+          const timeStr = formatDuration(elapsed);
+          const sizeStr = formatBytes(rec.totalBytes || 0);
+          const displayName = escapeHtml(rec.nickname || rec.streamerId || '알 수 없음');
+
+          const lastUpdate = rec.lastUpdate || rec.startTime || Date.now();
+          const isStale = (Date.now() - lastUpdate) > 30000;
+          const staleWarning = isStale ? '<span class="stale-warning" title="상태 업데이트 지연 - 녹화는 계속 진행 중일 수 있습니다">⚠️</span>' : '';
+
+          const cardHtml = `
+            <div class="recording-card" data-tab-id="${rec.tabId}" data-streamer-id="${escapeHtml(rec.streamerId || '')}">
+              <div class="recording-card-header">
+                <span class="recording-indicator"></span>
+                <span class="recording-streamer-name">${displayName}</span>
+                ${staleWarning}
+                <span class="recording-quality-info" title="${getRecordingQualityTooltip()}">ⓘ</span>
+              </div>
+              <div class="recording-card-stats">
+                <div class="recording-stat">
+                  <span>⏱️</span>
+                  <span class="recording-stat-value recording-time">${timeStr}</span>
+                </div>
+                <div class="recording-stat">
+                  <span>💾</span>
+                  <span class="recording-stat-value recording-size">${sizeStr}</span>
+                </div>
+              </div>
+              <button class="recording-stop-btn" data-tab-id="${rec.tabId}">
+                <span>⏹</span>
+                <span>녹화 중지</span>
+              </button>
+            </div>
+          `;
+
+          elements.activeRecordingList.insertAdjacentHTML('beforeend', cardHtml);
+
+          // 새 카드에 이벤트 바인딩
+          const newCard = elements.activeRecordingList.querySelector(`.recording-card[data-tab-id="${rec.tabId}"]`);
+          const stopBtn = newCard?.querySelector('.recording-stop-btn');
+          if (stopBtn) {
+            stopBtn.addEventListener('click', () => {
+              const tabId = parseInt(stopBtn.dataset.tabId);
+              if (tabId) stopRecording(tabId);
+            });
+          }
+        }
+      });
+
+      // ⭐ v3.7.0: 이벤트 바인딩은 새 카드 생성 시에만 수행 (위에서 처리됨)
 
     } catch (error) {
       console.error('[사이드패널] 녹화 목록 업데이트 오류:', error);
@@ -1401,33 +1451,7 @@
     // 녹화 버튼
     elements.startRecordingBtn?.addEventListener('click', startRecording);
 
-    // 녹화 품질 드롭다운
-    elements.recordingQualitySelect?.addEventListener('change', (e) => {
-      state.recordingQuality = e.target.value;
-      chrome.storage.local.set({ recordingQuality: state.recordingQuality });
-
-      // ⭐ v3.6.0: 품질 변경 이벤트
-      if (typeof chrome !== 'undefined' && chrome.runtime) {
-        chrome.runtime.sendMessage({
-          type: 'ANALYTICS_QUALITY_CHANGE',
-          quality: state.recordingQuality
-        }).catch(() => {});
-      }
-
-      // ⭐ 3단계 품질 토스트 메시지
-      const qualityNames = {
-        'ultra': '원본급 (30Mbps)',
-        'high': '고품질 (15Mbps)',
-        'standard': '표준 (8Mbps)'
-      };
-      showToast(`${qualityNames[state.recordingQuality] || '품질'} 설정됨`, 'success');
-      // 녹화 카드의 info 아이콘 툴팁 업데이트
-      document.querySelectorAll('.recording-quality-info').forEach(el => {
-        el.title = getRecordingQualityTooltip();
-      });
-      // 녹화 품질 안내박스 업데이트
-      updateRecordingQualityInfoBox();
-    });
+    // ⭐ v3.7.0: 품질 드롭다운 제거 - 단일 품질 (4Mbps) 사용
 
     // 분할 크기 드롭다운
     elements.splitSizeSelect?.addEventListener('change', (e) => {
@@ -1631,14 +1655,8 @@
     // 상태 로드
     await loadState();
 
-    // 녹화 품질 및 분할 크기 설정 로드
-    chrome.storage.local.get(['recordingQuality', 'splitSize'], (result) => {
-      if (result.recordingQuality) {
-        state.recordingQuality = result.recordingQuality;
-        if (elements.recordingQualitySelect) {
-          elements.recordingQualitySelect.value = state.recordingQuality;
-        }
-      }
+    // ⭐ v3.7.0: 분할 크기 설정만 로드 (품질은 단일 4Mbps)
+    chrome.storage.local.get(['splitSize'], (result) => {
       if (result.splitSize) {
         state.splitSize = result.splitSize;
         if (elements.splitSizeSelect) {

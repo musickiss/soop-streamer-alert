@@ -67,22 +67,12 @@
     <!-- 현재 시청 중 섹션 (상단 고정) -->
     <section class="section now-watching" id="nowWatching">
         <div class="section-header">
-          <div class="section-title">📺 <span data-i18n="nowWatching">현재 시청 중</span>
-            <!-- ⭐ v3.5.18: 품질 안내 툴팁 -->
-            <div class="quality-info-tooltip-wrapper">
-              <span class="quality-info-icon">ⓘ</span>
-              <div class="quality-info-tooltip" data-i18n="qualityApplyInfo">선택한 녹화 품질은 수동/자동 녹화 모두에 적용됩니다.</div>
-            </div>
-          </div>
+          <div class="section-title">📺 <span data-i18n="nowWatching">현재 시청 중</span></div>
+          <!-- ⭐ v3.7.0: 품질 선택 제거, 분할 크기만 오른쪽 배치 -->
           <select id="splitSizeSelect" class="quality-select" title="분할 녹화 크기 선택">
             <option value="500" selected>분할: 500MB</option>
             <option value="1024">분할: 1GB</option>
             <option value="2048">분할: 2GB</option>
-          </select>
-          <select id="recordingQualitySelect" class="quality-select" title="녹화 품질 선택">
-            <option value="ultra" data-i18n="qualityUltra" selected>원본급</option>
-            <option value="high" data-i18n="qualityHigh">고품질</option>
-            <option value="standard" data-i18n="qualityStandard">표준</option>
           </select>
         </div>
 

@@ -16,29 +16,14 @@
   console.log('[숲토킹 Recorder] 로드됨');
 
   // ===== 설정 =====
+  // SOOP 원본 스트리밍: 1080p, 8Mbps, 60fps
+  // ⭐ v3.7.1: 단일 품질 (6Mbps) - 백그라운드 30fps에서도 양호한 화질 유지
   const CONFIG = {
-    // ⭐ 원본급 (Ultra) - 30Mbps - 기본값
-    // H.264 우선: 하드웨어 가속 지원이 좋아 CPU 부하 낮음
-    ULTRA_QUALITY: {
-      VIDEO_BITRATE: 30000000,    // 30 Mbps
-      AUDIO_BITRATE: 320000,      // 320 kbps
-      TARGET_FPS: 60,
-      CODEC_PRIORITY: ['avc1.640034', 'avc1.4d0034', 'vp9', 'vp8']  // H.264 High/Main 우선
-    },
-    // ⭐ 고품질 (High) - 15Mbps
-    HIGH_QUALITY: {
-      VIDEO_BITRATE: 15000000,    // 15 Mbps
-      AUDIO_BITRATE: 192000,      // 192 kbps
-      TARGET_FPS: 60,
-      CODEC_PRIORITY: ['avc1.640028', 'avc1.4d0028', 'vp9', 'vp8']  // H.264 High/Main 우선
-    },
-    // ⭐ 표준 (Standard) - 8Mbps
-    STANDARD_QUALITY: {
-      VIDEO_BITRATE: 8000000,     // 8 Mbps
-      AUDIO_BITRATE: 128000,      // 128 kbps
-      TARGET_FPS: 30,
-      CODEC_PRIORITY: ['avc1.42001f', 'vp8', 'vp9']  // H.264 Baseline 우선
-    },
+    // 녹화 품질 설정 (단일)
+    VIDEO_BITRATE: 6000000,       // 6 Mbps (v3.7.1: 4→6Mbps)
+    AUDIO_BITRATE: 128000,        // 128 kbps
+    TARGET_FPS: 60,               // 60fps 유지
+    CODEC_PRIORITY: ['avc1.640028', 'avc1.4d0028', 'vp9', 'vp8'],  // H.264 High 우선
     // 공통 설정
     TIMESLICE: 2000,
     REQUEST_DATA_INTERVAL: 5000,  // ⭐ v3.6.2: 5초마다 requestData 호출
@@ -67,7 +52,7 @@
   let isSaving = false;    // ⭐ v3.6.4: 누락된 변수 추가
   let isSplitting = false;
   let requestDataIntervalId = null;  // ⭐ v3.6.2: requestData 인터벌 ID
-  let currentQuality = 'high';
+  // currentQuality 제거됨 - v3.7.0: 단일 품질 (4Mbps) 사용
   let currentMimeType = null;
   let currentSplitSize = 500;  // MB 단위
 
@@ -99,13 +84,12 @@
     }
   }
 
-  function getBestMimeType(quality) {
-    const qualityConfig = getQualityConfig(quality);
+  // ⭐ v3.7.0: 단일 품질 - CONFIG에서 직접 코덱 우선순위 사용
+  function getBestMimeType() {
+    console.log(`[숲토킹 Recorder] getBestMimeType 호출 (단일 품질: 4Mbps)`);
+    console.log(`[숲토킹 Recorder]   코덱 우선순위: [${CONFIG.CODEC_PRIORITY.join(', ')}]`);
 
-    console.log(`[숲토킹 Recorder] getBestMimeType 호출: quality = "${quality}"`);
-    console.log(`[숲토킹 Recorder]   코덱 우선순위: [${qualityConfig.CODEC_PRIORITY.join(', ')}]`);
-
-    for (const codec of qualityConfig.CODEC_PRIORITY) {
+    for (const codec of CONFIG.CODEC_PRIORITY) {
       const mimeType = `video/webm;codecs=${codec},opus`;
       const isSupported = MediaRecorder.isTypeSupported(mimeType);
       console.log(`[숲토킹 Recorder]   - ${codec}: ${isSupported ? '지원됨 ✓' : '미지원 ✗'}`);
@@ -120,7 +104,8 @@
     return 'video/webm';
   }
 
-  function generateFileName(streamerId, quality) {
+  // ⭐ v3.7.0: 단일 품질 - 파일명에서 품질 표시 제거
+  function generateFileName(streamerId) {
     const now = new Date();
     const timestamp = now.getFullYear().toString() +
       String(now.getMonth() + 1).padStart(2, '0') +
@@ -130,37 +115,7 @@
       String(now.getSeconds()).padStart(2, '0');
 
     recordingStartTimestamp = timestamp;
-    // ⭐ v3.5.11: 품질 정보 추가
-    const qualityShort = getQualityShortName(quality);
-    return `soop_${streamerId}_${timestamp}_${qualityShort}.webm`;
-  }
-
-  // ⭐ v3.5.9.1: 품질 설정 헬퍼 함수
-  function getQualityConfig(quality) {
-    switch (quality) {
-      case 'ultra':
-        return CONFIG.ULTRA_QUALITY;
-      case 'high':
-        return CONFIG.HIGH_QUALITY;
-      case 'standard':
-        return CONFIG.STANDARD_QUALITY;
-      default:
-        return CONFIG.ULTRA_QUALITY;
-    }
-  }
-
-  // ⭐ v3.5.11: 품질 약어 변환 함수 (파일명용)
-  function getQualityShortName(quality) {
-    switch (quality) {
-      case 'ultra':
-        return 'ultra';
-      case 'high':
-        return 'high';
-      case 'standard':
-        return 'std';
-      default:
-        return 'ultra';
-    }
+    return `soop_${streamerId}_${timestamp}.webm`;
   }
 
   // ⭐ v3.5.9.1: Promise 기반 MediaRecorder 종료 대기
@@ -358,6 +313,59 @@
   let isBackgroundTab = false;  // 백그라운드 탭 여부
   let bgIntervalId = null;  // 백그라운드용 setInterval ID
 
+  // ⭐ v3.7.0: 백그라운드 오디오 유지 (타이머 throttling 우회)
+  let keepAliveAudioCtx = null;
+  let keepAliveOscillator = null;
+  let keepAliveGain = null;
+
+  // ⭐ v3.7.0: 무음 오디오 재생으로 백그라운드 타이머 throttling 우회
+  function startKeepAliveAudio() {
+    if (keepAliveAudioCtx) return;  // 이미 실행 중
+
+    try {
+      keepAliveAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+      // 무음 오실레이터 생성 (들리지 않는 매우 낮은 주파수)
+      keepAliveOscillator = keepAliveAudioCtx.createOscillator();
+      keepAliveOscillator.frequency.value = 1;  // 1Hz - 사람이 들을 수 없음
+
+      // 게인을 0으로 설정 (완전 무음)
+      keepAliveGain = keepAliveAudioCtx.createGain();
+      keepAliveGain.gain.value = 0.00001;  // 거의 무음 (완전 0은 일부 브라우저에서 최적화로 제거됨)
+
+      keepAliveOscillator.connect(keepAliveGain);
+      keepAliveGain.connect(keepAliveAudioCtx.destination);
+      keepAliveOscillator.start();
+
+      console.log('[숲토킹 Recorder] 백그라운드 Keep-Alive 오디오 시작');
+    } catch (e) {
+      console.warn('[숲토킹 Recorder] Keep-Alive 오디오 생성 실패:', e.message);
+    }
+  }
+
+  function stopKeepAliveAudio() {
+    if (keepAliveOscillator) {
+      try {
+        keepAliveOscillator.stop();
+        keepAliveOscillator.disconnect();
+      } catch (e) {}
+      keepAliveOscillator = null;
+    }
+    if (keepAliveGain) {
+      try {
+        keepAliveGain.disconnect();
+      } catch (e) {}
+      keepAliveGain = null;
+    }
+    if (keepAliveAudioCtx) {
+      try {
+        keepAliveAudioCtx.close();
+      } catch (e) {}
+      keepAliveAudioCtx = null;
+    }
+    console.log('[숲토킹 Recorder] 백그라운드 Keep-Alive 오디오 종료');
+  }
+
   function startCanvasDrawing(video, targetFps) {
     sourceVideo = video;
     videoUnavailableCount = 0;
@@ -484,19 +492,27 @@
     }
 
     // ===== setInterval 폴백 (백그라운드 탭) =====
+    // ⭐ v3.7.0: Keep-Alive 오디오와 함께 사용하여 ~30fps 유지
     function startBackgroundFallback() {
       if (bgIntervalId) return;
+
+      // Keep-Alive 오디오 시작 (타이머 throttling 우회)
+      startKeepAliveAudio();
+
+      // Keep-Alive 오디오 덕분에 더 짧은 인터벌 사용 가능 (~30fps)
+      const bgFrameInterval = Math.max(frameInterval, 33);  // 최소 33ms (30fps)
 
       bgIntervalId = setInterval(() => {
         if (!isRecording) {
           clearInterval(bgIntervalId);
           bgIntervalId = null;
+          stopKeepAliveAudio();
           return;
         }
         performDraw(performance.now());
-      }, Math.max(frameInterval, 100));  // 백그라운드에서는 최소 100ms (10fps)
+      }, bgFrameInterval);
 
-      console.log('[숲토킹 Recorder] 백그라운드 모드 전환 (setInterval 폴백)');
+      console.log(`[숲토킹 Recorder] 백그라운드 모드 전환 (Keep-Alive + setInterval ${bgFrameInterval}ms)`);
     }
 
     // ===== 탭 가시성 변경 처리 =====
@@ -506,18 +522,19 @@
       isBackgroundTab = document.hidden;
 
       if (isBackgroundTab) {
-        // 포그라운드 → 백그라운드: RAF 중지, setInterval 시작
+        // 포그라운드 → 백그라운드: RAF 중지, setInterval + Keep-Alive 시작
         if (rafId) {
           cancelAnimationFrame(rafId);
           rafId = null;
         }
         startBackgroundFallback();
       } else {
-        // 백그라운드 → 포그라운드: setInterval 중지, RAF 재시작
+        // 백그라운드 → 포그라운드: setInterval + Keep-Alive 중지, RAF 재시작
         if (bgIntervalId) {
           clearInterval(bgIntervalId);
           bgIntervalId = null;
         }
+        stopKeepAliveAudio();
         console.log('[숲토킹 Recorder] 포그라운드 복귀 (requestAnimationFrame)');
         rafId = requestAnimationFrame(rafLoop);
       }
@@ -550,6 +567,9 @@
       clearInterval(bgIntervalId);
       bgIntervalId = null;
     }
+
+    // ⭐ v3.7.0: Keep-Alive 오디오 정리
+    stopKeepAliveAudio();
 
     // 기존 setInterval 정리 (폴백용)
     if (drawIntervalId) {
@@ -626,22 +646,7 @@
     }
 
     try {
-      // ⭐ 3단계 품질 설정
-      let qualityConfig;
-      switch (currentQuality) {
-        case 'ultra':
-          qualityConfig = CONFIG.ULTRA_QUALITY;
-          break;
-        case 'high':
-          qualityConfig = CONFIG.HIGH_QUALITY;
-          break;
-        case 'standard':
-          qualityConfig = CONFIG.STANDARD_QUALITY;
-          break;
-        default:
-          qualityConfig = CONFIG.ULTRA_QUALITY;
-      }
-
+      // ⭐ v3.7.0: 단일 품질 - CONFIG 직접 사용
       // 새 Canvas 스트림 생성 (0 = 수동 프레임 제어)
       canvasStream = recordingCanvas.captureStream(0);
       canvasVideoTrack = canvasStream.getVideoTracks()[0];
@@ -708,13 +713,9 @@
 
   // ===== 녹화 제어 함수 =====
 
-  async function startRecording(streamerId, nickname, quality = 'ultra', splitSize = 500) {
-    console.log(`[숲토킹 Recorder] 녹화 시작: ${streamerId} (${quality || 'high'}, 분할: ${splitSize}MB)`);
-
-    // quality 유효성 검사
-    if (!quality || quality === 'undefined' || quality === 'null') {
-      quality = 'high';
-    }
+  // ⭐ v3.7.0: 단일 품질 (4Mbps) - quality 파라미터 무시 (하위 호환성 유지)
+  async function startRecording(streamerId, nickname, quality = null, splitSize = 500) {
+    console.log(`[숲토킹 Recorder] 녹화 시작: ${streamerId} (단일 품질: 4Mbps, 분할: ${splitSize}MB)`);
 
     // ⭐ v3.6.5: 분할 크기 설정 (MB → Bytes 변환)
     if (!splitSize || splitSize < 100) {
@@ -730,10 +731,8 @@
       return { success: false, error: '이미 녹화 중입니다.' };
     }
 
-    console.log(`[숲토킹 Recorder] 녹화 시작 요청: ${streamerId}, 품질: ${quality}`);
+    console.log(`[숲토킹 Recorder] 녹화 시작 요청: ${streamerId}`);
     logMemoryUsage('녹화 시작 전');
-
-    currentQuality = quality;
 
     try {
       const video = findVideoElement();
@@ -768,10 +767,8 @@
 
       console.log(`[숲토킹 Recorder] 비디오 발견: ${video.videoWidth}x${video.videoHeight}`);
 
-      // ⭐ v3.5.9.2: 품질 설정 가져오기 (헬퍼 함수 사용 + 상세 로깅)
-      const qualityConfig = getQualityConfig(quality);
-
-      console.log(`[숲토킹 Recorder] 설정: ${(qualityConfig.VIDEO_BITRATE / 1000000).toFixed(0)}Mbps ${qualityConfig.TARGET_FPS}fps`);
+      // ⭐ v3.7.0: 단일 품질 - CONFIG 직접 사용
+      console.log(`[숲토킹 Recorder] 설정: ${(CONFIG.VIDEO_BITRATE / 1000000).toFixed(0)}Mbps ${CONFIG.TARGET_FPS}fps`);
 
       if (!setupCanvas(video)) {
         throw new Error('Canvas 설정 실패');
@@ -787,7 +784,7 @@
       isRecording = true;
 
       // Canvas 그리기 시작 (canvasVideoTrack과 isRecording이 이미 설정된 상태)
-      startCanvasDrawing(video, qualityConfig.TARGET_FPS);
+      startCanvasDrawing(video, CONFIG.TARGET_FPS);
 
       await new Promise(r => setTimeout(r, 200));
 
@@ -799,14 +796,14 @@
         console.log('[숲토킹 Recorder] 오디오 없이 녹화 진행');
       }
 
-      currentMimeType = getBestMimeType(quality);
+      currentMimeType = getBestMimeType();
       const options = {
         mimeType: currentMimeType,
-        videoBitsPerSecond: qualityConfig.VIDEO_BITRATE,
-        audioBitsPerSecond: qualityConfig.AUDIO_BITRATE
+        videoBitsPerSecond: CONFIG.VIDEO_BITRATE,
+        audioBitsPerSecond: CONFIG.AUDIO_BITRATE
       };
 
-      console.log(`[숲토킹 Recorder] 녹화 설정: ${(qualityConfig.VIDEO_BITRATE / 1000000).toFixed(0)}Mbps, ${qualityConfig.TARGET_FPS}fps`);
+      console.log(`[숲토킹 Recorder] 녹화 설정: ${(CONFIG.VIDEO_BITRATE / 1000000).toFixed(0)}Mbps, ${CONFIG.TARGET_FPS}fps`);
 
       mediaRecorder = new MediaRecorder(canvasStream, options);
 
@@ -833,7 +830,7 @@
       sessionTotalBytes = 0;  // ⭐ v3.7.0: 세션 전체 초기화
       partNumber = 1;
       recordingStartTime = Date.now();
-      generateFileName(streamerId, quality);
+      generateFileName(streamerId);
       // isRecording은 이미 위에서 설정됨 (v3.7.0)
       isSplitting = false;
       stopRetryCount = 0;
@@ -958,9 +955,8 @@
       if (allChunks.length > 0) {
         try {
           const blob = new Blob(allChunks, { type: 'video/webm' });
-          // ⭐ v3.5.11: 품질 정보 포함
-          const qualityShort = getQualityShortName(currentQuality);
-          const fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_${qualityShort}_part${partNumber}.webm`;
+          // ⭐ v3.7.0: 단일 품질 - 파일명에서 품질 표시 제거
+          const fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_part${partNumber}.webm`;
 
           console.log(`[숲토킹 Recorder] 파트 ${partNumber} 저장: ${(blob.size / 1024 / 1024).toFixed(2)}MB`);
           saveRecording(blob, fileName);
@@ -993,12 +989,11 @@
           return;
         }
 
-        // 새 MediaRecorder 생성 (헬퍼 함수 사용)
-        const qualityConfig = getQualityConfig(currentQuality);
+        // ⭐ v3.7.0: 단일 품질 - CONFIG 직접 사용
         const options = {
           mimeType: currentMimeType,
-          videoBitsPerSecond: qualityConfig.VIDEO_BITRATE,
-          audioBitsPerSecond: qualityConfig.AUDIO_BITRATE
+          videoBitsPerSecond: CONFIG.VIDEO_BITRATE,
+          audioBitsPerSecond: CONFIG.AUDIO_BITRATE
         };
 
         mediaRecorder = new MediaRecorder(canvasStream, options);
@@ -1029,11 +1024,11 @@
         console.log('[숲토킹 Recorder] 분할 실패 후 복구 시도...');
         try {
           if (ensureValidCanvasStream()) {
-            const qualityConfig = getQualityConfig(currentQuality);
+            // ⭐ v3.7.0: 단일 품질 - CONFIG 직접 사용
             const options = {
               mimeType: currentMimeType,
-              videoBitsPerSecond: qualityConfig.VIDEO_BITRATE,
-              audioBitsPerSecond: qualityConfig.AUDIO_BITRATE
+              videoBitsPerSecond: CONFIG.VIDEO_BITRATE,
+              audioBitsPerSecond: CONFIG.AUDIO_BITRATE
             };
             mediaRecorder = new MediaRecorder(canvasStream, options);
             mediaRecorder.ondataavailable = handleDataAvailable;
@@ -1089,13 +1084,12 @@
       const blob = new Blob(recordedChunks, { type: 'video/webm' });
       const duration = Math.floor((Date.now() - recordingStartTime) / 1000);
 
-      // ⭐ v3.5.11: 품질 정보 포함
-      const qualityShort = getQualityShortName(currentQuality);
+      // ⭐ v3.7.0: 단일 품질 - 파일명에서 품질 표시 제거
       let fileName;
       if (partNumber > 1) {
-        fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_${qualityShort}_part${partNumber}.webm`;
+        fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_part${partNumber}.webm`;
       } else {
-        fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}_${qualityShort}.webm`;
+        fileName = `soop_${currentStreamerId}_${recordingStartTimestamp}.webm`;
       }
 
       saveRecording(blob, fileName);
@@ -1287,11 +1281,11 @@
     switch (command) {
       case 'START_RECORDING':
         // 메시지 수신 로그 생략 - startRecording 함수 내에서 로깅
-        const { streamerId, nickname, quality, splitSize } = params || {};
-        const finalQuality = quality || 'ultra';
+        // ⭐ v3.7.0: quality 파라미터 무시 (단일 품질 4Mbps)
+        const { streamerId, nickname, splitSize } = params || {};
         const finalSplitSize = splitSize || 500;
 
-        result = await startRecording(streamerId, nickname, finalQuality, finalSplitSize);
+        result = await startRecording(streamerId, nickname, null, finalSplitSize);
 
         // 결과도 페이지로 전달
         window.postMessage({
@@ -1313,13 +1307,13 @@
           streamerId: currentStreamerId,
           totalBytes: totalRecordedBytes,
           elapsedTime: recordingStartTime ? Math.floor((Date.now() - recordingStartTime) / 1000) : 0,
-          quality: currentQuality,
+          quality: '4Mbps',  // ⭐ v3.7.0: 단일 품질
           partNumber: partNumber
         };
         break;
 
       case 'PING':
-        result = { success: true, pong: true, version: '3.5.10' };
+        result = { success: true, pong: true, version: '3.7.0' };
         break;
 
       default:

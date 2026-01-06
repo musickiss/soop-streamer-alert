@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.6.7 - Background Service Worker =====
+// ===== 숲토킹 v3.7.0 - Background Service Worker =====
 
 // ⭐ v3.6.0: GA4 익명 통계 모듈 (ES6 Module)
 import * as Analytics from './analytics.js';
@@ -9,6 +9,7 @@ const CHECK_INTERVAL_SLOW = 30000;  // 자동참여 OFF 스트리머 (30초)
 const API_URL = 'https://live.sooplive.co.kr/afreeca/player_live_api.php';
 const RECORDING_SAVE_TIMEOUT = 30000;  // 녹화 저장 최대 대기 시간 (30초)
 const STORAGE_KEY_RECORDINGS = 'activeRecordings';  // v3.5.14: Storage 키
+const MAX_CONCURRENT_RECORDINGS = 4;  // ⭐ v3.7.2: SOOP 최대 동시 스트림 제한
 
 // ===== 보안 유틸리티 =====
 
@@ -693,6 +694,28 @@ async function checkAndProcessStreamer(streamer) {
 
         // 자동 녹화
         if (streamer.autoRecord && tab?.id) {
+          // ⭐ v3.7.2: 동시 녹화 개수 체크
+          try {
+            const recResult = await chrome.storage.local.get(STORAGE_KEY_RECORDINGS);
+            const recordings = recResult[STORAGE_KEY_RECORDINGS] || {};
+            const currentRecordingCount = Object.keys(recordings).length;
+
+            if (currentRecordingCount >= MAX_CONCURRENT_RECORDINGS) {
+              console.log(`[숲토킹] 자동 녹화 취소 - 최대 동시 녹화 (${MAX_CONCURRENT_RECORDINGS}개) 초과:`, streamer.id);
+              // 알림으로 사용자에게 알림
+              chrome.notifications.create({
+                type: 'basic',
+                iconUrl: 'icons/icon128.png',
+                title: '숲토킹 - 자동 녹화 제한',
+                message: `${streamer.nickname || streamer.id} 자동 녹화 실패: 최대 ${MAX_CONCURRENT_RECORDINGS}개까지 동시 녹화 가능`
+              });
+              return;
+            }
+          } catch (e) {
+            console.warn('[숲토킹] 녹화 개수 확인 실패:', e);
+            // 체크 실패해도 녹화 시도는 진행
+          }
+
           // 탭 로드 완료 대기
           await waitForTabComplete(tab.id, 15000);
 
@@ -1650,4 +1673,4 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
 // ===== 로그 =====
 
-console.log('[숲토킹] Background Service Worker v3.6.0 로드됨 (GA4 익명 통계 추가)');
+console.log('[숲토킹] Background Service Worker v3.7.0 로드됨');

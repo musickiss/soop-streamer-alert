@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.6.1 - Content Script (ISOLATED) =====
+// ===== 숲토킹 v3.7.0 - Content Script (ISOLATED) =====
 
 (function() {
   'use strict';
@@ -499,5 +499,5 @@
     }
   });
 
-  console.log('[숲토킹 Content] v3.6.1 ISOLATED 브릿지 로드됨 (Context 유효성 체크 강화)');
+  console.log('[숲토킹 Content] v3.7.0 ISOLATED 브릿지 로드됨');
 })();
