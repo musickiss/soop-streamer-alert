@@ -9,8 +9,23 @@
   <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="sidepanel.css">
+  <link rel="stylesheet" href="donation-tab.css">
 </head>
 <body>
+  <!-- ===== 메인 탭 네비게이션 ===== -->
+  <div class="main-tab-nav">
+    <button class="main-tab-btn active" data-tab="monitoring">
+      <span class="main-tab-icon">📺</span>
+      <span class="main-tab-text">모니터링</span>
+    </button>
+    <button class="main-tab-btn" data-tab="donation">
+      <span class="main-tab-icon">🎁</span>
+      <span class="main-tab-text">내 후원</span>
+    </button>
+  </div>
+
+  <!-- ===== 모니터링 탭 컨텐츠 ===== -->
+  <div class="main-tab-content active" id="monitoringTabContent">
   <div class="container">
     <!-- 헤더 -->
     <header class="header">
@@ -213,7 +228,16 @@
   </div>
 
   <div class="toast" id="toast"></div>
+  </div> <!-- monitoringTabContent 끝 -->
+
+  <!-- ===== 내 후원 탭 컨텐츠 ===== -->
+  <div class="main-tab-content" id="donationTabContent">
+    <div class="donation-tab-container active" id="donationTabContainer">
+      <!-- DonationTab 모듈이 동적으로 렌더링 -->
+    </div>
+  </div>
 
   <script src="sidepanel.js"></script>
+  <script src="donation-tab.js"></script>
 </body>
 </html>

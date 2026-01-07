@@ -2087,3 +2087,72 @@ body {
   opacity: 1;
   visibility: visible;
 }
+
+/* ===== v4.0.0: 메인 탭 네비게이션 ===== */
+.main-tab-nav {
+  display: flex;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-default);
+  flex-shrink: 0;
+}
+
+.main-tab-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.main-tab-btn:hover {
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.main-tab-btn.active {
+  color: var(--soop-primary);
+  border-bottom-color: var(--soop-primary);
+}
+
+.main-tab-icon {
+  font-size: 14px;
+}
+
+.main-tab-text {
+  font-weight: 600;
+}
+
+/* ===== v4.0.0: 탭 컨텐츠 ===== */
+.main-tab-content {
+  display: none;
+  flex-direction: column;
+  height: calc(100vh - 43px); /* 탭 네비게이션 높이 제외 */
+  overflow: hidden;
+}
+
+.main-tab-content.active {
+  display: flex;
+}
+
+/* 모니터링 탭 컨텐츠 - 기존 container 스타일 유지 */
+#monitoringTabContent .container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 내 후원 탭 컨텐츠 */
+#donationTabContent {
+  height: calc(100vh - 43px);
+}
