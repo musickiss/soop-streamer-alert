@@ -946,6 +946,15 @@ const DonationTab = (function() {
     elements.content.innerHTML = `
       <!-- ===== 상단 고정 영역 ===== -->
       <div class="donation-fixed-top">
+        <!-- 데이터 안내 배너 -->
+        <div class="donation-data-notice">
+          <span class="donation-data-notice-icon">ⓘ</span>
+          <span class="donation-data-notice-text">
+            로그인 계정 기반 · 로컬에만 저장 (외부 전송 없음)<br>
+            수집 시점에 따라 실제와 차이가 있을 수 있습니다
+          </span>
+        </div>
+
         <!-- 별풍선 현황 카드 -->
         <div class="donation-balance-card">
           <div class="donation-balance-row">
@@ -956,9 +965,6 @@ const DonationTab = (function() {
             <div class="donation-balance-item">
               <span class="donation-balance-icon">📤</span>
               <span class="donation-balance-text">사용 <strong>${formatNumber(balance.used)}</strong>개</span>
-              <span class="donation-data-warning" title="수집된 데이터에 오류가 있을 수 있습니다">
-                <span class="donation-warning-icon">⚠️</span>
-              </span>
             </div>
           </div>
           <button class="donation-gift-btn" id="donationGiftBtn">
@@ -975,10 +981,7 @@ const DonationTab = (function() {
             💳 충전
           </button>
         </div>
-      </div>
 
-      <!-- ===== 스크롤 가능 영역 ===== -->
-      <div class="donation-scrollable">
         <!-- 기간 필터 (충전/환전 탭만) -->
         ${state.currentSubTab !== 'gift' ? `
         <div class="donation-period-filter">
@@ -992,11 +995,14 @@ const DonationTab = (function() {
         </div>
         ` : ''}
 
-        <!-- 원형 차트 영역 -->
+        <!-- 원형 차트 영역 (고정) -->
         <div class="donation-chart-section" id="donationChartContainer">
           <!-- 동적 렌더링 -->
         </div>
+      </div>
 
+      <!-- ===== 스크롤 가능 영역 (상세 내역만) ===== -->
+      <div class="donation-scrollable">
         <!-- 상세 내역 리스트 -->
         <div class="donation-list-section" id="donationListContainer">
           <!-- 동적 렌더링 -->
