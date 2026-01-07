@@ -1,8 +1,51 @@
 // ===== 숲토킹 v3.7.2 - 사이드패널 =====
 // ⭐ v3.7.0: 단일 품질 (4Mbps) 적용 - 품질 선택 UI 제거
+// ⭐ v4.0.0: 탭 네비게이션 추가 (모니터링 / 내 후원)
 
 (function() {
   'use strict';
+
+  // ===== v4.0.0: 메인 탭 전환 로직 =====
+  function initMainTabs() {
+    const tabButtons = document.querySelectorAll('.main-tab-btn');
+    const tabContents = document.querySelectorAll('.main-tab-content');
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetTab = btn.dataset.tab;
+
+        // 버튼 활성화 상태 전환
+        tabButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        // 컨텐츠 활성화 상태 전환
+        tabContents.forEach(content => {
+          content.classList.remove('active');
+        });
+
+        if (targetTab === 'monitoring') {
+          document.getElementById('monitoringTabContent')?.classList.add('active');
+        } else if (targetTab === 'donation') {
+          document.getElementById('donationTabContent')?.classList.add('active');
+          // DonationTab 모듈 초기화 (최초 1회)
+          console.log('[Sidepanel] Donation tab clicked, DonationTab:', window.DonationTab);
+          if (window.DonationTab && typeof window.DonationTab.init === 'function') {
+            console.log('[Sidepanel] Calling DonationTab.init()');
+            window.DonationTab.init();
+          } else {
+            console.error('[Sidepanel] DonationTab not found or init not a function');
+          }
+        }
+      });
+    });
+  }
+
+  // 탭 초기화는 DOM 로드 직후 실행
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMainTabs);
+  } else {
+    initMainTabs();
+  }
 
   // ===== v3.5.14: Storage 기반 녹화 상태 =====
   const STORAGE_KEY_RECORDINGS = 'activeRecordings';
