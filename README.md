@@ -157,6 +157,12 @@ SOOP(구 아프리카TV) 스트리머 방송 알림 및 녹화 Chrome 확장 프
 
 ---
 
+## 📜 라이선스
+
+이 프로젝트는 [MIT License](LICENSE)로 배포됩니다.
+
+---
+
 ## 💬 문의
 
 - [GitHub Issues](https://github.com/musickiss/soop-streamer-alert/issues)
