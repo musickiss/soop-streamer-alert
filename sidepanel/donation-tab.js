@@ -9,6 +9,13 @@ const DonationTab = (function() {
   'use strict';
 
   // ============================================
+  // i18n 헬퍼 함수
+  // ============================================
+  function i18n(key) {
+    return chrome.i18n.getMessage(key) || '';
+  }
+
+  // ============================================
   // 상수
   // ============================================
   const STORAGE_KEY = 'myDonation';
@@ -163,20 +170,22 @@ const DonationTab = (function() {
         state.lastSync = Date.now();
         await saveToStorage();
         render();
-        showToast('동기화 완료');
+        showToast(i18n('donationSyncComplete') || '동기화 완료');
       } else if (result.loginRequired) {
         state.isLoggedIn = false;
         state.data = null;
         renderLoginRequired();
       } else {
-        showToast('동기화 실패: ' + (result.error || '알 수 없는 오류'));
+        const errorMsg = (i18n('donationSyncFailed') || '동기화 실패: $error$')
+          .replace('$error$', result.error || i18n('unknownError') || '알 수 없는 오류');
+        showToast(errorMsg);
         if (state.data) {
           render(); // 기존 캐시 데이터 표시
         }
       }
     } catch (error) {
       console.error('[DonationTab] Sync error:', error);
-      showToast('동기화 중 오류 발생');
+      showToast(i18n('donationSyncError') || '동기화 중 오류 발생');
       if (state.data) {
         render();
       }
@@ -199,6 +208,11 @@ const DonationTab = (function() {
   // ============================================
 
   function renderInitialUI() {
+    const searchPlaceholder = i18n('donationSearchPlaceholder') || '스트리머, 금액 검색...';
+    const syncText = i18n('donationSync') || '동기화';
+    const fullSyncText = i18n('donationFullSync') || '전체';
+    const fullSyncTooltip = i18n('donationFullSyncTooltip') || '전체 데이터 다시 불러오기';
+
     container.innerHTML = `
       <div class="donation-tab">
         <!-- 메인 콘텐츠 영역 -->
@@ -212,17 +226,17 @@ const DonationTab = (function() {
             <div class="donation-search-input-wrap">
               <span class="donation-search-icon">🔍</span>
               <input type="text" class="donation-search-input" id="donationSearchInput"
-                     placeholder="스트리머, 금액 검색...">
+                     placeholder="${searchPlaceholder}">
               <button class="donation-search-clear" id="donationSearchClear" style="display:none;">✕</button>
             </div>
           </div>
           <div class="donation-sync-row">
             <button class="donation-sync-btn" id="donationSyncBtn">
               <span class="donation-sync-icon" id="donationSyncIcon">🔄</span>
-              <span>동기화</span>
+              <span>${syncText}</span>
             </button>
-            <button class="donation-sync-btn donation-sync-full" id="donationFullSyncBtn" title="전체 데이터 다시 불러오기">
-              전체
+            <button class="donation-sync-btn donation-sync-full" id="donationFullSyncBtn" title="${fullSyncTooltip}">
+              ${fullSyncText}
             </button>
             <span class="donation-sync-time" id="donationSyncTime">-</span>
           </div>
@@ -589,7 +603,9 @@ const DonationTab = (function() {
 
     // 각 연월별로 충전 내역 가져오기
     for (const { year, month } of monthsToFetch) {
-      state.syncProgress.currentStep = `충전내역 ${year}-${String(month).padStart(2, '0')}`;
+      const syncChargeMsg = (i18n('donationSyncCharge') || '충전내역 $date$')
+      .replace('$date$', `${year}-${String(month).padStart(2, '0')}`);
+    state.syncProgress.currentStep = syncChargeMsg;
       state.syncProgress.completedSteps++;
       updateSyncProgress();
 
@@ -609,7 +625,7 @@ const DonationTab = (function() {
     }
 
     // 선물 내역: 모든 페이지 가져오기
-    state.syncProgress.currentStep = '선물내역 전체 페이지';
+    state.syncProgress.currentStep = i18n('donationSyncGiftAll') || '선물내역 전체 페이지';
     updateSyncProgress();
 
     let giftPage = 2; // 1페이지는 이미 가져옴
@@ -617,7 +633,9 @@ const DonationTab = (function() {
     const maxGiftPages = 100; // 안전장치
 
     while (hasMoreGiftPages && giftPage <= maxGiftPages) {
-      state.syncProgress.currentStep = `선물내역 ${giftPage}페이지`;
+      const syncGiftMsg = (i18n('donationSyncGift') || '선물내역 $page$페이지')
+        .replace('$page$', giftPage);
+      state.syncProgress.currentStep = syncGiftMsg;
       state.syncProgress.giftPages = giftPage;
       updateSyncProgress();
 
@@ -876,7 +894,7 @@ const DonationTab = (function() {
       totalGifted += item.amount;
 
       // 스트리머별
-      const nick = item.streamerNick || '알 수 없음';
+      const nick = item.streamerNick || i18n('donationUnknown') || '알 수 없음';
       if (!byStreamer[nick]) {
         byStreamer[nick] = { nick, amount: 0, count: 0 };
       }
@@ -943,6 +961,21 @@ const DonationTab = (function() {
 
     const { balance, summary } = state.data;
 
+    // i18n 문자열
+    const dataNotice1 = i18n('donationDataNotice') || '로그인 계정 기반 · 로컬에만 저장 (외부 전송 없음)';
+    const dataNotice2 = i18n('donationDataNotice2') || '수집 시점에 따라 실제와 차이가 있을 수 있습니다';
+    const balanceLabel = i18n('donationBalance') || '보유 별풍선';
+    const usedLabel = i18n('donationUsed') || '사용';
+    const unitLabel = i18n('donationUnit') || '개';
+    const giftBtnText = i18n('donationGiftBtn') || '🎁 후원하기';
+    const tabGift = i18n('donationTabGift') || '🎁 선물';
+    const tabCharge = i18n('donationTabCharge') || '💳 충전';
+    const period1m = i18n('donationPeriod1m') || '1개월';
+    const period3m = i18n('donationPeriod3m') || '3개월';
+    const period6m = i18n('donationPeriod6m') || '6개월';
+    const period1y = i18n('donationPeriod1y') || '1년';
+    const periodAll = i18n('donationPeriodAll') || '전체';
+
     elements.content.innerHTML = `
       <!-- ===== 상단 고정 영역 ===== -->
       <div class="donation-fixed-top">
@@ -950,8 +983,8 @@ const DonationTab = (function() {
         <div class="donation-data-notice">
           <span class="donation-data-notice-icon">ⓘ</span>
           <span class="donation-data-notice-text">
-            로그인 계정 기반 · 로컬에만 저장 (외부 전송 없음)<br>
-            수집 시점에 따라 실제와 차이가 있을 수 있습니다
+            ${dataNotice1}<br>
+            ${dataNotice2}
           </span>
         </div>
 
@@ -960,25 +993,25 @@ const DonationTab = (function() {
           <div class="donation-balance-row">
             <div class="donation-balance-item">
               <span class="donation-balance-icon">🎈</span>
-              <span class="donation-balance-text">보유 별풍선 <strong>${formatNumber(balance.current)}</strong>개</span>
+              <span class="donation-balance-text">${balanceLabel} <strong>${formatNumber(balance.current)}</strong>${unitLabel}</span>
             </div>
             <div class="donation-balance-item">
               <span class="donation-balance-icon">📤</span>
-              <span class="donation-balance-text">사용 <strong>${formatNumber(balance.used)}</strong>개</span>
+              <span class="donation-balance-text">${usedLabel} <strong>${formatNumber(balance.used)}</strong>${unitLabel}</span>
             </div>
           </div>
           <button class="donation-gift-btn" id="donationGiftBtn">
-            🎁 후원하기
+            ${giftBtnText}
           </button>
         </div>
 
         <!-- 서브탭 -->
         <div class="donation-sub-tabs">
           <button class="donation-sub-tab ${state.currentSubTab === 'gift' ? 'active' : ''}" data-tab="gift">
-            🎁 선물
+            ${tabGift}
           </button>
           <button class="donation-sub-tab ${state.currentSubTab === 'charge' ? 'active' : ''}" data-tab="charge">
-            💳 충전
+            ${tabCharge}
           </button>
         </div>
 
@@ -986,11 +1019,11 @@ const DonationTab = (function() {
         ${state.currentSubTab !== 'gift' ? `
         <div class="donation-period-filter">
           <select class="donation-period-select" id="donationPeriodFilter">
-            <option value="1m" ${state.currentPeriod === '1m' ? 'selected' : ''}>1개월</option>
-            <option value="3m" ${state.currentPeriod === '3m' ? 'selected' : ''}>3개월</option>
-            <option value="6m" ${state.currentPeriod === '6m' ? 'selected' : ''}>6개월</option>
-            <option value="1y" ${state.currentPeriod === '1y' ? 'selected' : ''}>1년</option>
-            <option value="all" ${state.currentPeriod === 'all' ? 'selected' : ''}>전체</option>
+            <option value="1m" ${state.currentPeriod === '1m' ? 'selected' : ''}>${period1m}</option>
+            <option value="3m" ${state.currentPeriod === '3m' ? 'selected' : ''}>${period3m}</option>
+            <option value="6m" ${state.currentPeriod === '6m' ? 'selected' : ''}>${period6m}</option>
+            <option value="1y" ${state.currentPeriod === '1y' ? 'selected' : ''}>${period1y}</option>
+            <option value="all" ${state.currentPeriod === 'all' ? 'selected' : ''}>${periodAll}</option>
           </select>
         </div>
         ` : ''}
@@ -1018,10 +1051,12 @@ const DonationTab = (function() {
   function renderLoading() {
     if (!elements.content) return;
 
+    const syncingText = i18n('donationSyncing') || '동기화 중';
+
     elements.content.innerHTML = `
       <div class="donation-loading">
         <div class="donation-loading-dots"><span></span><span></span><span></span></div>
-        <div class="donation-loading-text">동기화 중</div>
+        <div class="donation-loading-text">${syncingText}</div>
       </div>
     `;
 
@@ -1034,12 +1069,16 @@ const DonationTab = (function() {
   function renderLoginRequired() {
     if (!elements.content) return;
 
+    const loginTitle = i18n('donationLoginRequired') || '로그인 필요';
+    const loginDesc = i18n('donationLoginDesc') || 'SOOP에 로그인 후 이용 가능합니다';
+    const loginBtn = i18n('donationLoginBtn') || 'SOOP 로그인';
+
     elements.content.innerHTML = `
       <div class="donation-login-required">
         <div class="donation-login-icon">🔒</div>
-        <div class="donation-login-title">로그인 필요</div>
-        <div class="donation-login-desc">SOOP에 로그인 후 이용 가능합니다</div>
-        <button class="donation-login-btn" id="donationLoginBtn">SOOP 로그인</button>
+        <div class="donation-login-title">${loginTitle}</div>
+        <div class="donation-login-desc">${loginDesc}</div>
+        <button class="donation-login-btn" id="donationLoginBtn">${loginBtn}</button>
       </div>
     `;
 
@@ -1051,10 +1090,12 @@ const DonationTab = (function() {
   function renderEmpty() {
     if (!elements.content) return;
 
+    const emptyText = i18n('donationEmpty') || '동기화 버튼을 눌러 데이터를 불러오세요';
+
     elements.content.innerHTML = `
       <div class="donation-empty">
         <div class="donation-empty-icon">📊</div>
-        <div class="donation-empty-text">동기화 버튼을 눌러 데이터를 불러오세요</div>
+        <div class="donation-empty-text">${emptyText}</div>
       </div>
     `;
   }
@@ -1078,7 +1119,7 @@ const DonationTab = (function() {
 
       const byStreamer = {};
       allGifts.forEach(item => {
-        const nick = item.streamerNick || '알 수 없음';
+        const nick = item.streamerNick || i18n('donationUnknown') || '알 수 없음';
         if (!byStreamer[nick]) byStreamer[nick] = 0;
         byStreamer[nick] += item.amount || 0;
       });
@@ -1103,12 +1144,14 @@ const DonationTab = (function() {
     const maxValue = Math.max(...data.map(d => d.value), 1);
 
     if (data.length === 0) {
-      container.innerHTML = '<div class="donation-chart-empty">데이터가 없습니다</div>';
+      container.innerHTML = `<div class="donation-chart-empty">${i18n('donationChartEmpty') || '데이터가 없습니다'}</div>`;
       return;
     }
 
-    const unit = state.currentSubTab === 'gift' ? '개' : '원';
-    const chartTitle = state.currentSubTab === 'gift' ? '🎁 스트리머별 선물' : `📊 ${getSubTabLabel()} 현황`;
+    const unit = i18n('donationUnit') || '개';
+    const chartTitle = state.currentSubTab === 'gift'
+      ? `🎁 ${i18n('donationChartGift') || '스트리머별 선물'}`
+      : `📊 ${getSubTabLabel()} ${i18n('donationChartCharge') ? '' : '현황'}`;
 
     container.innerHTML = `
       <div class="donation-chart-title">${chartTitle}</div>
@@ -1134,7 +1177,7 @@ const DonationTab = (function() {
 
       const byStreamerFiltered = {};
       allGifts.forEach(item => {
-        const nick = item.streamerNick || item.target || '알 수 없음';
+        const nick = item.streamerNick || item.target || i18n('donationUnknown') || '알 수 없음';
         if (!byStreamerFiltered[nick]) {
           byStreamerFiltered[nick] = { amount: 0, count: 0 };
         }
@@ -1176,7 +1219,7 @@ const DonationTab = (function() {
     }
 
     if (data.length === 0) {
-      container.innerHTML = '<div class="donation-chart-empty">데이터가 없습니다</div>';
+      container.innerHTML = `<div class="donation-chart-empty">${i18n('donationChartEmpty') || '데이터가 없습니다'}</div>`;
       return;
     }
 
@@ -1189,7 +1232,7 @@ const DonationTab = (function() {
     const otherTotal = otherData.reduce((sum, d) => sum + d.value, 0);
 
     if (otherTotal > 0) {
-      chartData.push({ label: '기타', value: otherTotal });
+      chartData.push({ label: i18n('donationChartOther') || '기타', value: otherTotal });
     }
 
     // 차트용 총합 (chartData 기준)
@@ -1202,21 +1245,28 @@ const DonationTab = (function() {
       return `${CHART_COLORS[idx % CHART_COLORS.length]} ${startAngle}deg ${currentAngle}deg`;
     });
 
-    const unit = '개';
-    const chartTitle = state.currentSubTab === 'gift' ? '스트리머별 선물' : `${getSubTabLabel()} 현황`;
+    const unit = i18n('donationUnit') || '개';
+    const chartTitle = state.currentSubTab === 'gift'
+      ? (i18n('donationChartGift') || '스트리머별 선물')
+      : (i18n('donationChartCharge') || `${getSubTabLabel()} 현황`);
 
     // 선물 탭일 때 정보 아이콘 추가
+    const chartInfoTooltip = i18n('donationChartInfo') || '최근 3개월 통계입니다';
     const infoIcon = state.currentSubTab === 'gift' ? `
       <span class="donation-chart-info">
         <span class="donation-info-icon">ⓘ</span>
-        <span class="donation-info-tooltip">최근 3개월 통계입니다</span>
+        <span class="donation-info-tooltip">${chartInfoTooltip}</span>
       </span>
     ` : '';
+
+    const totalLabel = (i18n('donationChartTotal') || '총 $amount$$unit$')
+      .replace('$amount$', formatNumber(total))
+      .replace('$unit$', unit);
 
     container.innerHTML = `
       <div class="donation-chart-header">
         <span class="donation-chart-title">${chartTitle}${infoIcon}</span>
-        <span class="donation-chart-total">총 ${formatNumber(total)}${unit}</span>
+        <span class="donation-chart-total">${totalLabel}</span>
       </div>
 
       <!-- 원형 차트 (중앙 배치) -->
@@ -1256,7 +1306,7 @@ const DonationTab = (function() {
     const filteredData = filterByPeriod(data);
 
     if (filteredData.length === 0) {
-      container.innerHTML = '<div class="donation-chart-empty">데이터가 없습니다</div>';
+      container.innerHTML = `<div class="donation-chart-empty">${i18n('donationChartEmpty') || '데이터가 없습니다'}</div>`;
       return;
     }
 
@@ -1326,9 +1376,12 @@ const DonationTab = (function() {
     }
 
     if (items.length === 0) {
+      const emptyMsg = state.searchQuery
+        ? (i18n('donationListSearchEmpty') || '검색 결과가 없습니다')
+        : (i18n('donationListEmpty') || '내역이 없습니다');
       listContainer.innerHTML = `
         <div class="donation-list-empty">
-          ${state.searchQuery ? '검색 결과가 없습니다' : '내역이 없습니다'}
+          ${emptyMsg}
         </div>
       `;
       return;
@@ -1341,8 +1394,11 @@ const DonationTab = (function() {
     const endIdx = startIdx + ITEMS_PER_PAGE;
     const pageItems = items.slice(startIdx, endIdx);
 
+    const listHeaderText = (i18n('donationListHeader') || '📋 상세 내역 ($count$건)')
+      .replace('$count$', items.length);
+
     listContainer.innerHTML = `
-      <div class="donation-list-header">📋 상세 내역 (${items.length}건)</div>
+      <div class="donation-list-header">${listHeaderText}</div>
       <div class="donation-list">
         ${pageItems.map(item => renderListItem(item)).join('')}
       </div>
@@ -1467,9 +1523,9 @@ const DonationTab = (function() {
 
   function getSubTabLabel() {
     switch (state.currentSubTab) {
-      case 'gift': return '선물';
-      case 'charge': return '충전';
-      case 'exchange': return '환전';
+      case 'gift': return i18n('donationTabGift')?.replace('🎁 ', '') || '선물';
+      case 'charge': return i18n('donationTabCharge')?.replace('💳 ', '') || '충전';
+      case 'exchange': return i18n('donationTabExchange') || '환전';
       default: return '';
     }
   }
@@ -1505,7 +1561,9 @@ const DonationTab = (function() {
       const date = new Date(state.lastSync);
       const hours = date.getHours().toString().padStart(2, '0');
       const minutes = date.getMinutes().toString().padStart(2, '0');
-      elements.syncTime.textContent = `마지막: ${hours}:${minutes}`;
+      const lastSyncText = (i18n('donationLastSync') || '마지막: $time$')
+        .replace('$time$', `${hours}:${minutes}`);
+      elements.syncTime.textContent = lastSyncText;
     } else {
       elements.syncTime.textContent = '-';
     }
@@ -1547,7 +1605,7 @@ const DonationTab = (function() {
     try {
       await chrome.storage.local.set({ giftFavoriteStreamers: favorites });
     } catch (e) {
-      console.error('[DonationTab] 즐겨찾기 저장 실패:', e);
+      console.error('[DonationTab] Favorites save failed:', e);
     }
   }
 
@@ -1587,6 +1645,12 @@ const DonationTab = (function() {
     const sectionEl = document.querySelector('.gift-section');
     if (!sectionEl) return;
 
+    // i18n 문자열
+    const removeFavTitle = i18n('donationGiftRemoveFav') || '즐겨찾기 해제';
+    const addFavTitle = i18n('donationGiftAddFav') || '즐겨찾기 추가';
+    const favSectionLabel = i18n('donationGiftFavorites') || '⭐ 후원 즐겨찾기';
+    const monitoringSectionLabel = i18n('donationGiftMonitoring') || '📺 모니터링 스트리머';
+
     // 즐겨찾기 영역 업데이트
     const favFixedEl = sectionEl.querySelector('.gift-favorites-fixed');
     const othersEl = sectionEl.querySelector('.gift-others-section');
@@ -1596,7 +1660,7 @@ const DonationTab = (function() {
       <div class="gift-streamer-item${giftState.selectedStreamer?.id === s.id ? ' selected' : ''}" data-id="${s.id}" data-nick="${s.nickname}">
         <span class="gift-streamer-nick">${s.nickname}</span>
         <span class="gift-streamer-id">@${s.id}</span>
-        <button class="gift-fav-btn is-fav" data-id="${s.id}" data-nick="${s.nickname}" title="즐겨찾기 해제">★</button>
+        <button class="gift-fav-btn is-fav" data-id="${s.id}" data-nick="${s.nickname}" title="${removeFavTitle}">★</button>
       </div>
     `).join('');
 
@@ -1605,7 +1669,7 @@ const DonationTab = (function() {
       <div class="gift-streamer-item${giftState.selectedStreamer?.id === s.id ? ' selected' : ''}" data-id="${s.id}" data-nick="${s.nickname}">
         <span class="gift-streamer-nick">${s.nickname}</span>
         <span class="gift-streamer-id">@${s.id}</span>
-        <button class="gift-fav-btn" data-id="${s.id}" data-nick="${s.nickname}" title="즐겨찾기 추가">☆</button>
+        <button class="gift-fav-btn" data-id="${s.id}" data-nick="${s.nickname}" title="${addFavTitle}">☆</button>
       </div>
     `).join('');
 
@@ -1617,7 +1681,7 @@ const DonationTab = (function() {
         const newFavEl = document.createElement('div');
         newFavEl.className = 'gift-favorites-fixed';
         newFavEl.innerHTML = `
-          <div class="gift-streamer-section-label">⭐ 후원 즐겨찾기</div>
+          <div class="gift-streamer-section-label">${favSectionLabel}</div>
           <div class="gift-favorites-list" id="giftFavoritesList">${favoritesHtml}</div>
         `;
         const labelEl = sectionEl.querySelector('.gift-label');
@@ -1635,7 +1699,7 @@ const DonationTab = (function() {
         const newOthersEl = document.createElement('div');
         newOthersEl.className = 'gift-others-section';
         newOthersEl.innerHTML = `
-          <div class="gift-streamer-section-label">📺 모니터링 스트리머</div>
+          <div class="gift-streamer-section-label">${monitoringSectionLabel}</div>
           <div class="gift-streamer-list" id="giftOthersList">${otherListHtml}</div>
         `;
         const selectedEl = sectionEl.querySelector('.gift-selected-streamer');
@@ -1654,6 +1718,22 @@ const DonationTab = (function() {
 
     const balance = state.data?.balance?.current || 0;
 
+    // i18n 문자열
+    const giftTitle = i18n('donationGiftTitle') || '🎁 방송국 후원하기';
+    const giftNotice = i18n('donationGiftNotice') || '방송국에 후원하는 기능입니다.';
+    const giftNotice2 = i18n('donationGiftNotice2') || '후원 메시지를 확인하려면 해당 스트리머의 채팅창에 재입장해주세요.';
+    const balanceText = (i18n('donationGiftBalance') || '보유: $amount$개')
+      .replace('$amount$', formatNumber(balance));
+    const selectStreamerLabel = i18n('donationGiftSelectStreamer') || '스트리머 선택';
+    const favSectionLabel = i18n('donationGiftFavorites') || '⭐ 후원 즐겨찾기';
+    const monitoringSectionLabel = i18n('donationGiftMonitoring') || '📺 모니터링 스트리머';
+    const emptyStreamerText = i18n('donationGiftEmpty') || '등록된 스트리머가 없습니다';
+    const noSelectionText = i18n('donationGiftSelected') || '선택된 스트리머 없음';
+    const cancelText = i18n('donationGiftCancel') || '취소';
+    const executeText = i18n('donationGiftExecute') || '후원하기';
+    const removeFavTitle = i18n('donationGiftRemoveFav') || '즐겨찾기 해제';
+    const addFavTitle = i18n('donationGiftAddFav') || '즐겨찾기 추가';
+
     const modal = document.createElement('div');
     modal.className = 'gift-modal-overlay';
 
@@ -1664,7 +1744,7 @@ const DonationTab = (function() {
         <div class="gift-streamer-item" data-id="${s.id}" data-nick="${s.nickname}">
           <span class="gift-streamer-nick">${s.nickname}</span>
           <span class="gift-streamer-id">@${s.id}</span>
-          <button class="gift-fav-btn is-fav" data-id="${s.id}" data-nick="${s.nickname}" title="즐겨찾기 해제">★</button>
+          <button class="gift-fav-btn is-fav" data-id="${s.id}" data-nick="${s.nickname}" title="${removeFavTitle}">★</button>
         </div>
       `).join('');
     }
@@ -1676,7 +1756,7 @@ const DonationTab = (function() {
         <div class="gift-streamer-item" data-id="${s.id}" data-nick="${s.nickname}">
           <span class="gift-streamer-nick">${s.nickname}</span>
           <span class="gift-streamer-id">@${s.id}</span>
-          <button class="gift-fav-btn" data-id="${s.id}" data-nick="${s.nickname}" title="즐겨찾기 추가">☆</button>
+          <button class="gift-fav-btn" data-id="${s.id}" data-nick="${s.nickname}" title="${addFavTitle}">☆</button>
         </div>
       `).join('');
     }
@@ -1686,10 +1766,10 @@ const DonationTab = (function() {
     modal.innerHTML = `
       <div class="gift-modal">
         <div class="gift-modal-header">
-          <span class="gift-modal-title">🎁 방송국 후원하기
+          <span class="gift-modal-title">${giftTitle}
             <span class="gift-title-info">
               <span class="gift-title-info-icon">❗</span>
-              <span class="gift-title-info-tooltip">방송국에 후원하는 기능입니다.<br>후원 메시지를 확인하려면<br>해당 스트리머의 채팅창에<br>재입장해주세요.</span>
+              <span class="gift-title-info-tooltip">${giftNotice}<br>${giftNotice2}</span>
             </span>
           </span>
           <button class="gift-modal-close">✕</button>
@@ -1697,15 +1777,15 @@ const DonationTab = (function() {
 
         <div class="gift-modal-body">
           <div class="gift-balance-info">
-            보유: <strong>${formatNumber(balance)}</strong>개
+            ${balanceText}
           </div>
 
           <div class="gift-section">
-            <label class="gift-label">스트리머 선택</label>
+            <label class="gift-label">${selectStreamerLabel}</label>
 
             ${giftFavorites.length > 0 ? `
               <div class="gift-favorites-fixed">
-                <div class="gift-streamer-section-label">⭐ 후원 즐겨찾기</div>
+                <div class="gift-streamer-section-label">${favSectionLabel}</div>
                 <div class="gift-favorites-list" id="giftFavoritesList">
                   ${favoritesHtml}
                 </div>
@@ -1714,25 +1794,25 @@ const DonationTab = (function() {
 
             ${otherStreamers.length > 0 ? `
               <div class="gift-others-section">
-                <div class="gift-streamer-section-label">📺 모니터링 스트리머</div>
+                <div class="gift-streamer-section-label">${monitoringSectionLabel}</div>
                 <div class="gift-streamer-list" id="giftOthersList">
                   ${otherListHtml}
                 </div>
               </div>
             ` : ''}
 
-            ${hasNoStreamers ? '<div class="gift-empty">등록된 스트리머가 없습니다</div>' : ''}
+            ${hasNoStreamers ? `<div class="gift-empty">${emptyStreamerText}</div>` : ''}
 
             <div class="gift-selected-streamer" id="giftSelectedStreamer">
-              선택된 스트리머 없음
+              ${noSelectionText}
             </div>
           </div>
 
         </div>
 
         <div class="gift-modal-footer">
-          <button class="gift-cancel-btn gift-modal-close">취소</button>
-          <button class="gift-execute-btn" id="giftExecuteBtn" disabled>후원하기</button>
+          <button class="gift-cancel-btn gift-modal-close">${cancelText}</button>
+          <button class="gift-execute-btn" id="giftExecuteBtn" disabled>${executeText}</button>
         </div>
       </div>
     `;
@@ -1820,6 +1900,8 @@ const DonationTab = (function() {
   }
 
   function showGiftAlert(title, message) {
+    const okText = i18n('donationGiftConfirmOk') || '확인';
+
     const alertModal = document.createElement('div');
     alertModal.className = 'gift-alert-overlay';
     alertModal.innerHTML = `
@@ -1827,7 +1909,7 @@ const DonationTab = (function() {
         <div class="gift-alert-icon">⚠️</div>
         <div class="gift-alert-title">${title}</div>
         <div class="gift-alert-message">${message.replace(/\n/g, '<br>')}</div>
-        <button class="gift-alert-btn">확인</button>
+        <button class="gift-alert-btn">${okText}</button>
       </div>
     `;
 
@@ -1845,30 +1927,43 @@ const DonationTab = (function() {
   }
 
   function showGiftConfirm(nick, onConfirm) {
+    // i18n 문자열
+    const confirmTitle = i18n('donationGiftConfirmTitle') || '후원 확인';
+    const confirmMessage = (i18n('donationGiftConfirmMessage') || '$name$님에게 후원하시겠습니까?')
+      .replace('$name$', nick);
+    const confirmNotice = i18n('donationGiftConfirmNotice') || '확인을 누르면 SOOP 후원 창이 열립니다.';
+    const confirmNotice2 = i18n('donationGiftConfirmNotice2') || '후원 창에서 금액을 직접 입력해주세요.';
+    const warningTitle = i18n('donationGiftWarningTitle') || '⚠️ 주의사항';
+    const warning1 = i18n('donationGiftWarning1') || '본 기능은 사용자 편의를 위해 제공됩니다.';
+    const warning2 = i18n('donationGiftWarning2') || '후원 실행 후 발생하는 모든 결과에 대한 책임은 사용자 본인에게 있습니다.';
+    const warning3 = i18n('donationGiftWarning3') || '개발자는 이 기능 사용으로 인한 손실이나 문제에 대해 책임지지 않습니다.';
+    const cancelText = i18n('donationGiftCancel') || '취소';
+    const okText = i18n('donationGiftConfirmOk') || '확인';
+
     const confirmModal = document.createElement('div');
     confirmModal.className = 'gift-confirm-overlay';
     confirmModal.innerHTML = `
       <div class="gift-confirm-modal">
         <div class="gift-confirm-icon">🎁</div>
-        <div class="gift-confirm-title">후원 확인</div>
+        <div class="gift-confirm-title">${confirmTitle}</div>
         <div class="gift-confirm-message">
-          <strong>${nick}</strong>님에게<br>후원하시겠습니까?
+          ${confirmMessage}
         </div>
         <div class="gift-confirm-notice">
-          확인을 누르면 SOOP 후원 창이 열립니다.<br>
-          후원 창에서 금액을 직접 입력해주세요.
+          ${confirmNotice}<br>
+          ${confirmNotice2}
         </div>
         <div class="gift-confirm-warning">
-          <div class="gift-confirm-warning-title">⚠️ 주의사항</div>
+          <div class="gift-confirm-warning-title">${warningTitle}</div>
           <ul class="gift-confirm-warning-list">
-            <li>본 기능은 사용자 편의를 위해 제공됩니다.</li>
-            <li>후원 실행 후 발생하는 모든 결과에 대한<br>책임은 사용자 본인에게 있습니다.</li>
-            <li>개발자는 이 기능 사용으로 인한 손실이나<br>문제에 대해 책임지지 않습니다.</li>
+            <li>${warning1}</li>
+            <li>${warning2}</li>
+            <li>${warning3}</li>
           </ul>
         </div>
         <div class="gift-confirm-buttons">
-          <button class="gift-confirm-cancel">취소</button>
-          <button class="gift-confirm-ok">확인</button>
+          <button class="gift-confirm-cancel">${cancelText}</button>
+          <button class="gift-confirm-ok">${okText}</button>
         </div>
       </div>
     `;
@@ -1897,7 +1992,9 @@ const DonationTab = (function() {
     const giftUrl = `https://st.sooplive.co.kr/app/gift_starballoon.php?szBjId=${id}&szWork=BJ_STATION&sys_type=web&location=station`;
     window.open(giftUrl, `gift_${Date.now()}`, 'width=450,height=550');
 
-    showToast(`${nick}님 후원 창이 열렸습니다`);
+    const openedMsg = (i18n('donationGiftOpened') || '$name$님 후원 창이 열렸습니다')
+      .replace('$name$', nick);
+    showToast(openedMsg);
     closeGiftModal();
     giftState.isProcessing = false;
   }

@@ -158,6 +158,24 @@
       const msg = i18n(key);
       if (msg && msg !== key) el.placeholder = msg;
     });
+
+    // title 속성 번역
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+      const key = el.getAttribute('data-i18n-title');
+      const msg = i18n(key);
+      if (msg && msg !== key) el.title = msg;
+    });
+
+    // 분할 크기 옵션 번역
+    const splitSelect = document.getElementById('splitSizeSelect');
+    if (splitSelect) {
+      const splitLabel = i18n('splitSize') || '분할';
+      splitSelect.querySelectorAll('option').forEach(opt => {
+        const size = opt.value;
+        const sizeText = size === '500' ? '500MB' : (size === '1024' ? '1GB' : '2GB');
+        opt.textContent = `${splitLabel}: ${sizeText}`;
+      });
+    }
   }
 
   // ===== 유틸리티 =====
@@ -214,7 +232,7 @@
 
   // ⭐ v3.7.1: 단일 품질 툴팁 (6Mbps)
   function getRecordingQualityTooltip() {
-    return '1시간 녹화 시 약 2.7GB';
+    return i18n('recordingInfo1Hour') || '1시간 녹화 시 약 2.7GB';
   }
 
   // 파트 전환 상태 표시 (v3.5.8.2)
@@ -246,10 +264,12 @@
     }
 
     if (status === 'saving') {
-      splitStatus.innerHTML = `<span class="split-saving">💾 파트 ${partNumber} 저장 중...</span>`;
+      const savingMsg = (i18n('splitStatusSaving') || '💾 파트 $part$ 저장 중...').replace('$part$', partNumber);
+      splitStatus.innerHTML = `<span class="split-saving">${savingMsg}</span>`;
       splitStatus.style.color = '#ffa500';
     } else if (status === 'recording') {
-      splitStatus.innerHTML = `<span class="split-recording">🔴 파트 ${partNumber} 녹화 중</span>`;
+      const recordingMsg = (i18n('splitStatusRecording') || '🔴 파트 $part$ 녹화 중').replace('$part$', partNumber);
+      splitStatus.innerHTML = `<span class="split-recording">${recordingMsg}</span>`;
       splitStatus.style.color = '#00ff88';
 
       // 3초 후 숨김
@@ -297,11 +317,16 @@
   function updateRecordingQualityInfoBox() {
     if (!elements.recordingQualityInfoTooltip) return;
 
+    const title = i18n('recordingInfoTitle') || '녹화 안내';
+    const info1Hour = i18n('recordingInfo1Hour') || '1시간 녹화 시 약 2.7GB';
+    const infoBackground = i18n('recordingInfoBackground') || '녹화 탭이 비활성 상태면 화질이 낮아질 수 있어요';
+    const infoWarning = i18n('recordingInfoWarning') || '탭이나 브라우저를 닫으면 녹화가 사라져요';
+
     elements.recordingQualityInfoTooltip.innerHTML = `
-      <p class="tooltip-title">📹 녹화 안내</p>
-      <p>• 1시간 녹화 시 약 2.7GB</p>
-      <p>• 녹화 탭이 비활성 상태면 화질이 낮아질 수 있어요</p>
-      <p style="margin-top: 6px; color: #ff6b6b;">⚠️ 탭이나 브라우저를 닫으면 녹화가 사라져요</p>
+      <p class="tooltip-title">📹 ${title}</p>
+      <p>• ${info1Hour}</p>
+      <p>• ${infoBackground}</p>
+      <p style="margin-top: 6px; color: #ff6b6b;">⚠️ ${infoWarning}</p>
     `;
   }
 
@@ -345,7 +370,10 @@
       s => state.broadcastStatus[s.id]?.isLive
     ).length;
     if (elements.monitoringInfo) {
-      elements.monitoringInfo.textContent = `${state.favoriteStreamers.length}명 중 ${liveCount}명 방송중`;
+      const countMsg = (i18n('monitoringCount') || '$total$명 중 $live$명 방송중')
+        .replace('$total$', state.favoriteStreamers.length)
+        .replace('$live$', liveCount);
+      elements.monitoringInfo.textContent = countMsg;
     }
   }
 
@@ -447,7 +475,7 @@
 
   async function startRecording() {
     if (!state.currentStream || !state.currentSoopTabId) {
-      showToast('SOOP 방송 탭을 찾을 수 없습니다.', 'error');
+      showToast(i18n('toastNoSoopTab') || 'SOOP 방송 탭을 찾을 수 없습니다.', 'error');
       return;
     }
 
@@ -458,7 +486,9 @@
       const currentRecordingCount = Object.keys(recordings).length;
 
       if (currentRecordingCount >= MAX_CONCURRENT_RECORDINGS) {
-        showToast(`최대 ${MAX_CONCURRENT_RECORDINGS}개까지 동시 녹화가 가능합니다.`, 'error');
+        const maxMsg = (i18n('toastMaxRecordings') || '최대 $count$개까지 동시 녹화가 가능합니다.')
+          .replace('$count$', MAX_CONCURRENT_RECORDINGS);
+        showToast(maxMsg, 'error');
         return;
       }
     } catch (e) {
@@ -470,10 +500,11 @@
 
     if (elements.startRecordingBtn) {
       elements.startRecordingBtn.disabled = true;
-      elements.startRecordingBtn.innerHTML = '<span class="record-icon"></span><span>시작 중...</span>';
+      const startingText = i18n('recordingStarting') || '시작 중...';
+      elements.startRecordingBtn.innerHTML = `<span class="record-icon"></span><span>${startingText}</span>`;
     }
 
-    showToast('녹화 시작 중...', 'info');
+    showToast(i18n('toastRecordingStarting') || '녹화 시작 중...', 'info');
 
     // ⭐ v3.5.9.2: 녹화 시작 요청 로깅
     console.log(`[사이드패널] 녹화 요청: ${streamerId}`);
@@ -502,19 +533,24 @@
           nickname: nickname,
           startTime: Date.now()
         };
-        showToast(`🔴 ${nickname || streamerId} 녹화 시작!`, 'success');
+        const startedMsg = (i18n('toastRecordingStarted') || '🔴 $name$ 녹화 시작!')
+          .replace('$name$', nickname || streamerId);
+        showToast(startedMsg, 'success');
         updateRecordingButton();
         updateActiveRecordingList();
       } else {
-        throw new Error(result?.error || '녹화 시작 실패');
+        throw new Error(result?.error || i18n('unknownError') || '녹화 시작 실패');
       }
     } catch (error) {
       console.error('[사이드패널] 녹화 시작 오류:', error);
-      showToast('녹화 시작 실패: ' + (error.message || '알 수 없는 오류'), 'error');
+      const errorMsg = (i18n('toastRecordingStartFailed') || '녹화 시작 실패: $error$')
+        .replace('$error$', error.message || i18n('unknownError') || '알 수 없는 오류');
+      showToast(errorMsg, 'error');
 
       if (elements.startRecordingBtn) {
         elements.startRecordingBtn.disabled = false;
-        elements.startRecordingBtn.innerHTML = '<span class="record-icon"></span><span>녹화 시작</span>';
+        const startText = i18n('startRecording') || '녹화 시작';
+        elements.startRecordingBtn.innerHTML = `<span class="record-icon"></span><span>${startText}</span>`;
       }
     }
   }
@@ -530,15 +566,17 @@
         if (state.currentTabRecording?.tabId === tabId) {
           state.currentTabRecording = null;
         }
-        showToast('녹화가 중지되었습니다.', 'success');
+        showToast(i18n('toastRecordingStopped') || '녹화가 중지되었습니다.', 'success');
         updateRecordingButton();
         updateActiveRecordingList();
       } else {
-        throw new Error(result?.error || '녹화 중지 실패');
+        throw new Error(result?.error || i18n('unknownError') || '녹화 중지 실패');
       }
     } catch (error) {
       console.error('[사이드패널] 녹화 중지 오류:', error);
-      showToast('녹화 중지 실패: ' + (error.message || '알 수 없는 오류'), 'error');
+      const errorMsg = (i18n('toastRecordingStopFailed') || '녹화 중지 실패: $error$')
+        .replace('$error$', error.message || i18n('unknownError') || '알 수 없는 오류');
+      showToast(errorMsg, 'error');
     }
   }
 
@@ -550,7 +588,8 @@
     if (!state.currentSoopTabId) {
       elements.startRecordingBtn.style.display = 'flex';
       elements.startRecordingBtn.disabled = false;
-      elements.startRecordingBtn.innerHTML = '<span class="record-icon"></span><span>녹화 시작</span>';
+      const startText = i18n('startRecording') || '녹화 시작';
+      elements.startRecordingBtn.innerHTML = `<span class="record-icon"></span><span>${startText}</span>`;
       return;
     }
 
@@ -573,7 +612,8 @@
       } else {
         elements.startRecordingBtn.style.display = 'flex';
         elements.startRecordingBtn.disabled = false;
-        elements.startRecordingBtn.innerHTML = '<span class="record-icon"></span><span>녹화 시작</span>';
+        const startText = i18n('startRecording') || '녹화 시작';
+        elements.startRecordingBtn.innerHTML = `<span class="record-icon"></span><span>${startText}</span>`;
         state.currentTabRecording = null;
       }
     } catch (e) {
@@ -586,7 +626,8 @@
       } else {
         elements.startRecordingBtn.style.display = 'flex';
         elements.startRecordingBtn.disabled = false;
-        elements.startRecordingBtn.innerHTML = '<span class="record-icon"></span><span>녹화 시작</span>';
+        const startText = i18n('startRecording') || '녹화 시작';
+        elements.startRecordingBtn.innerHTML = `<span class="record-icon"></span><span>${startText}</span>`;
       }
     }
   }
@@ -680,7 +721,7 @@
           if (isStale && !existingWarning) {
             const warningSpan = document.createElement('span');
             warningSpan.className = 'stale-warning';
-            warningSpan.title = '상태 업데이트 지연 - 녹화는 계속 진행 중일 수 있습니다';
+            warningSpan.title = i18n('staleWarningTooltip') || '상태 업데이트 지연 - 녹화는 계속 진행 중일 수 있습니다';
             warningSpan.textContent = '⚠️';
             const qualityInfo = header?.querySelector('.recording-quality-info');
             if (qualityInfo) {
@@ -694,11 +735,14 @@
           const elapsed = rec.elapsedTime || Math.floor((Date.now() - (rec.startTime || Date.now())) / 1000);
           const timeStr = formatDuration(elapsed);
           const sizeStr = formatBytes(rec.totalBytes || 0);
-          const displayName = escapeHtml(rec.nickname || rec.streamerId || '알 수 없음');
+          const unknownText = i18n('unknownStreamer') || '알 수 없음';
+          const displayName = escapeHtml(rec.nickname || rec.streamerId || unknownText);
 
           const lastUpdate = rec.lastUpdate || rec.startTime || Date.now();
           const isStale = (Date.now() - lastUpdate) > 30000;
-          const staleWarning = isStale ? '<span class="stale-warning" title="상태 업데이트 지연 - 녹화는 계속 진행 중일 수 있습니다">⚠️</span>' : '';
+          const staleTooltip = i18n('staleWarningTooltip') || '상태 업데이트 지연 - 녹화는 계속 진행 중일 수 있습니다';
+          const staleWarning = isStale ? `<span class="stale-warning" title="${staleTooltip}">⚠️</span>` : '';
+          const stopText = i18n('stopRecording') || '녹화 중지';
 
           const cardHtml = `
             <div class="recording-card" data-tab-id="${rec.tabId}" data-streamer-id="${escapeHtml(rec.streamerId || '')}">
@@ -720,7 +764,7 @@
               </div>
               <button class="recording-stop-btn" data-tab-id="${rec.tabId}">
                 <span>⏹</span>
-                <span>녹화 중지</span>
+                <span>${stopText}</span>
               </button>
             </div>
           `;
@@ -1057,7 +1101,9 @@
         const streamer = state.favoriteStreamers.find(s => s.id === streamerId);
         const displayName = streamer?.nickname || streamerId;
 
-        if (confirm(`"${displayName}" 스트리머를 삭제하시겠습니까?`)) {
+        const confirmMsg = (i18n('confirmDeleteStreamer') || '"$name$" 스트리머를 삭제하시겠습니까?')
+          .replace('$name$', displayName);
+        if (confirm(confirmMsg)) {
           await deleteStreamer(streamerId);
         }
       });
@@ -1092,18 +1138,18 @@
     const streamerId = input.value.trim().toLowerCase();
 
     if (!streamerId) {
-      showToast('스트리머 ID를 입력하세요.', 'error');
+      showToast(i18n('toastAddStreamerEmpty') || '스트리머 ID를 입력하세요.', 'error');
       return;
     }
 
     if (!/^[a-z0-9_]+$/.test(streamerId)) {
-      showToast('올바른 스트리머 ID를 입력하세요.', 'error');
+      showToast(i18n('toastAddStreamerInvalid') || '올바른 스트리머 ID를 입력하세요.', 'error');
       return;
     }
 
     if (elements.addStreamerBtn) {
       elements.addStreamerBtn.disabled = true;
-      elements.addStreamerBtn.textContent = '확인중...';
+      elements.addStreamerBtn.textContent = i18n('checking') || '확인중...';
     }
 
     try {
@@ -1119,16 +1165,16 @@
         }
         updateStreamerList();
         updateMonitoringUI();
-        showToast(`${result.streamer?.nickname || streamerId} 추가됨`, 'success');
+        showToast(`${result.streamer?.nickname || streamerId} ${i18n('added') || '추가됨'}`, 'success');
       } else {
-        showToast(result?.error || '스트리머 추가 실패', 'error');
+        showToast(result?.error || i18n('toastAddStreamerError') || '스트리머 추가 실패', 'error');
       }
     } catch (error) {
-      showToast('스트리머 추가 중 오류가 발생했습니다.', 'error');
+      showToast(i18n('toastAddStreamerError') || '스트리머 추가 중 오류가 발생했습니다.', 'error');
     } finally {
       if (elements.addStreamerBtn) {
         elements.addStreamerBtn.disabled = false;
-        elements.addStreamerBtn.textContent = '추가';
+        elements.addStreamerBtn.textContent = i18n('addButton') || '추가';
       }
     }
   }
@@ -1149,10 +1195,10 @@
 
         updateStreamerList();
         updateMonitoringUI();
-        showToast(`${displayName} 삭제됨`, 'info');
+        showToast(`${displayName} ${i18n('deleted') || '삭제됨'}`, 'info');
       }
     } catch (error) {
-      showToast('스트리머 삭제 중 오류가 발생했습니다.', 'error');
+      showToast(i18n('toastDeleteStreamerError') || '스트리머 삭제 중 오류가 발생했습니다.', 'error');
     }
   }
 
@@ -1161,7 +1207,7 @@
     const newState = !state.isMonitoring;
 
     if (newState && state.favoriteStreamers.length === 0) {
-      showToast('모니터링할 스트리머를 먼저 추가하세요.', 'error');
+      showToast(i18n('toastNoStreamersToMonitor') || '모니터링할 스트리머를 먼저 추가하세요.', 'error');
       if (elements.monitoringToggle) {
         elements.monitoringToggle.checked = false;
       }
@@ -1176,9 +1222,9 @@
 
       state.isMonitoring = newState;
       updateMonitoringUI();
-      showToast(newState ? '모니터링을 시작합니다.' : '모니터링을 중지합니다.', 'success');
+      showToast(newState ? (i18n('monitoringStarted') || '모니터링을 시작합니다.') : (i18n('monitoringStopped') || '모니터링을 중지합니다.'), 'success');
     } catch (error) {
-      showToast('모니터링 설정 실패', 'error');
+      showToast(i18n('toastMonitoringFailed') || '모니터링 설정 실패', 'error');
     }
   }
 
@@ -1206,14 +1252,14 @@
       state.settings = newSettings;
       updateQuickSettings();
     } catch (error) {
-      showToast('설정 변경 실패', 'error');
+      showToast(i18n('toastSettingsFailed') || '설정 변경 실패', 'error');
     }
   }
 
   // ===== 내보내기/가져오기 =====
   function exportStreamers() {
     if (state.favoriteStreamers.length === 0) {
-      showToast('내보낼 스트리머가 없습니다.', 'error');
+      showToast(i18n('toastExportEmpty') || '내보낼 스트리머가 없습니다.', 'error');
       return;
     }
 
@@ -1233,7 +1279,9 @@
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    showToast(`${state.favoriteStreamers.length}명의 스트리머를 내보냈습니다.`, 'success');
+    const exportMsg = (i18n('toastExportSuccess') || '$count$명의 스트리머를 내보냈습니다.')
+      .replace('$count$', state.favoriteStreamers.length);
+    showToast(exportMsg, 'success');
   }
 
   async function importStreamers(file) {
@@ -1254,7 +1302,7 @@
       }
 
       if (!Array.isArray(streamersToImport) || streamersToImport.length === 0) {
-        showToast('가져올 스트리머가 없습니다.', 'error');
+        showToast(i18n('toastImportEmpty') || '가져올 스트리머가 없습니다.', 'error');
         return;
       }
 
@@ -1306,16 +1354,21 @@
       updateMonitoringUI();
 
       if (addedCount > 0 && skippedCount > 0) {
-        showToast(`${addedCount}명 추가됨, ${skippedCount}명 건너뜀`, 'success');
+        const partialMsg = (i18n('toastImportPartial') || '$added$명 추가됨, $skipped$명 건너뜀')
+          .replace('$added$', addedCount)
+          .replace('$skipped$', skippedCount);
+        showToast(partialMsg, 'success');
       } else if (addedCount > 0) {
-        showToast(`${addedCount}명의 스트리머를 가져왔습니다.`, 'success');
+        const successMsg = (i18n('toastImportSuccess') || '$count$명의 스트리머를 가져왔습니다.')
+          .replace('$count$', addedCount);
+        showToast(successMsg, 'success');
       } else {
-        showToast('모든 스트리머가 이미 등록되어 있습니다.', 'info');
+        showToast(i18n('toastImportDuplicate') || '모든 스트리머가 이미 등록되어 있습니다.', 'info');
       }
 
     } catch (error) {
       console.error('[사이드패널] 가져오기 오류:', error);
-      showToast('파일을 읽는 중 오류가 발생했습니다.', 'error');
+      showToast(i18n('toastImportError') || '파일을 읽는 중 오류가 발생했습니다.', 'error');
     }
 
     if (elements.importFileInput) {
@@ -1443,9 +1496,9 @@
       updateStreamerList();
       updateMonitoringUI();
       await updateCurrentStream();
-      showToast('새로고침 완료', 'success');
+      showToast(i18n('refreshComplete') || '새로고침 완료', 'success');
     } catch (error) {
-      showToast('새로고침 실패', 'error');
+      showToast(i18n('toastRefreshFailed') || '새로고침 실패', 'error');
     } finally {
       if (elements.refreshBtn) {
         elements.refreshBtn.disabled = false;
@@ -1505,7 +1558,9 @@
         1024: '1GB',
         2048: '2GB'
       };
-      showToast(`분할 크기: ${sizeNames[state.splitSize] || state.splitSize + 'MB'} 설정됨`, 'success');
+      const sizeMsg = (i18n('toastSplitSizeSet') || '분할 크기: $size$ 설정됨')
+        .replace('$size$', sizeNames[state.splitSize] || state.splitSize + 'MB');
+      showToast(sizeMsg, 'success');
     });
 
     // 필터
@@ -1579,7 +1634,9 @@
           updateRecordingButton();
           updateActiveRecordingList();
           if (message.saved) {
-            showToast(`✅ ${message.nickname || message.streamerId} 녹화 완료!`, 'success');
+            const completeMsg = (i18n('toastRecordingComplete') || '✅ $name$ 녹화 완료!')
+              .replace('$name$', message.nickname || message.streamerId);
+            showToast(completeMsg, 'success');
           }
           break;
 
@@ -1589,17 +1646,24 @@
           }
           updateRecordingButton();
           updateActiveRecordingList();
-          showToast('녹화 오류: ' + (message.error || '알 수 없는 오류'), 'error');
+          const recErrorMsg = (i18n('toastRecordingError') || '녹화 오류: $error$')
+            .replace('$error$', message.error || i18n('unknownError') || '알 수 없는 오류');
+          showToast(recErrorMsg, 'error');
           break;
 
         case 'SEGMENT_SAVED':
           // 분할 저장 성공 알림
-          showToast(`📁 Part ${message.partNumber} 저장됨 (${formatBytes(message.size)})`, 'success');
+          const segmentMsg = (i18n('toastSegmentSaved') || '📁 Part $part$ 저장됨 ($size$)')
+            .replace('$part$', message.partNumber)
+            .replace('$size$', formatBytes(message.size));
+          showToast(segmentMsg, 'success');
           break;
 
         case 'SEGMENT_SAVE_ERROR':
           // 분할 저장 실패 알림
-          showToast('분할 저장 실패: ' + (message.error || '알 수 없는 오류'), 'error');
+          const segmentErrorMsg = (i18n('toastSegmentError') || '분할 저장 실패: $error$')
+            .replace('$error$', message.error || i18n('unknownError') || '알 수 없는 오류');
+          showToast(segmentErrorMsg, 'error');
           break;
 
         // 파트 전환 시작 (v3.5.8.3)

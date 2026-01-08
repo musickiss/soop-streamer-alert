@@ -264,5 +264,577 @@
   "recordingDataLossWarning": {
     "message": "If the tab or browser closes unexpectedly, unsaved recording data may be lost.",
     "description": "Recording data loss warning"
+  },
+
+  "tabMonitoring": {
+    "message": "Monitoring",
+    "description": "Monitoring tab name"
+  },
+  "tabDonation": {
+    "message": "My Donations",
+    "description": "My Donations tab name"
+  },
+  "helpTitle": {
+    "message": "Notice",
+    "description": "Help title"
+  },
+  "helpMessage1": {
+    "message": "This extension was created for personal use.",
+    "description": "Help message 1"
+  },
+  "helpMessage2": {
+    "message": "There may be some bugs or unexpected behavior.",
+    "description": "Help message 2"
+  },
+  "helpMessage3": {
+    "message": "We are continuously improving. Thank you for your patience.",
+    "description": "Help message 3"
+  },
+  "helpBugReport": {
+    "message": "Report a bug →",
+    "description": "Bug report link"
+  },
+  "helpTooltip": {
+    "message": "Help",
+    "description": "Help button tooltip"
+  },
+  "splitSize": {
+    "message": "Split",
+    "description": "Split size label"
+  },
+  "startRecording": {
+    "message": "Start Recording",
+    "description": "Start recording button"
+  },
+  "stopRecording": {
+    "message": "Stop Recording",
+    "description": "Stop recording button"
+  },
+  "resizeHandle": {
+    "message": "Drag to resize",
+    "description": "Resize handle tooltip"
+  },
+  "importTooltip": {
+    "message": "Import",
+    "description": "Import button tooltip"
+  },
+  "exportTooltip": {
+    "message": "Export",
+    "description": "Export button tooltip"
+  },
+  "refreshTooltip": {
+    "message": "Refresh",
+    "description": "Refresh button tooltip"
+  },
+  "autoRecord": {
+    "message": "Auto Record",
+    "description": "Auto record setting"
+  },
+  "monitoringCount": {
+    "message": "$live$ of $total$ live",
+    "description": "Monitoring count info",
+    "placeholders": {
+      "total": { "content": "$1" },
+      "live": { "content": "$2" }
+    }
+  },
+  "recordingStarting": {
+    "message": "Starting...",
+    "description": "Recording starting status"
+  },
+  "toastRecordingStarting": {
+    "message": "Starting recording...",
+    "description": "Recording starting toast"
+  },
+  "toastRecordingStarted": {
+    "message": "🔴 Recording $name$!",
+    "description": "Recording started toast",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "toastRecordingStopped": {
+    "message": "Recording stopped.",
+    "description": "Recording stopped toast"
+  },
+  "toastRecordingComplete": {
+    "message": "✅ $name$ recording complete!",
+    "description": "Recording complete toast",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "toastRecordingError": {
+    "message": "Recording error: $error$",
+    "description": "Recording error toast",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastSegmentSaved": {
+    "message": "📁 Part $part$ saved ($size$)",
+    "description": "Segment saved toast",
+    "placeholders": {
+      "part": { "content": "$1" },
+      "size": { "content": "$2" }
+    }
+  },
+  "toastSegmentError": {
+    "message": "Segment save failed: $error$",
+    "description": "Segment save error toast",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastSplitRecording": {
+    "message": "Recording Part $part$",
+    "description": "Split recording toast",
+    "placeholders": {
+      "part": { "content": "$1" }
+    }
+  },
+  "toastRecordingLost": {
+    "message": "⚠️ $name$ recording lost due to refresh. ($time$ lost)",
+    "description": "Recording lost toast",
+    "placeholders": {
+      "name": { "content": "$1" },
+      "time": { "content": "$2" }
+    }
+  },
+  "toastMaxRecordings": {
+    "message": "Maximum $count$ simultaneous recordings allowed.",
+    "description": "Max recordings exceeded toast",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "toastNoSoopTab": {
+    "message": "SOOP stream tab not found.",
+    "description": "No SOOP tab toast"
+  },
+  "toastRecordingStartFailed": {
+    "message": "Failed to start recording: $error$",
+    "description": "Recording start failed toast",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastRecordingStopFailed": {
+    "message": "Failed to stop recording: $error$",
+    "description": "Recording stop failed toast",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastSplitSizeSet": {
+    "message": "Split size set to $size$",
+    "description": "Split size set toast",
+    "placeholders": {
+      "size": { "content": "$1" }
+    }
+  },
+  "toastExportSuccess": {
+    "message": "Exported $count$ streamers.",
+    "description": "Export success toast",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "toastExportEmpty": {
+    "message": "No streamers to export.",
+    "description": "Export empty toast"
+  },
+  "toastImportSuccess": {
+    "message": "Imported $count$ streamers.",
+    "description": "Import success toast",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "toastImportPartial": {
+    "message": "$added$ added, $skipped$ skipped",
+    "description": "Import partial success toast",
+    "placeholders": {
+      "added": { "content": "$1" },
+      "skipped": { "content": "$2" }
+    }
+  },
+  "toastImportDuplicate": {
+    "message": "All streamers are already registered.",
+    "description": "Import duplicate toast"
+  },
+  "toastImportEmpty": {
+    "message": "No streamers to import.",
+    "description": "Import empty toast"
+  },
+  "toastImportError": {
+    "message": "Error reading file.",
+    "description": "Import error toast"
+  },
+  "toastAddStreamerEmpty": {
+    "message": "Please enter a streamer ID.",
+    "description": "Add streamer empty toast"
+  },
+  "toastAddStreamerInvalid": {
+    "message": "Please enter a valid streamer ID.",
+    "description": "Add streamer invalid toast"
+  },
+  "toastAddStreamerError": {
+    "message": "Error adding streamer.",
+    "description": "Add streamer error toast"
+  },
+  "toastDeleteStreamerError": {
+    "message": "Error deleting streamer.",
+    "description": "Delete streamer error toast"
+  },
+  "toastNoStreamersToMonitor": {
+    "message": "Please add streamers to monitor first.",
+    "description": "No streamers to monitor toast"
+  },
+  "toastMonitoringFailed": {
+    "message": "Failed to set monitoring",
+    "description": "Monitoring failed toast"
+  },
+  "toastSettingsFailed": {
+    "message": "Failed to change settings",
+    "description": "Settings failed toast"
+  },
+  "toastRefreshFailed": {
+    "message": "Refresh failed",
+    "description": "Refresh failed toast"
+  },
+  "confirmDeleteStreamer": {
+    "message": "Delete \"$name$\" streamer?",
+    "description": "Confirm delete streamer",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "checking": {
+    "message": "Checking...",
+    "description": "Checking status"
+  },
+  "unknownStreamer": {
+    "message": "Unknown",
+    "description": "Unknown streamer"
+  },
+  "unknownError": {
+    "message": "Unknown error",
+    "description": "Unknown error"
+  },
+  "recordingInfo1Hour": {
+    "message": "Approx. 2.7GB per hour",
+    "description": "Recording size info"
+  },
+  "recordingInfoTitle": {
+    "message": "Recording Info",
+    "description": "Recording info title"
+  },
+  "recordingInfoBackground": {
+    "message": "Quality may decrease if the tab is in background",
+    "description": "Background recording info"
+  },
+  "recordingInfoWarning": {
+    "message": "Recording will be lost if you close the tab or browser",
+    "description": "Recording loss warning"
+  },
+  "splitStatusSaving": {
+    "message": "💾 Saving Part $part$...",
+    "description": "Split saving status",
+    "placeholders": {
+      "part": { "content": "$1" }
+    }
+  },
+  "splitStatusRecording": {
+    "message": "🔴 Recording Part $part$",
+    "description": "Split recording status",
+    "placeholders": {
+      "part": { "content": "$1" }
+    }
+  },
+  "staleWarningTooltip": {
+    "message": "Status update delayed - recording may still be in progress",
+    "description": "Stale warning tooltip"
+  },
+
+  "donationSync": {
+    "message": "Sync",
+    "description": "Sync button"
+  },
+  "donationFullSync": {
+    "message": "Full",
+    "description": "Full sync button"
+  },
+  "donationFullSyncTooltip": {
+    "message": "Reload all data",
+    "description": "Full sync tooltip"
+  },
+  "donationSearchPlaceholder": {
+    "message": "Search streamer, amount...",
+    "description": "Search placeholder"
+  },
+  "donationSyncComplete": {
+    "message": "Sync complete",
+    "description": "Sync complete message"
+  },
+  "donationSyncFailed": {
+    "message": "Sync failed: $error$",
+    "description": "Sync failed message",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "donationSyncError": {
+    "message": "Error during sync",
+    "description": "Sync error message"
+  },
+  "donationSyncing": {
+    "message": "Syncing",
+    "description": "Syncing status"
+  },
+  "donationLastSync": {
+    "message": "Last: $time$",
+    "description": "Last sync time",
+    "placeholders": {
+      "time": { "content": "$1" }
+    }
+  },
+  "donationLoginRequired": {
+    "message": "Login Required",
+    "description": "Login required title"
+  },
+  "donationLoginDesc": {
+    "message": "Please log in to SOOP to use this feature",
+    "description": "Login required description"
+  },
+  "donationLoginBtn": {
+    "message": "Login to SOOP",
+    "description": "Login button"
+  },
+  "donationEmpty": {
+    "message": "Press Sync to load data",
+    "description": "No data message"
+  },
+  "donationDataNotice": {
+    "message": "Based on login account · Stored locally only (no external transfer)",
+    "description": "Data notice 1"
+  },
+  "donationDataNotice2": {
+    "message": "Data may differ from actual depending on sync timing",
+    "description": "Data notice 2"
+  },
+  "donationBalance": {
+    "message": "Star Balloons",
+    "description": "Star balloon balance label"
+  },
+  "donationUsed": {
+    "message": "Used",
+    "description": "Used label"
+  },
+  "donationUnit": {
+    "message": "",
+    "description": "Unit suffix"
+  },
+  "donationGiftBtn": {
+    "message": "🎁 Send Gift",
+    "description": "Gift button"
+  },
+  "donationTabGift": {
+    "message": "🎁 Gifts",
+    "description": "Gift sub-tab"
+  },
+  "donationTabCharge": {
+    "message": "💳 Charges",
+    "description": "Charge sub-tab"
+  },
+  "donationPeriod1m": {
+    "message": "1 Month",
+    "description": "1 month filter"
+  },
+  "donationPeriod3m": {
+    "message": "3 Months",
+    "description": "3 months filter"
+  },
+  "donationPeriod6m": {
+    "message": "6 Months",
+    "description": "6 months filter"
+  },
+  "donationPeriod1y": {
+    "message": "1 Year",
+    "description": "1 year filter"
+  },
+  "donationPeriodAll": {
+    "message": "All",
+    "description": "All filter"
+  },
+  "donationChartGift": {
+    "message": "Gifts by Streamer",
+    "description": "Gifts by streamer chart title"
+  },
+  "donationChartCharge": {
+    "message": "Charge History",
+    "description": "Charge history chart title"
+  },
+  "donationChartTotal": {
+    "message": "Total $amount$$unit$",
+    "description": "Chart total",
+    "placeholders": {
+      "amount": { "content": "$1" },
+      "unit": { "content": "$2" }
+    }
+  },
+  "donationChartEmpty": {
+    "message": "No data available",
+    "description": "Chart no data"
+  },
+  "donationChartOther": {
+    "message": "Others",
+    "description": "Other items"
+  },
+  "donationChartInfo": {
+    "message": "Statistics for the last 3 months",
+    "description": "Chart info tooltip"
+  },
+  "donationListHeader": {
+    "message": "📋 Details ($count$ items)",
+    "description": "Details header",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "donationListEmpty": {
+    "message": "No history",
+    "description": "No history"
+  },
+  "donationListSearchEmpty": {
+    "message": "No search results",
+    "description": "No search results"
+  },
+  "donationUnknown": {
+    "message": "Unknown",
+    "description": "Unknown streamer"
+  },
+  "donationGiftTitle": {
+    "message": "🎁 Send Gift to Station",
+    "description": "Gift modal title"
+  },
+  "donationGiftNotice": {
+    "message": "This feature is for gifting to streamer stations.",
+    "description": "Gift notice"
+  },
+  "donationGiftNotice2": {
+    "message": "To see the gift message, please rejoin the streamer's chat.",
+    "description": "Gift notice 2"
+  },
+  "donationGiftBalance": {
+    "message": "Balance: $amount$",
+    "description": "Star balloon balance",
+    "placeholders": {
+      "amount": { "content": "$1" }
+    }
+  },
+  "donationGiftSelectStreamer": {
+    "message": "Select Streamer",
+    "description": "Select streamer label"
+  },
+  "donationGiftFavorites": {
+    "message": "⭐ Gift Favorites",
+    "description": "Gift favorites section"
+  },
+  "donationGiftMonitoring": {
+    "message": "📺 Monitoring Streamers",
+    "description": "Monitoring streamers section"
+  },
+  "donationGiftEmpty": {
+    "message": "No streamers registered",
+    "description": "No streamers"
+  },
+  "donationGiftSelected": {
+    "message": "No streamer selected",
+    "description": "No streamer selected"
+  },
+  "donationGiftCancel": {
+    "message": "Cancel",
+    "description": "Cancel button"
+  },
+  "donationGiftExecute": {
+    "message": "Send Gift",
+    "description": "Send gift button"
+  },
+  "donationGiftConfirmTitle": {
+    "message": "Confirm Gift",
+    "description": "Confirm gift title"
+  },
+  "donationGiftConfirmMessage": {
+    "message": "Send gift to $name$?",
+    "description": "Confirm gift message",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "donationGiftConfirmNotice": {
+    "message": "Clicking confirm will open the SOOP gift window.",
+    "description": "Confirm gift notice"
+  },
+  "donationGiftConfirmNotice2": {
+    "message": "Please enter the amount in the gift window.",
+    "description": "Confirm gift notice 2"
+  },
+  "donationGiftWarningTitle": {
+    "message": "⚠️ Warning",
+    "description": "Warning title"
+  },
+  "donationGiftWarning1": {
+    "message": "This feature is provided for user convenience.",
+    "description": "Warning 1"
+  },
+  "donationGiftWarning2": {
+    "message": "You are solely responsible for all consequences after sending a gift.",
+    "description": "Warning 2"
+  },
+  "donationGiftWarning3": {
+    "message": "The developer is not liable for any losses or issues caused by using this feature.",
+    "description": "Warning 3"
+  },
+  "donationGiftConfirmOk": {
+    "message": "Confirm",
+    "description": "Confirm button"
+  },
+  "donationGiftOpened": {
+    "message": "Gift window opened for $name$",
+    "description": "Gift window opened message",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "donationGiftAddFav": {
+    "message": "Add to favorites",
+    "description": "Add to favorites tooltip"
+  },
+  "donationGiftRemoveFav": {
+    "message": "Remove from favorites",
+    "description": "Remove from favorites tooltip"
+  },
+  "donationSyncCharge": {
+    "message": "Charges $date$",
+    "description": "Charge sync status",
+    "placeholders": {
+      "date": { "content": "$1" }
+    }
+  },
+  "donationSyncGift": {
+    "message": "Gifts page $page$",
+    "description": "Gift sync status",
+    "placeholders": {
+      "page": { "content": "$1" }
+    }
+  },
+  "donationSyncGiftAll": {
+    "message": "All gift pages",
+    "description": "All gift sync status"
+  },
+  "taglineCreepy": {
+    "message": "I'm always watching..",
+    "description": "Creepy tagline"
   }
 }

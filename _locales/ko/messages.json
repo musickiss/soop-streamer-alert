@@ -264,5 +264,577 @@
   "recordingDataLossWarning": {
     "message": "탭/브라우저 비정상 종료 시 현재 녹화 중인 내용이 손실될 수 있습니다.",
     "description": "녹화 데이터 손실 경고 문구"
+  },
+
+  "tabMonitoring": {
+    "message": "모니터링",
+    "description": "모니터링 탭 이름"
+  },
+  "tabDonation": {
+    "message": "내 후원",
+    "description": "내 후원 탭 이름"
+  },
+  "helpTitle": {
+    "message": "안내",
+    "description": "도움말 제목"
+  },
+  "helpMessage1": {
+    "message": "이 확장 프로그램은 개인 사용 목적으로 제작되었습니다.",
+    "description": "도움말 메시지 1"
+  },
+  "helpMessage2": {
+    "message": "일부 버그나 예상치 못한 동작이 있을 수 있습니다.",
+    "description": "도움말 메시지 2"
+  },
+  "helpMessage3": {
+    "message": "지속적으로 개선하고 있으니 양해 부탁드립니다.",
+    "description": "도움말 메시지 3"
+  },
+  "helpBugReport": {
+    "message": "버그 신고 →",
+    "description": "버그 신고 링크"
+  },
+  "helpTooltip": {
+    "message": "도움말",
+    "description": "도움말 버튼 툴팁"
+  },
+  "splitSize": {
+    "message": "분할",
+    "description": "분할 크기 라벨"
+  },
+  "startRecording": {
+    "message": "녹화 시작",
+    "description": "녹화 시작 버튼"
+  },
+  "stopRecording": {
+    "message": "녹화 중지",
+    "description": "녹화 중지 버튼"
+  },
+  "resizeHandle": {
+    "message": "드래그하여 크기 조절",
+    "description": "리사이즈 핸들 툴팁"
+  },
+  "importTooltip": {
+    "message": "가져오기",
+    "description": "가져오기 버튼 툴팁"
+  },
+  "exportTooltip": {
+    "message": "내보내기",
+    "description": "내보내기 버튼 툴팁"
+  },
+  "refreshTooltip": {
+    "message": "새로고침",
+    "description": "새로고침 버튼 툴팁"
+  },
+  "autoRecord": {
+    "message": "자동 녹화",
+    "description": "자동 녹화 설정"
+  },
+  "monitoringCount": {
+    "message": "$total$명 중 $live$명 방송중",
+    "description": "모니터링 인원 정보",
+    "placeholders": {
+      "total": { "content": "$1" },
+      "live": { "content": "$2" }
+    }
+  },
+  "recordingStarting": {
+    "message": "시작 중...",
+    "description": "녹화 시작 중 상태"
+  },
+  "toastRecordingStarting": {
+    "message": "녹화 시작 중...",
+    "description": "녹화 시작 중 토스트"
+  },
+  "toastRecordingStarted": {
+    "message": "🔴 $name$ 녹화 시작!",
+    "description": "녹화 시작 완료 토스트",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "toastRecordingStopped": {
+    "message": "녹화가 중지되었습니다.",
+    "description": "녹화 중지 토스트"
+  },
+  "toastRecordingComplete": {
+    "message": "✅ $name$ 녹화 완료!",
+    "description": "녹화 완료 토스트",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "toastRecordingError": {
+    "message": "녹화 오류: $error$",
+    "description": "녹화 오류 토스트",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastSegmentSaved": {
+    "message": "📁 Part $part$ 저장됨 ($size$)",
+    "description": "분할 저장 토스트",
+    "placeholders": {
+      "part": { "content": "$1" },
+      "size": { "content": "$2" }
+    }
+  },
+  "toastSegmentError": {
+    "message": "분할 저장 실패: $error$",
+    "description": "분할 저장 오류 토스트",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastSplitRecording": {
+    "message": "파트 $part$ 녹화 중",
+    "description": "분할 녹화 중 토스트",
+    "placeholders": {
+      "part": { "content": "$1" }
+    }
+  },
+  "toastRecordingLost": {
+    "message": "⚠️ $name$ 녹화가 새로고침으로 중단되었습니다. ($time$ 손실)",
+    "description": "녹화 손실 토스트",
+    "placeholders": {
+      "name": { "content": "$1" },
+      "time": { "content": "$2" }
+    }
+  },
+  "toastMaxRecordings": {
+    "message": "최대 $count$개까지 동시 녹화가 가능합니다.",
+    "description": "최대 녹화 개수 초과 토스트",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "toastNoSoopTab": {
+    "message": "SOOP 방송 탭을 찾을 수 없습니다.",
+    "description": "SOOP 탭 없음 토스트"
+  },
+  "toastRecordingStartFailed": {
+    "message": "녹화 시작 실패: $error$",
+    "description": "녹화 시작 실패 토스트",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastRecordingStopFailed": {
+    "message": "녹화 중지 실패: $error$",
+    "description": "녹화 중지 실패 토스트",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastSplitSizeSet": {
+    "message": "분할 크기: $size$ 설정됨",
+    "description": "분할 크기 설정 토스트",
+    "placeholders": {
+      "size": { "content": "$1" }
+    }
+  },
+  "toastExportSuccess": {
+    "message": "$count$명의 스트리머를 내보냈습니다.",
+    "description": "내보내기 성공 토스트",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "toastExportEmpty": {
+    "message": "내보낼 스트리머가 없습니다.",
+    "description": "내보내기 대상 없음 토스트"
+  },
+  "toastImportSuccess": {
+    "message": "$count$명의 스트리머를 가져왔습니다.",
+    "description": "가져오기 성공 토스트",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "toastImportPartial": {
+    "message": "$added$명 추가됨, $skipped$명 건너뜀",
+    "description": "일부 가져오기 성공 토스트",
+    "placeholders": {
+      "added": { "content": "$1" },
+      "skipped": { "content": "$2" }
+    }
+  },
+  "toastImportDuplicate": {
+    "message": "모든 스트리머가 이미 등록되어 있습니다.",
+    "description": "가져오기 중복 토스트"
+  },
+  "toastImportEmpty": {
+    "message": "가져올 스트리머가 없습니다.",
+    "description": "가져올 대상 없음 토스트"
+  },
+  "toastImportError": {
+    "message": "파일을 읽는 중 오류가 발생했습니다.",
+    "description": "가져오기 오류 토스트"
+  },
+  "toastAddStreamerEmpty": {
+    "message": "스트리머 ID를 입력하세요.",
+    "description": "스트리머 ID 비어있음 토스트"
+  },
+  "toastAddStreamerInvalid": {
+    "message": "올바른 스트리머 ID를 입력하세요.",
+    "description": "스트리머 ID 유효하지 않음 토스트"
+  },
+  "toastAddStreamerError": {
+    "message": "스트리머 추가 중 오류가 발생했습니다.",
+    "description": "스트리머 추가 오류 토스트"
+  },
+  "toastDeleteStreamerError": {
+    "message": "스트리머 삭제 중 오류가 발생했습니다.",
+    "description": "스트리머 삭제 오류 토스트"
+  },
+  "toastNoStreamersToMonitor": {
+    "message": "모니터링할 스트리머를 먼저 추가하세요.",
+    "description": "모니터링 대상 없음 토스트"
+  },
+  "toastMonitoringFailed": {
+    "message": "모니터링 설정 실패",
+    "description": "모니터링 설정 실패 토스트"
+  },
+  "toastSettingsFailed": {
+    "message": "설정 변경 실패",
+    "description": "설정 변경 실패 토스트"
+  },
+  "toastRefreshFailed": {
+    "message": "새로고침 실패",
+    "description": "새로고침 실패 토스트"
+  },
+  "confirmDeleteStreamer": {
+    "message": "\"$name$\" 스트리머를 삭제하시겠습니까?",
+    "description": "스트리머 삭제 확인",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "checking": {
+    "message": "확인중...",
+    "description": "확인 중 상태"
+  },
+  "unknownStreamer": {
+    "message": "알 수 없음",
+    "description": "알 수 없는 스트리머"
+  },
+  "unknownError": {
+    "message": "알 수 없는 오류",
+    "description": "알 수 없는 오류"
+  },
+  "recordingInfo1Hour": {
+    "message": "1시간 녹화 시 약 2.7GB",
+    "description": "녹화 용량 안내"
+  },
+  "recordingInfoTitle": {
+    "message": "녹화 안내",
+    "description": "녹화 안내 제목"
+  },
+  "recordingInfoBackground": {
+    "message": "녹화 탭이 비활성 상태면 화질이 낮아질 수 있어요",
+    "description": "백그라운드 녹화 안내"
+  },
+  "recordingInfoWarning": {
+    "message": "탭이나 브라우저를 닫으면 녹화가 사라져요",
+    "description": "녹화 손실 경고"
+  },
+  "splitStatusSaving": {
+    "message": "💾 파트 $part$ 저장 중...",
+    "description": "분할 저장 중 상태",
+    "placeholders": {
+      "part": { "content": "$1" }
+    }
+  },
+  "splitStatusRecording": {
+    "message": "🔴 파트 $part$ 녹화 중",
+    "description": "분할 녹화 중 상태",
+    "placeholders": {
+      "part": { "content": "$1" }
+    }
+  },
+  "staleWarningTooltip": {
+    "message": "상태 업데이트 지연 - 녹화는 계속 진행 중일 수 있습니다",
+    "description": "stale 경고 툴팁"
+  },
+
+  "donationSync": {
+    "message": "동기화",
+    "description": "동기화 버튼"
+  },
+  "donationFullSync": {
+    "message": "전체",
+    "description": "전체 동기화 버튼"
+  },
+  "donationFullSyncTooltip": {
+    "message": "전체 데이터 다시 불러오기",
+    "description": "전체 동기화 툴팁"
+  },
+  "donationSearchPlaceholder": {
+    "message": "스트리머, 금액 검색...",
+    "description": "검색 플레이스홀더"
+  },
+  "donationSyncComplete": {
+    "message": "동기화 완료",
+    "description": "동기화 완료 메시지"
+  },
+  "donationSyncFailed": {
+    "message": "동기화 실패: $error$",
+    "description": "동기화 실패 메시지",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "donationSyncError": {
+    "message": "동기화 중 오류 발생",
+    "description": "동기화 오류 메시지"
+  },
+  "donationSyncing": {
+    "message": "동기화 중",
+    "description": "동기화 중 상태"
+  },
+  "donationLastSync": {
+    "message": "마지막: $time$",
+    "description": "마지막 동기화 시간",
+    "placeholders": {
+      "time": { "content": "$1" }
+    }
+  },
+  "donationLoginRequired": {
+    "message": "로그인 필요",
+    "description": "로그인 필요 제목"
+  },
+  "donationLoginDesc": {
+    "message": "SOOP에 로그인 후 이용 가능합니다",
+    "description": "로그인 필요 설명"
+  },
+  "donationLoginBtn": {
+    "message": "SOOP 로그인",
+    "description": "로그인 버튼"
+  },
+  "donationEmpty": {
+    "message": "동기화 버튼을 눌러 데이터를 불러오세요",
+    "description": "데이터 없음 메시지"
+  },
+  "donationDataNotice": {
+    "message": "로그인 계정 기반 · 로컬에만 저장 (외부 전송 없음)",
+    "description": "데이터 안내 1"
+  },
+  "donationDataNotice2": {
+    "message": "수집 시점에 따라 실제와 차이가 있을 수 있습니다",
+    "description": "데이터 안내 2"
+  },
+  "donationBalance": {
+    "message": "보유 별풍선",
+    "description": "보유 별풍선 라벨"
+  },
+  "donationUsed": {
+    "message": "사용",
+    "description": "사용 라벨"
+  },
+  "donationUnit": {
+    "message": "개",
+    "description": "개수 단위"
+  },
+  "donationGiftBtn": {
+    "message": "🎁 후원하기",
+    "description": "후원하기 버튼"
+  },
+  "donationTabGift": {
+    "message": "🎁 선물",
+    "description": "선물 서브탭"
+  },
+  "donationTabCharge": {
+    "message": "💳 충전",
+    "description": "충전 서브탭"
+  },
+  "donationPeriod1m": {
+    "message": "1개월",
+    "description": "1개월 필터"
+  },
+  "donationPeriod3m": {
+    "message": "3개월",
+    "description": "3개월 필터"
+  },
+  "donationPeriod6m": {
+    "message": "6개월",
+    "description": "6개월 필터"
+  },
+  "donationPeriod1y": {
+    "message": "1년",
+    "description": "1년 필터"
+  },
+  "donationPeriodAll": {
+    "message": "전체",
+    "description": "전체 필터"
+  },
+  "donationChartGift": {
+    "message": "스트리머별 선물",
+    "description": "스트리머별 선물 차트 제목"
+  },
+  "donationChartCharge": {
+    "message": "충전 현황",
+    "description": "충전 현황 차트 제목"
+  },
+  "donationChartTotal": {
+    "message": "총 $amount$$unit$",
+    "description": "차트 총합",
+    "placeholders": {
+      "amount": { "content": "$1" },
+      "unit": { "content": "$2" }
+    }
+  },
+  "donationChartEmpty": {
+    "message": "데이터가 없습니다",
+    "description": "차트 데이터 없음"
+  },
+  "donationChartOther": {
+    "message": "기타",
+    "description": "기타 항목"
+  },
+  "donationChartInfo": {
+    "message": "최근 3개월 통계입니다",
+    "description": "차트 정보 툴팁"
+  },
+  "donationListHeader": {
+    "message": "📋 상세 내역 ($count$건)",
+    "description": "상세 내역 헤더",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "donationListEmpty": {
+    "message": "내역이 없습니다",
+    "description": "내역 없음"
+  },
+  "donationListSearchEmpty": {
+    "message": "검색 결과가 없습니다",
+    "description": "검색 결과 없음"
+  },
+  "donationUnknown": {
+    "message": "알 수 없음",
+    "description": "알 수 없는 스트리머"
+  },
+  "donationGiftTitle": {
+    "message": "🎁 방송국 후원하기",
+    "description": "후원 모달 제목"
+  },
+  "donationGiftNotice": {
+    "message": "방송국에 후원하는 기능입니다.",
+    "description": "후원 안내"
+  },
+  "donationGiftNotice2": {
+    "message": "후원 메시지를 확인하려면 해당 스트리머의 채팅창에 재입장해주세요.",
+    "description": "후원 안내 2"
+  },
+  "donationGiftBalance": {
+    "message": "보유: $amount$개",
+    "description": "보유 별풍선",
+    "placeholders": {
+      "amount": { "content": "$1" }
+    }
+  },
+  "donationGiftSelectStreamer": {
+    "message": "스트리머 선택",
+    "description": "스트리머 선택 라벨"
+  },
+  "donationGiftFavorites": {
+    "message": "⭐ 후원 즐겨찾기",
+    "description": "후원 즐겨찾기 섹션"
+  },
+  "donationGiftMonitoring": {
+    "message": "📺 모니터링 스트리머",
+    "description": "모니터링 스트리머 섹션"
+  },
+  "donationGiftEmpty": {
+    "message": "등록된 스트리머가 없습니다",
+    "description": "스트리머 없음"
+  },
+  "donationGiftSelected": {
+    "message": "선택된 스트리머 없음",
+    "description": "스트리머 미선택"
+  },
+  "donationGiftCancel": {
+    "message": "취소",
+    "description": "취소 버튼"
+  },
+  "donationGiftExecute": {
+    "message": "후원하기",
+    "description": "후원 실행 버튼"
+  },
+  "donationGiftConfirmTitle": {
+    "message": "후원 확인",
+    "description": "후원 확인 제목"
+  },
+  "donationGiftConfirmMessage": {
+    "message": "$name$님에게 후원하시겠습니까?",
+    "description": "후원 확인 메시지",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "donationGiftConfirmNotice": {
+    "message": "확인을 누르면 SOOP 후원 창이 열립니다.",
+    "description": "후원 확인 안내"
+  },
+  "donationGiftConfirmNotice2": {
+    "message": "후원 창에서 금액을 직접 입력해주세요.",
+    "description": "후원 확인 안내 2"
+  },
+  "donationGiftWarningTitle": {
+    "message": "⚠️ 주의사항",
+    "description": "주의사항 제목"
+  },
+  "donationGiftWarning1": {
+    "message": "본 기능은 사용자 편의를 위해 제공됩니다.",
+    "description": "주의사항 1"
+  },
+  "donationGiftWarning2": {
+    "message": "후원 실행 후 발생하는 모든 결과에 대한 책임은 사용자 본인에게 있습니다.",
+    "description": "주의사항 2"
+  },
+  "donationGiftWarning3": {
+    "message": "개발자는 이 기능 사용으로 인한 손실이나 문제에 대해 책임지지 않습니다.",
+    "description": "주의사항 3"
+  },
+  "donationGiftConfirmOk": {
+    "message": "확인",
+    "description": "확인 버튼"
+  },
+  "donationGiftOpened": {
+    "message": "$name$님 후원 창이 열렸습니다",
+    "description": "후원 창 열림 메시지",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "donationGiftAddFav": {
+    "message": "즐겨찾기 추가",
+    "description": "즐겨찾기 추가 툴팁"
+  },
+  "donationGiftRemoveFav": {
+    "message": "즐겨찾기 해제",
+    "description": "즐겨찾기 해제 툴팁"
+  },
+  "donationSyncCharge": {
+    "message": "충전내역 $date$",
+    "description": "충전 내역 동기화 상태",
+    "placeholders": {
+      "date": { "content": "$1" }
+    }
+  },
+  "donationSyncGift": {
+    "message": "선물내역 $page$페이지",
+    "description": "선물 내역 동기화 상태",
+    "placeholders": {
+      "page": { "content": "$1" }
+    }
+  },
+  "donationSyncGiftAll": {
+    "message": "선물내역 전체 페이지",
+    "description": "선물 내역 전체 동기화 상태"
+  },
+  "taglineCreepy": {
+    "message": "내가 늘 지켜보고 있어..",
+    "description": "크리피 태그라인"
   }
 }

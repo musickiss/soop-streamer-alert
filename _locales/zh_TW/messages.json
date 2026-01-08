@@ -264,5 +264,577 @@
   "recordingDataLossWarning": {
     "message": "如果標籤頁或瀏覽器異常關閉，當前錄製中的內容可能會遺失。",
     "description": "錄製資料遺失警告"
+  },
+
+  "tabMonitoring": {
+    "message": "監控",
+    "description": "監控標籤名"
+  },
+  "tabDonation": {
+    "message": "我的贊助",
+    "description": "我的贊助標籤名"
+  },
+  "helpTitle": {
+    "message": "提示",
+    "description": "說明標題"
+  },
+  "helpMessage1": {
+    "message": "本擴充功能為個人使用目的製作。",
+    "description": "說明訊息1"
+  },
+  "helpMessage2": {
+    "message": "可能存在一些錯誤或意外行為。",
+    "description": "說明訊息2"
+  },
+  "helpMessage3": {
+    "message": "我們正在持續改進，感謝您的諒解。",
+    "description": "說明訊息3"
+  },
+  "helpBugReport": {
+    "message": "回報錯誤 →",
+    "description": "錯誤回報連結"
+  },
+  "helpTooltip": {
+    "message": "說明",
+    "description": "說明按鈕提示"
+  },
+  "splitSize": {
+    "message": "分割",
+    "description": "分割大小標籤"
+  },
+  "startRecording": {
+    "message": "開始錄製",
+    "description": "開始錄製按鈕"
+  },
+  "stopRecording": {
+    "message": "停止錄製",
+    "description": "停止錄製按鈕"
+  },
+  "resizeHandle": {
+    "message": "拖曳調整大小",
+    "description": "調整大小提示"
+  },
+  "importTooltip": {
+    "message": "匯入",
+    "description": "匯入按鈕提示"
+  },
+  "exportTooltip": {
+    "message": "匯出",
+    "description": "匯出按鈕提示"
+  },
+  "refreshTooltip": {
+    "message": "重新整理",
+    "description": "重新整理按鈕提示"
+  },
+  "autoRecord": {
+    "message": "自動錄製",
+    "description": "自動錄製設定"
+  },
+  "monitoringCount": {
+    "message": "$total$人中$live$人直播中",
+    "description": "監控人數資訊",
+    "placeholders": {
+      "total": { "content": "$1" },
+      "live": { "content": "$2" }
+    }
+  },
+  "recordingStarting": {
+    "message": "啟動中...",
+    "description": "錄製啟動中狀態"
+  },
+  "toastRecordingStarting": {
+    "message": "正在開始錄製...",
+    "description": "錄製啟動中提示"
+  },
+  "toastRecordingStarted": {
+    "message": "🔴 $name$ 開始錄製!",
+    "description": "錄製開始提示",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "toastRecordingStopped": {
+    "message": "錄製已停止。",
+    "description": "錄製停止提示"
+  },
+  "toastRecordingComplete": {
+    "message": "✅ $name$ 錄製完成!",
+    "description": "錄製完成提示",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "toastRecordingError": {
+    "message": "錄製錯誤: $error$",
+    "description": "錄製錯誤提示",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastSegmentSaved": {
+    "message": "📁 Part $part$ 已儲存 ($size$)",
+    "description": "分段儲存提示",
+    "placeholders": {
+      "part": { "content": "$1" },
+      "size": { "content": "$2" }
+    }
+  },
+  "toastSegmentError": {
+    "message": "分段儲存失敗: $error$",
+    "description": "分段儲存錯誤提示",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastSplitRecording": {
+    "message": "Part $part$ 錄製中",
+    "description": "分段錄製中提示",
+    "placeholders": {
+      "part": { "content": "$1" }
+    }
+  },
+  "toastRecordingLost": {
+    "message": "⚠️ $name$ 錄製因重新整理而中斷。($time$ 遺失)",
+    "description": "錄製遺失提示",
+    "placeholders": {
+      "name": { "content": "$1" },
+      "time": { "content": "$2" }
+    }
+  },
+  "toastMaxRecordings": {
+    "message": "最多支援同時錄製$count$個。",
+    "description": "最大錄製數超限提示",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "toastNoSoopTab": {
+    "message": "找不到SOOP直播分頁。",
+    "description": "無SOOP分頁提示"
+  },
+  "toastRecordingStartFailed": {
+    "message": "錄製啟動失敗: $error$",
+    "description": "錄製啟動失敗提示",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastRecordingStopFailed": {
+    "message": "錄製停止失敗: $error$",
+    "description": "錄製停止失敗提示",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastSplitSizeSet": {
+    "message": "分割大小已設定為 $size$",
+    "description": "分割大小設定提示",
+    "placeholders": {
+      "size": { "content": "$1" }
+    }
+  },
+  "toastExportSuccess": {
+    "message": "已匯出 $count$ 位實況主。",
+    "description": "匯出成功提示",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "toastExportEmpty": {
+    "message": "沒有可匯出的實況主。",
+    "description": "無匯出對象提示"
+  },
+  "toastImportSuccess": {
+    "message": "已匯入 $count$ 位實況主。",
+    "description": "匯入成功提示",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "toastImportPartial": {
+    "message": "新增 $added$ 人，跳過 $skipped$ 人",
+    "description": "部分匯入成功提示",
+    "placeholders": {
+      "added": { "content": "$1" },
+      "skipped": { "content": "$2" }
+    }
+  },
+  "toastImportDuplicate": {
+    "message": "所有實況主已註冊。",
+    "description": "匯入重複提示"
+  },
+  "toastImportEmpty": {
+    "message": "沒有可匯入的實況主。",
+    "description": "無匯入對象提示"
+  },
+  "toastImportError": {
+    "message": "讀取檔案時發生錯誤。",
+    "description": "匯入錯誤提示"
+  },
+  "toastAddStreamerEmpty": {
+    "message": "請輸入實況主ID。",
+    "description": "實況主ID為空提示"
+  },
+  "toastAddStreamerInvalid": {
+    "message": "請輸入有效的實況主ID。",
+    "description": "實況主ID無效提示"
+  },
+  "toastAddStreamerError": {
+    "message": "新增實況主時發生錯誤。",
+    "description": "新增實況主錯誤提示"
+  },
+  "toastDeleteStreamerError": {
+    "message": "刪除實況主時發生錯誤。",
+    "description": "刪除實況主錯誤提示"
+  },
+  "toastNoStreamersToMonitor": {
+    "message": "請先新增要監控的實況主。",
+    "description": "無監控對象提示"
+  },
+  "toastMonitoringFailed": {
+    "message": "監控設定失敗",
+    "description": "監控設定失敗提示"
+  },
+  "toastSettingsFailed": {
+    "message": "設定變更失敗",
+    "description": "設定變更失敗提示"
+  },
+  "toastRefreshFailed": {
+    "message": "重新整理失敗",
+    "description": "重新整理失敗提示"
+  },
+  "confirmDeleteStreamer": {
+    "message": "確定刪除「$name$」實況主嗎？",
+    "description": "刪除實況主確認",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "checking": {
+    "message": "檢查中...",
+    "description": "檢查中狀態"
+  },
+  "unknownStreamer": {
+    "message": "未知",
+    "description": "未知實況主"
+  },
+  "unknownError": {
+    "message": "未知錯誤",
+    "description": "未知錯誤"
+  },
+  "recordingInfo1Hour": {
+    "message": "每小時錄製約2.7GB",
+    "description": "錄製容量提示"
+  },
+  "recordingInfoTitle": {
+    "message": "錄製提示",
+    "description": "錄製提示標題"
+  },
+  "recordingInfoBackground": {
+    "message": "分頁在背景時畫質可能會降低",
+    "description": "背景錄製提示"
+  },
+  "recordingInfoWarning": {
+    "message": "關閉分頁或瀏覽器將遺失錄製內容",
+    "description": "錄製遺失警告"
+  },
+  "splitStatusSaving": {
+    "message": "💾 Part $part$ 儲存中...",
+    "description": "分段儲存中狀態",
+    "placeholders": {
+      "part": { "content": "$1" }
+    }
+  },
+  "splitStatusRecording": {
+    "message": "🔴 Part $part$ 錄製中",
+    "description": "分段錄製中狀態",
+    "placeholders": {
+      "part": { "content": "$1" }
+    }
+  },
+  "staleWarningTooltip": {
+    "message": "狀態更新延遲 - 錄製可能仍在進行",
+    "description": "stale警告提示"
+  },
+
+  "donationSync": {
+    "message": "同步",
+    "description": "同步按鈕"
+  },
+  "donationFullSync": {
+    "message": "全部",
+    "description": "全部同步按鈕"
+  },
+  "donationFullSyncTooltip": {
+    "message": "重新載入所有資料",
+    "description": "全部同步提示"
+  },
+  "donationSearchPlaceholder": {
+    "message": "搜尋實況主、金額...",
+    "description": "搜尋佔位符"
+  },
+  "donationSyncComplete": {
+    "message": "同步完成",
+    "description": "同步完成訊息"
+  },
+  "donationSyncFailed": {
+    "message": "同步失敗: $error$",
+    "description": "同步失敗訊息",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "donationSyncError": {
+    "message": "同步時發生錯誤",
+    "description": "同步錯誤訊息"
+  },
+  "donationSyncing": {
+    "message": "同步中",
+    "description": "同步中狀態"
+  },
+  "donationLastSync": {
+    "message": "上次: $time$",
+    "description": "上次同步時間",
+    "placeholders": {
+      "time": { "content": "$1" }
+    }
+  },
+  "donationLoginRequired": {
+    "message": "需要登入",
+    "description": "需要登入標題"
+  },
+  "donationLoginDesc": {
+    "message": "請登入SOOP後使用此功能",
+    "description": "需要登入說明"
+  },
+  "donationLoginBtn": {
+    "message": "登入SOOP",
+    "description": "登入按鈕"
+  },
+  "donationEmpty": {
+    "message": "點擊同步按鈕載入資料",
+    "description": "無資料訊息"
+  },
+  "donationDataNotice": {
+    "message": "基於登入帳號 · 僅本機儲存（無外部傳輸）",
+    "description": "資料提示1"
+  },
+  "donationDataNotice2": {
+    "message": "資料可能因擷取時間而與實際有差異",
+    "description": "資料提示2"
+  },
+  "donationBalance": {
+    "message": "星氣球餘額",
+    "description": "星氣球餘額標籤"
+  },
+  "donationUsed": {
+    "message": "已使用",
+    "description": "已使用標籤"
+  },
+  "donationUnit": {
+    "message": "個",
+    "description": "數量單位"
+  },
+  "donationGiftBtn": {
+    "message": "🎁 贊助",
+    "description": "贊助按鈕"
+  },
+  "donationTabGift": {
+    "message": "🎁 禮物",
+    "description": "禮物子標籤"
+  },
+  "donationTabCharge": {
+    "message": "💳 儲值",
+    "description": "儲值子標籤"
+  },
+  "donationPeriod1m": {
+    "message": "1個月",
+    "description": "1個月篩選"
+  },
+  "donationPeriod3m": {
+    "message": "3個月",
+    "description": "3個月篩選"
+  },
+  "donationPeriod6m": {
+    "message": "6個月",
+    "description": "6個月篩選"
+  },
+  "donationPeriod1y": {
+    "message": "1年",
+    "description": "1年篩選"
+  },
+  "donationPeriodAll": {
+    "message": "全部",
+    "description": "全部篩選"
+  },
+  "donationChartGift": {
+    "message": "按實況主的禮物",
+    "description": "按實況主的禮物圖表標題"
+  },
+  "donationChartCharge": {
+    "message": "儲值狀況",
+    "description": "儲值狀況圖表標題"
+  },
+  "donationChartTotal": {
+    "message": "共 $amount$$unit$",
+    "description": "圖表總計",
+    "placeholders": {
+      "amount": { "content": "$1" },
+      "unit": { "content": "$2" }
+    }
+  },
+  "donationChartEmpty": {
+    "message": "暫無資料",
+    "description": "圖表無資料"
+  },
+  "donationChartOther": {
+    "message": "其他",
+    "description": "其他項目"
+  },
+  "donationChartInfo": {
+    "message": "最近3個月統計",
+    "description": "圖表資訊提示"
+  },
+  "donationListHeader": {
+    "message": "📋 詳細記錄 ($count$筆)",
+    "description": "詳細記錄標題",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "donationListEmpty": {
+    "message": "暫無記錄",
+    "description": "無記錄"
+  },
+  "donationListSearchEmpty": {
+    "message": "無搜尋結果",
+    "description": "無搜尋結果"
+  },
+  "donationUnknown": {
+    "message": "未知",
+    "description": "未知實況主"
+  },
+  "donationGiftTitle": {
+    "message": "🎁 向直播間贊助",
+    "description": "贊助彈窗標題"
+  },
+  "donationGiftNotice": {
+    "message": "這是向直播間贊助的功能。",
+    "description": "贊助提示"
+  },
+  "donationGiftNotice2": {
+    "message": "要查看贊助訊息，請重新進入實況主的聊天室。",
+    "description": "贊助提示2"
+  },
+  "donationGiftBalance": {
+    "message": "餘額: $amount$個",
+    "description": "星氣球餘額",
+    "placeholders": {
+      "amount": { "content": "$1" }
+    }
+  },
+  "donationGiftSelectStreamer": {
+    "message": "選擇實況主",
+    "description": "選擇實況主標籤"
+  },
+  "donationGiftFavorites": {
+    "message": "⭐ 贊助收藏",
+    "description": "贊助收藏區"
+  },
+  "donationGiftMonitoring": {
+    "message": "📺 監控實況主",
+    "description": "監控實況主區"
+  },
+  "donationGiftEmpty": {
+    "message": "沒有已註冊的實況主",
+    "description": "無實況主"
+  },
+  "donationGiftSelected": {
+    "message": "未選擇實況主",
+    "description": "未選擇實況主"
+  },
+  "donationGiftCancel": {
+    "message": "取消",
+    "description": "取消按鈕"
+  },
+  "donationGiftExecute": {
+    "message": "贊助",
+    "description": "贊助執行按鈕"
+  },
+  "donationGiftConfirmTitle": {
+    "message": "確認贊助",
+    "description": "確認贊助標題"
+  },
+  "donationGiftConfirmMessage": {
+    "message": "向 $name$ 贊助嗎？",
+    "description": "確認贊助訊息",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "donationGiftConfirmNotice": {
+    "message": "點擊確認將開啟SOOP贊助視窗。",
+    "description": "確認贊助提示"
+  },
+  "donationGiftConfirmNotice2": {
+    "message": "請在贊助視窗中直接輸入金額。",
+    "description": "確認贊助提示2"
+  },
+  "donationGiftWarningTitle": {
+    "message": "⚠️ 注意事項",
+    "description": "注意事項標題"
+  },
+  "donationGiftWarning1": {
+    "message": "此功能是為使用者便利而提供的。",
+    "description": "注意事項1"
+  },
+  "donationGiftWarning2": {
+    "message": "贊助後產生的所有後果由使用者本人承擔。",
+    "description": "注意事項2"
+  },
+  "donationGiftWarning3": {
+    "message": "開發者不對使用此功能造成的任何損失或問題負責。",
+    "description": "注意事項3"
+  },
+  "donationGiftConfirmOk": {
+    "message": "確認",
+    "description": "確認按鈕"
+  },
+  "donationGiftOpened": {
+    "message": "已開啟 $name$ 的贊助視窗",
+    "description": "贊助視窗已開啟訊息",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "donationGiftAddFav": {
+    "message": "新增收藏",
+    "description": "新增收藏提示"
+  },
+  "donationGiftRemoveFav": {
+    "message": "取消收藏",
+    "description": "取消收藏提示"
+  },
+  "donationSyncCharge": {
+    "message": "儲值記錄 $date$",
+    "description": "儲值記錄同步狀態",
+    "placeholders": {
+      "date": { "content": "$1" }
+    }
+  },
+  "donationSyncGift": {
+    "message": "禮物記錄第$page$頁",
+    "description": "禮物記錄同步狀態",
+    "placeholders": {
+      "page": { "content": "$1" }
+    }
+  },
+  "donationSyncGiftAll": {
+    "message": "禮物記錄全部頁面",
+    "description": "禮物記錄全部同步狀態"
+  },
+  "taglineCreepy": {
+    "message": "我一直在看著你..",
+    "description": "恐怖標語"
   }
 }

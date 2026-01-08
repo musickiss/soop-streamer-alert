@@ -16,11 +16,11 @@
   <div class="main-tab-nav">
     <button class="main-tab-btn active" data-tab="monitoring">
       <span class="main-tab-icon">📺</span>
-      <span class="main-tab-text">모니터링</span>
+      <span class="main-tab-text" data-i18n="tabMonitoring">모니터링</span>
     </button>
     <button class="main-tab-btn" data-tab="donation">
       <span class="main-tab-icon">🎁</span>
-      <span class="main-tab-text">내 후원</span>
+      <span class="main-tab-text" data-i18n="tabDonation">내 후원</span>
     </button>
   </div>
 
@@ -34,18 +34,18 @@
           <div class="brand-logo">📺</div>
           <div class="brand-text">
             <h1 id="brandText">숲토킹</h1>
-            <p class="tagline creepy-text">내가 늘 지켜보고 있어..</p>
+            <p class="tagline creepy-text" data-i18n="taglineCreepy">내가 늘 지켜보고 있어..</p>
           </div>
         </div>
         <div class="header-actions">
           <div class="help-wrapper">
-            <button class="icon-btn" id="helpBtn" title="도움말">❓</button>
+            <button class="icon-btn" id="helpBtn" data-i18n-title="helpTooltip" title="도움말">❓</button>
             <div class="help-tooltip">
-              <p class="tooltip-title">📢 안내</p>
-              <p>이 확장 프로그램은 개인 사용 목적으로 제작되었습니다.</p>
-              <p>일부 버그나 예상치 못한 동작이 있을 수 있습니다.</p>
-              <p>지속적으로 개선하고 있으니 양해 부탁드립니다.</p>
-              <a href="https://github.com/musickiss/soop-streamer-alert/issues" target="_blank" class="tooltip-link">버그 신고 →</a>
+              <p class="tooltip-title">📢 <span data-i18n="helpTitle">안내</span></p>
+              <p data-i18n="helpMessage1">이 확장 프로그램은 개인 사용 목적으로 제작되었습니다.</p>
+              <p data-i18n="helpMessage2">일부 버그나 예상치 못한 동작이 있을 수 있습니다.</p>
+              <p data-i18n="helpMessage3">지속적으로 개선하고 있으니 양해 부탁드립니다.</p>
+              <a href="https://github.com/musickiss/soop-streamer-alert/issues" target="_blank" class="tooltip-link" data-i18n="helpBugReport">버그 신고 →</a>
             </div>
           </div>
         </div>
@@ -84,10 +84,10 @@
         <div class="section-header">
           <div class="section-title">📺 <span data-i18n="nowWatching">현재 시청 중</span></div>
           <!-- ⭐ v3.7.0: 품질 선택 제거, 분할 크기만 오른쪽 배치 -->
-          <select id="splitSizeSelect" class="quality-select" title="분할 녹화 크기 선택">
-            <option value="500" selected>분할: 500MB</option>
-            <option value="1024">분할: 1GB</option>
-            <option value="2048">분할: 2GB</option>
+          <select id="splitSizeSelect" class="quality-select" data-i18n-title="splitSize" title="분할 녹화 크기 선택">
+            <option value="500" selected data-i18n-template="splitSize">분할: 500MB</option>
+            <option value="1024" data-i18n-template="splitSize">분할: 1GB</option>
+            <option value="2048" data-i18n-template="splitSize">분할: 2GB</option>
           </select>
         </div>
 
@@ -110,7 +110,7 @@
           <div class="recording-controls" id="recordingControls">
             <button class="record-btn" id="startRecordingBtn">
               <span class="record-icon"></span>
-              <span>녹화 시작</span>
+              <span data-i18n="startRecording">녹화 시작</span>
             </button>
           </div>
         </div>
@@ -146,21 +146,21 @@
       </section>
 
       <!-- 리사이즈 핸들 -->
-      <div class="resize-handle" id="resizeHandle" title="드래그하여 크기 조절"></div>
+      <div class="resize-handle" id="resizeHandle" data-i18n-title="resizeHandle" title="드래그하여 크기 조절"></div>
 
       <!-- 스트리머 목록 섹션 -->
       <section class="streamer-section" id="favoritesSection">
         <div class="section-header">
           <div class="section-title">⭐ <span data-i18n="favoriteStreamers">즐겨찾기 스트리머</span></div>
           <div class="section-actions">
-            <button class="action-btn" id="importBtn" title="가져오기">
+            <button class="action-btn" id="importBtn" data-i18n-title="importTooltip" title="가져오기">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
                 <line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
             </button>
-            <button class="action-btn" id="exportBtn" title="내보내기">
+            <button class="action-btn" id="exportBtn" data-i18n-title="exportTooltip" title="내보내기">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="17 8 12 3 7 8"/>
@@ -168,7 +168,7 @@
               </svg>
             </button>
             <input type="file" id="importFileInput" accept=".json" style="display: none;">
-            <button class="action-btn" id="refreshBtn" title="새로고침">
+            <button class="action-btn" id="refreshBtn" data-i18n-title="refreshTooltip" title="새로고침">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="23 4 23 10 17 10"/>
                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>

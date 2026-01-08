@@ -264,5 +264,577 @@
   "recordingDataLossWarning": {
     "message": "タブやブラウザが異常終了すると、録画中のデータが失われる可能性があります。",
     "description": "録画データ損失警告"
+  },
+
+  "tabMonitoring": {
+    "message": "モニタリング",
+    "description": "モニタリングタブ名"
+  },
+  "tabDonation": {
+    "message": "投げ銭",
+    "description": "投げ銭タブ名"
+  },
+  "helpTitle": {
+    "message": "お知らせ",
+    "description": "ヘルプタイトル"
+  },
+  "helpMessage1": {
+    "message": "この拡張機能は個人使用目的で作成されました。",
+    "description": "ヘルプメッセージ1"
+  },
+  "helpMessage2": {
+    "message": "バグや予期しない動作がある場合があります。",
+    "description": "ヘルプメッセージ2"
+  },
+  "helpMessage3": {
+    "message": "継続的に改善していますので、ご了承ください。",
+    "description": "ヘルプメッセージ3"
+  },
+  "helpBugReport": {
+    "message": "バグ報告 →",
+    "description": "バグ報告リンク"
+  },
+  "helpTooltip": {
+    "message": "ヘルプ",
+    "description": "ヘルプボタンツールチップ"
+  },
+  "splitSize": {
+    "message": "分割",
+    "description": "分割サイズラベル"
+  },
+  "startRecording": {
+    "message": "録画開始",
+    "description": "録画開始ボタン"
+  },
+  "stopRecording": {
+    "message": "録画停止",
+    "description": "録画停止ボタン"
+  },
+  "resizeHandle": {
+    "message": "ドラッグしてサイズ変更",
+    "description": "リサイズハンドルツールチップ"
+  },
+  "importTooltip": {
+    "message": "インポート",
+    "description": "インポートボタンツールチップ"
+  },
+  "exportTooltip": {
+    "message": "エクスポート",
+    "description": "エクスポートボタンツールチップ"
+  },
+  "refreshTooltip": {
+    "message": "更新",
+    "description": "更新ボタンツールチップ"
+  },
+  "autoRecord": {
+    "message": "自動録画",
+    "description": "自動録画設定"
+  },
+  "monitoringCount": {
+    "message": "$total$人中$live$人配信中",
+    "description": "モニタリング人数情報",
+    "placeholders": {
+      "total": { "content": "$1" },
+      "live": { "content": "$2" }
+    }
+  },
+  "recordingStarting": {
+    "message": "開始中...",
+    "description": "録画開始中状態"
+  },
+  "toastRecordingStarting": {
+    "message": "録画開始中...",
+    "description": "録画開始中トースト"
+  },
+  "toastRecordingStarted": {
+    "message": "🔴 $name$ 録画開始!",
+    "description": "録画開始完了トースト",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "toastRecordingStopped": {
+    "message": "録画が停止されました。",
+    "description": "録画停止トースト"
+  },
+  "toastRecordingComplete": {
+    "message": "✅ $name$ 録画完了!",
+    "description": "録画完了トースト",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "toastRecordingError": {
+    "message": "録画エラー: $error$",
+    "description": "録画エラートースト",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastSegmentSaved": {
+    "message": "📁 Part $part$ 保存完了 ($size$)",
+    "description": "分割保存トースト",
+    "placeholders": {
+      "part": { "content": "$1" },
+      "size": { "content": "$2" }
+    }
+  },
+  "toastSegmentError": {
+    "message": "分割保存失敗: $error$",
+    "description": "分割保存エラートースト",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastSplitRecording": {
+    "message": "パート $part$ 録画中",
+    "description": "分割録画中トースト",
+    "placeholders": {
+      "part": { "content": "$1" }
+    }
+  },
+  "toastRecordingLost": {
+    "message": "⚠️ $name$ 録画がリロードにより中断されました。($time$ 損失)",
+    "description": "録画損失トースト",
+    "placeholders": {
+      "name": { "content": "$1" },
+      "time": { "content": "$2" }
+    }
+  },
+  "toastMaxRecordings": {
+    "message": "最大$count$件まで同時録画可能です。",
+    "description": "最大録画数超過トースト",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "toastNoSoopTab": {
+    "message": "SOOP配信タブが見つかりません。",
+    "description": "SOOPタブなしトースト"
+  },
+  "toastRecordingStartFailed": {
+    "message": "録画開始失敗: $error$",
+    "description": "録画開始失敗トースト",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastRecordingStopFailed": {
+    "message": "録画停止失敗: $error$",
+    "description": "録画停止失敗トースト",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastSplitSizeSet": {
+    "message": "分割サイズ: $size$ に設定",
+    "description": "分割サイズ設定トースト",
+    "placeholders": {
+      "size": { "content": "$1" }
+    }
+  },
+  "toastExportSuccess": {
+    "message": "$count$人の配信者をエクスポートしました。",
+    "description": "エクスポート成功トースト",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "toastExportEmpty": {
+    "message": "エクスポートする配信者がいません。",
+    "description": "エクスポート対象なしトースト"
+  },
+  "toastImportSuccess": {
+    "message": "$count$人の配信者をインポートしました。",
+    "description": "インポート成功トースト",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "toastImportPartial": {
+    "message": "$added$人追加、$skipped$人スキップ",
+    "description": "一部インポート成功トースト",
+    "placeholders": {
+      "added": { "content": "$1" },
+      "skipped": { "content": "$2" }
+    }
+  },
+  "toastImportDuplicate": {
+    "message": "すべての配信者が既に登録されています。",
+    "description": "インポート重複トースト"
+  },
+  "toastImportEmpty": {
+    "message": "インポートする配信者がいません。",
+    "description": "インポート対象なしトースト"
+  },
+  "toastImportError": {
+    "message": "ファイルの読み込み中にエラーが発生しました。",
+    "description": "インポートエラートースト"
+  },
+  "toastAddStreamerEmpty": {
+    "message": "配信者IDを入力してください。",
+    "description": "配信者ID空トースト"
+  },
+  "toastAddStreamerInvalid": {
+    "message": "正しい配信者IDを入力してください。",
+    "description": "配信者ID無効トースト"
+  },
+  "toastAddStreamerError": {
+    "message": "配信者の追加中にエラーが発生しました。",
+    "description": "配信者追加エラートースト"
+  },
+  "toastDeleteStreamerError": {
+    "message": "配信者の削除中にエラーが発生しました。",
+    "description": "配信者削除エラートースト"
+  },
+  "toastNoStreamersToMonitor": {
+    "message": "先に配信者を追加してください。",
+    "description": "モニタリング対象なしトースト"
+  },
+  "toastMonitoringFailed": {
+    "message": "モニタリング設定失敗",
+    "description": "モニタリング設定失敗トースト"
+  },
+  "toastSettingsFailed": {
+    "message": "設定変更失敗",
+    "description": "設定変更失敗トースト"
+  },
+  "toastRefreshFailed": {
+    "message": "更新失敗",
+    "description": "更新失敗トースト"
+  },
+  "confirmDeleteStreamer": {
+    "message": "「$name$」配信者を削除しますか？",
+    "description": "配信者削除確認",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "checking": {
+    "message": "確認中...",
+    "description": "確認中状態"
+  },
+  "unknownStreamer": {
+    "message": "不明",
+    "description": "不明な配信者"
+  },
+  "unknownError": {
+    "message": "不明なエラー",
+    "description": "不明なエラー"
+  },
+  "recordingInfo1Hour": {
+    "message": "1時間録画で約2.7GB",
+    "description": "録画容量案内"
+  },
+  "recordingInfoTitle": {
+    "message": "録画案内",
+    "description": "録画案内タイトル"
+  },
+  "recordingInfoBackground": {
+    "message": "タブが非アクティブの場合、画質が低下する可能性があります",
+    "description": "バックグラウンド録画案内"
+  },
+  "recordingInfoWarning": {
+    "message": "タブやブラウザを閉じると録画が失われます",
+    "description": "録画損失警告"
+  },
+  "splitStatusSaving": {
+    "message": "💾 パート $part$ 保存中...",
+    "description": "分割保存中状態",
+    "placeholders": {
+      "part": { "content": "$1" }
+    }
+  },
+  "splitStatusRecording": {
+    "message": "🔴 パート $part$ 録画中",
+    "description": "分割録画中状態",
+    "placeholders": {
+      "part": { "content": "$1" }
+    }
+  },
+  "staleWarningTooltip": {
+    "message": "状態更新遅延 - 録画は継続中の可能性があります",
+    "description": "stale警告ツールチップ"
+  },
+
+  "donationSync": {
+    "message": "同期",
+    "description": "同期ボタン"
+  },
+  "donationFullSync": {
+    "message": "全て",
+    "description": "全同期ボタン"
+  },
+  "donationFullSyncTooltip": {
+    "message": "全データを再読み込み",
+    "description": "全同期ツールチップ"
+  },
+  "donationSearchPlaceholder": {
+    "message": "配信者、金額で検索...",
+    "description": "検索プレースホルダー"
+  },
+  "donationSyncComplete": {
+    "message": "同期完了",
+    "description": "同期完了メッセージ"
+  },
+  "donationSyncFailed": {
+    "message": "同期失敗: $error$",
+    "description": "同期失敗メッセージ",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "donationSyncError": {
+    "message": "同期中にエラー発生",
+    "description": "同期エラーメッセージ"
+  },
+  "donationSyncing": {
+    "message": "同期中",
+    "description": "同期中状態"
+  },
+  "donationLastSync": {
+    "message": "最終: $time$",
+    "description": "最終同期時間",
+    "placeholders": {
+      "time": { "content": "$1" }
+    }
+  },
+  "donationLoginRequired": {
+    "message": "ログインが必要",
+    "description": "ログイン必要タイトル"
+  },
+  "donationLoginDesc": {
+    "message": "SOOPにログイン後ご利用いただけます",
+    "description": "ログイン必要説明"
+  },
+  "donationLoginBtn": {
+    "message": "SOOPにログイン",
+    "description": "ログインボタン"
+  },
+  "donationEmpty": {
+    "message": "同期ボタンを押してデータを読み込んでください",
+    "description": "データなしメッセージ"
+  },
+  "donationDataNotice": {
+    "message": "ログインアカウント基準・ローカルのみ保存（外部送信なし）",
+    "description": "データ案内1"
+  },
+  "donationDataNotice2": {
+    "message": "収集時点により実際と差異がある場合があります",
+    "description": "データ案内2"
+  },
+  "donationBalance": {
+    "message": "保有スター風船",
+    "description": "保有スター風船ラベル"
+  },
+  "donationUsed": {
+    "message": "使用",
+    "description": "使用ラベル"
+  },
+  "donationUnit": {
+    "message": "個",
+    "description": "個数単位"
+  },
+  "donationGiftBtn": {
+    "message": "🎁 投げ銭する",
+    "description": "投げ銭ボタン"
+  },
+  "donationTabGift": {
+    "message": "🎁 ギフト",
+    "description": "ギフトサブタブ"
+  },
+  "donationTabCharge": {
+    "message": "💳 チャージ",
+    "description": "チャージサブタブ"
+  },
+  "donationPeriod1m": {
+    "message": "1ヶ月",
+    "description": "1ヶ月フィルター"
+  },
+  "donationPeriod3m": {
+    "message": "3ヶ月",
+    "description": "3ヶ月フィルター"
+  },
+  "donationPeriod6m": {
+    "message": "6ヶ月",
+    "description": "6ヶ月フィルター"
+  },
+  "donationPeriod1y": {
+    "message": "1年",
+    "description": "1年フィルター"
+  },
+  "donationPeriodAll": {
+    "message": "全期間",
+    "description": "全期間フィルター"
+  },
+  "donationChartGift": {
+    "message": "配信者別ギフト",
+    "description": "配信者別ギフトチャートタイトル"
+  },
+  "donationChartCharge": {
+    "message": "チャージ状況",
+    "description": "チャージ状況チャートタイトル"
+  },
+  "donationChartTotal": {
+    "message": "合計 $amount$$unit$",
+    "description": "チャート合計",
+    "placeholders": {
+      "amount": { "content": "$1" },
+      "unit": { "content": "$2" }
+    }
+  },
+  "donationChartEmpty": {
+    "message": "データがありません",
+    "description": "チャートデータなし"
+  },
+  "donationChartOther": {
+    "message": "その他",
+    "description": "その他項目"
+  },
+  "donationChartInfo": {
+    "message": "直近3ヶ月の統計です",
+    "description": "チャート情報ツールチップ"
+  },
+  "donationListHeader": {
+    "message": "📋 詳細履歴 ($count$件)",
+    "description": "詳細履歴ヘッダー",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "donationListEmpty": {
+    "message": "履歴がありません",
+    "description": "履歴なし"
+  },
+  "donationListSearchEmpty": {
+    "message": "検索結果がありません",
+    "description": "検索結果なし"
+  },
+  "donationUnknown": {
+    "message": "不明",
+    "description": "不明な配信者"
+  },
+  "donationGiftTitle": {
+    "message": "🎁 放送局に投げ銭する",
+    "description": "投げ銭モーダルタイトル"
+  },
+  "donationGiftNotice": {
+    "message": "放送局に投げ銭する機能です。",
+    "description": "投げ銭案内"
+  },
+  "donationGiftNotice2": {
+    "message": "投げ銭メッセージを確認するには、配信者のチャットに再入場してください。",
+    "description": "投げ銭案内2"
+  },
+  "donationGiftBalance": {
+    "message": "残高: $amount$個",
+    "description": "保有スター風船",
+    "placeholders": {
+      "amount": { "content": "$1" }
+    }
+  },
+  "donationGiftSelectStreamer": {
+    "message": "配信者を選択",
+    "description": "配信者選択ラベル"
+  },
+  "donationGiftFavorites": {
+    "message": "⭐ 投げ銭お気に入り",
+    "description": "投げ銭お気に入りセクション"
+  },
+  "donationGiftMonitoring": {
+    "message": "📺 モニタリング配信者",
+    "description": "モニタリング配信者セクション"
+  },
+  "donationGiftEmpty": {
+    "message": "登録された配信者がいません",
+    "description": "配信者なし"
+  },
+  "donationGiftSelected": {
+    "message": "配信者が選択されていません",
+    "description": "配信者未選択"
+  },
+  "donationGiftCancel": {
+    "message": "キャンセル",
+    "description": "キャンセルボタン"
+  },
+  "donationGiftExecute": {
+    "message": "投げ銭する",
+    "description": "投げ銭実行ボタン"
+  },
+  "donationGiftConfirmTitle": {
+    "message": "投げ銭確認",
+    "description": "投げ銭確認タイトル"
+  },
+  "donationGiftConfirmMessage": {
+    "message": "$name$さんに投げ銭しますか？",
+    "description": "投げ銭確認メッセージ",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "donationGiftConfirmNotice": {
+    "message": "確認を押すとSOOP投げ銭ウィンドウが開きます。",
+    "description": "投げ銭確認案内"
+  },
+  "donationGiftConfirmNotice2": {
+    "message": "投げ銭ウィンドウで金額を直接入力してください。",
+    "description": "投げ銭確認案内2"
+  },
+  "donationGiftWarningTitle": {
+    "message": "⚠️ 注意事項",
+    "description": "注意事項タイトル"
+  },
+  "donationGiftWarning1": {
+    "message": "この機能はユーザーの便宜のために提供されます。",
+    "description": "注意事項1"
+  },
+  "donationGiftWarning2": {
+    "message": "投げ銭実行後に発生するすべての結果に対する責任はユーザー本人にあります。",
+    "description": "注意事項2"
+  },
+  "donationGiftWarning3": {
+    "message": "開発者はこの機能の使用による損失や問題について責任を負いません。",
+    "description": "注意事項3"
+  },
+  "donationGiftConfirmOk": {
+    "message": "確認",
+    "description": "確認ボタン"
+  },
+  "donationGiftOpened": {
+    "message": "$name$さんの投げ銭ウィンドウが開きました",
+    "description": "投げ銭ウィンドウオープンメッセージ",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "donationGiftAddFav": {
+    "message": "お気に入り追加",
+    "description": "お気に入り追加ツールチップ"
+  },
+  "donationGiftRemoveFav": {
+    "message": "お気に入り解除",
+    "description": "お気に入り解除ツールチップ"
+  },
+  "donationSyncCharge": {
+    "message": "チャージ履歴 $date$",
+    "description": "チャージ履歴同期状態",
+    "placeholders": {
+      "date": { "content": "$1" }
+    }
+  },
+  "donationSyncGift": {
+    "message": "ギフト履歴 $page$ページ",
+    "description": "ギフト履歴同期状態",
+    "placeholders": {
+      "page": { "content": "$1" }
+    }
+  },
+  "donationSyncGiftAll": {
+    "message": "ギフト履歴 全ページ",
+    "description": "ギフト履歴全同期状態"
+  },
+  "taglineCreepy": {
+    "message": "いつも見守っています..",
+    "description": "クリーピータグライン"
   }
 }

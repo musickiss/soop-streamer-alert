@@ -264,5 +264,577 @@
   "recordingDataLossWarning": {
     "message": "如果标签页或浏览器异常关闭，当前录制中的内容可能会丢失。",
     "description": "录制数据丢失警告"
+  },
+
+  "tabMonitoring": {
+    "message": "监控",
+    "description": "监控标签名"
+  },
+  "tabDonation": {
+    "message": "我的打赏",
+    "description": "我的打赏标签名"
+  },
+  "helpTitle": {
+    "message": "提示",
+    "description": "帮助标题"
+  },
+  "helpMessage1": {
+    "message": "本扩展程序为个人使用目的制作。",
+    "description": "帮助消息1"
+  },
+  "helpMessage2": {
+    "message": "可能存在一些错误或意外行为。",
+    "description": "帮助消息2"
+  },
+  "helpMessage3": {
+    "message": "我们正在持续改进，感谢您的理解。",
+    "description": "帮助消息3"
+  },
+  "helpBugReport": {
+    "message": "报告错误 →",
+    "description": "错误报告链接"
+  },
+  "helpTooltip": {
+    "message": "帮助",
+    "description": "帮助按钮提示"
+  },
+  "splitSize": {
+    "message": "分割",
+    "description": "分割大小标签"
+  },
+  "startRecording": {
+    "message": "开始录制",
+    "description": "开始录制按钮"
+  },
+  "stopRecording": {
+    "message": "停止录制",
+    "description": "停止录制按钮"
+  },
+  "resizeHandle": {
+    "message": "拖动调整大小",
+    "description": "调整大小提示"
+  },
+  "importTooltip": {
+    "message": "导入",
+    "description": "导入按钮提示"
+  },
+  "exportTooltip": {
+    "message": "导出",
+    "description": "导出按钮提示"
+  },
+  "refreshTooltip": {
+    "message": "刷新",
+    "description": "刷新按钮提示"
+  },
+  "autoRecord": {
+    "message": "自动录制",
+    "description": "自动录制设置"
+  },
+  "monitoringCount": {
+    "message": "$total$人中$live$人直播中",
+    "description": "监控人数信息",
+    "placeholders": {
+      "total": { "content": "$1" },
+      "live": { "content": "$2" }
+    }
+  },
+  "recordingStarting": {
+    "message": "启动中...",
+    "description": "录制启动中状态"
+  },
+  "toastRecordingStarting": {
+    "message": "正在开始录制...",
+    "description": "录制启动中提示"
+  },
+  "toastRecordingStarted": {
+    "message": "🔴 $name$ 开始录制!",
+    "description": "录制开始提示",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "toastRecordingStopped": {
+    "message": "录制已停止。",
+    "description": "录制停止提示"
+  },
+  "toastRecordingComplete": {
+    "message": "✅ $name$ 录制完成!",
+    "description": "录制完成提示",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "toastRecordingError": {
+    "message": "录制错误: $error$",
+    "description": "录制错误提示",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastSegmentSaved": {
+    "message": "📁 Part $part$ 已保存 ($size$)",
+    "description": "分段保存提示",
+    "placeholders": {
+      "part": { "content": "$1" },
+      "size": { "content": "$2" }
+    }
+  },
+  "toastSegmentError": {
+    "message": "分段保存失败: $error$",
+    "description": "分段保存错误提示",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastSplitRecording": {
+    "message": "Part $part$ 录制中",
+    "description": "分段录制中提示",
+    "placeholders": {
+      "part": { "content": "$1" }
+    }
+  },
+  "toastRecordingLost": {
+    "message": "⚠️ $name$ 录制因刷新而中断。($time$ 丢失)",
+    "description": "录制丢失提示",
+    "placeholders": {
+      "name": { "content": "$1" },
+      "time": { "content": "$2" }
+    }
+  },
+  "toastMaxRecordings": {
+    "message": "最多支持同时录制$count$个。",
+    "description": "最大录制数超限提示",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "toastNoSoopTab": {
+    "message": "找不到SOOP直播标签页。",
+    "description": "无SOOP标签页提示"
+  },
+  "toastRecordingStartFailed": {
+    "message": "录制启动失败: $error$",
+    "description": "录制启动失败提示",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastRecordingStopFailed": {
+    "message": "录制停止失败: $error$",
+    "description": "录制停止失败提示",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "toastSplitSizeSet": {
+    "message": "分割大小已设置为 $size$",
+    "description": "分割大小设置提示",
+    "placeholders": {
+      "size": { "content": "$1" }
+    }
+  },
+  "toastExportSuccess": {
+    "message": "已导出 $count$ 位主播。",
+    "description": "导出成功提示",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "toastExportEmpty": {
+    "message": "没有可导出的主播。",
+    "description": "无导出对象提示"
+  },
+  "toastImportSuccess": {
+    "message": "已导入 $count$ 位主播。",
+    "description": "导入成功提示",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "toastImportPartial": {
+    "message": "添加 $added$ 人，跳过 $skipped$ 人",
+    "description": "部分导入成功提示",
+    "placeholders": {
+      "added": { "content": "$1" },
+      "skipped": { "content": "$2" }
+    }
+  },
+  "toastImportDuplicate": {
+    "message": "所有主播已注册。",
+    "description": "导入重复提示"
+  },
+  "toastImportEmpty": {
+    "message": "没有可导入的主播。",
+    "description": "无导入对象提示"
+  },
+  "toastImportError": {
+    "message": "读取文件时出错。",
+    "description": "导入错误提示"
+  },
+  "toastAddStreamerEmpty": {
+    "message": "请输入主播ID。",
+    "description": "主播ID为空提示"
+  },
+  "toastAddStreamerInvalid": {
+    "message": "请输入有效的主播ID。",
+    "description": "主播ID无效提示"
+  },
+  "toastAddStreamerError": {
+    "message": "添加主播时出错。",
+    "description": "添加主播错误提示"
+  },
+  "toastDeleteStreamerError": {
+    "message": "删除主播时出错。",
+    "description": "删除主播错误提示"
+  },
+  "toastNoStreamersToMonitor": {
+    "message": "请先添加要监控的主播。",
+    "description": "无监控对象提示"
+  },
+  "toastMonitoringFailed": {
+    "message": "监控设置失败",
+    "description": "监控设置失败提示"
+  },
+  "toastSettingsFailed": {
+    "message": "设置更改失败",
+    "description": "设置更改失败提示"
+  },
+  "toastRefreshFailed": {
+    "message": "刷新失败",
+    "description": "刷新失败提示"
+  },
+  "confirmDeleteStreamer": {
+    "message": "确定删除「$name$」主播吗？",
+    "description": "删除主播确认",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "checking": {
+    "message": "检查中...",
+    "description": "检查中状态"
+  },
+  "unknownStreamer": {
+    "message": "未知",
+    "description": "未知主播"
+  },
+  "unknownError": {
+    "message": "未知错误",
+    "description": "未知错误"
+  },
+  "recordingInfo1Hour": {
+    "message": "每小时录制约2.7GB",
+    "description": "录制容量提示"
+  },
+  "recordingInfoTitle": {
+    "message": "录制提示",
+    "description": "录制提示标题"
+  },
+  "recordingInfoBackground": {
+    "message": "标签页在后台时画质可能会降低",
+    "description": "后台录制提示"
+  },
+  "recordingInfoWarning": {
+    "message": "关闭标签页或浏览器将丢失录制内容",
+    "description": "录制丢失警告"
+  },
+  "splitStatusSaving": {
+    "message": "💾 Part $part$ 保存中...",
+    "description": "分段保存中状态",
+    "placeholders": {
+      "part": { "content": "$1" }
+    }
+  },
+  "splitStatusRecording": {
+    "message": "🔴 Part $part$ 录制中",
+    "description": "分段录制中状态",
+    "placeholders": {
+      "part": { "content": "$1" }
+    }
+  },
+  "staleWarningTooltip": {
+    "message": "状态更新延迟 - 录制可能仍在进行",
+    "description": "stale警告提示"
+  },
+
+  "donationSync": {
+    "message": "同步",
+    "description": "同步按钮"
+  },
+  "donationFullSync": {
+    "message": "全部",
+    "description": "全部同步按钮"
+  },
+  "donationFullSyncTooltip": {
+    "message": "重新加载所有数据",
+    "description": "全部同步提示"
+  },
+  "donationSearchPlaceholder": {
+    "message": "搜索主播、金额...",
+    "description": "搜索占位符"
+  },
+  "donationSyncComplete": {
+    "message": "同步完成",
+    "description": "同步完成消息"
+  },
+  "donationSyncFailed": {
+    "message": "同步失败: $error$",
+    "description": "同步失败消息",
+    "placeholders": {
+      "error": { "content": "$1" }
+    }
+  },
+  "donationSyncError": {
+    "message": "同步时出错",
+    "description": "同步错误消息"
+  },
+  "donationSyncing": {
+    "message": "同步中",
+    "description": "同步中状态"
+  },
+  "donationLastSync": {
+    "message": "上次: $time$",
+    "description": "上次同步时间",
+    "placeholders": {
+      "time": { "content": "$1" }
+    }
+  },
+  "donationLoginRequired": {
+    "message": "需要登录",
+    "description": "需要登录标题"
+  },
+  "donationLoginDesc": {
+    "message": "请登录SOOP后使用此功能",
+    "description": "需要登录说明"
+  },
+  "donationLoginBtn": {
+    "message": "登录SOOP",
+    "description": "登录按钮"
+  },
+  "donationEmpty": {
+    "message": "点击同步按钮加载数据",
+    "description": "无数据消息"
+  },
+  "donationDataNotice": {
+    "message": "基于登录账号 · 仅本地存储（无外部传输）",
+    "description": "数据提示1"
+  },
+  "donationDataNotice2": {
+    "message": "数据可能因采集时间而与实际有差异",
+    "description": "数据提示2"
+  },
+  "donationBalance": {
+    "message": "星气球余额",
+    "description": "星气球余额标签"
+  },
+  "donationUsed": {
+    "message": "已使用",
+    "description": "已使用标签"
+  },
+  "donationUnit": {
+    "message": "个",
+    "description": "数量单位"
+  },
+  "donationGiftBtn": {
+    "message": "🎁 打赏",
+    "description": "打赏按钮"
+  },
+  "donationTabGift": {
+    "message": "🎁 礼物",
+    "description": "礼物子标签"
+  },
+  "donationTabCharge": {
+    "message": "💳 充值",
+    "description": "充值子标签"
+  },
+  "donationPeriod1m": {
+    "message": "1个月",
+    "description": "1个月筛选"
+  },
+  "donationPeriod3m": {
+    "message": "3个月",
+    "description": "3个月筛选"
+  },
+  "donationPeriod6m": {
+    "message": "6个月",
+    "description": "6个月筛选"
+  },
+  "donationPeriod1y": {
+    "message": "1年",
+    "description": "1年筛选"
+  },
+  "donationPeriodAll": {
+    "message": "全部",
+    "description": "全部筛选"
+  },
+  "donationChartGift": {
+    "message": "按主播的礼物",
+    "description": "按主播的礼物图表标题"
+  },
+  "donationChartCharge": {
+    "message": "充值情况",
+    "description": "充值情况图表标题"
+  },
+  "donationChartTotal": {
+    "message": "共 $amount$$unit$",
+    "description": "图表总计",
+    "placeholders": {
+      "amount": { "content": "$1" },
+      "unit": { "content": "$2" }
+    }
+  },
+  "donationChartEmpty": {
+    "message": "暂无数据",
+    "description": "图表无数据"
+  },
+  "donationChartOther": {
+    "message": "其他",
+    "description": "其他项目"
+  },
+  "donationChartInfo": {
+    "message": "最近3个月统计",
+    "description": "图表信息提示"
+  },
+  "donationListHeader": {
+    "message": "📋 详细记录 ($count$条)",
+    "description": "详细记录标题",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "donationListEmpty": {
+    "message": "暂无记录",
+    "description": "无记录"
+  },
+  "donationListSearchEmpty": {
+    "message": "无搜索结果",
+    "description": "无搜索结果"
+  },
+  "donationUnknown": {
+    "message": "未知",
+    "description": "未知主播"
+  },
+  "donationGiftTitle": {
+    "message": "🎁 向直播间打赏",
+    "description": "打赏模态框标题"
+  },
+  "donationGiftNotice": {
+    "message": "这是向直播间打赏的功能。",
+    "description": "打赏提示"
+  },
+  "donationGiftNotice2": {
+    "message": "要查看打赏消息，请重新进入主播的聊天室。",
+    "description": "打赏提示2"
+  },
+  "donationGiftBalance": {
+    "message": "余额: $amount$个",
+    "description": "星气球余额",
+    "placeholders": {
+      "amount": { "content": "$1" }
+    }
+  },
+  "donationGiftSelectStreamer": {
+    "message": "选择主播",
+    "description": "选择主播标签"
+  },
+  "donationGiftFavorites": {
+    "message": "⭐ 打赏收藏",
+    "description": "打赏收藏区"
+  },
+  "donationGiftMonitoring": {
+    "message": "📺 监控主播",
+    "description": "监控主播区"
+  },
+  "donationGiftEmpty": {
+    "message": "没有已注册的主播",
+    "description": "无主播"
+  },
+  "donationGiftSelected": {
+    "message": "未选择主播",
+    "description": "未选择主播"
+  },
+  "donationGiftCancel": {
+    "message": "取消",
+    "description": "取消按钮"
+  },
+  "donationGiftExecute": {
+    "message": "打赏",
+    "description": "打赏执行按钮"
+  },
+  "donationGiftConfirmTitle": {
+    "message": "确认打赏",
+    "description": "确认打赏标题"
+  },
+  "donationGiftConfirmMessage": {
+    "message": "向 $name$ 打赏吗？",
+    "description": "确认打赏消息",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "donationGiftConfirmNotice": {
+    "message": "点击确认将打开SOOP打赏窗口。",
+    "description": "确认打赏提示"
+  },
+  "donationGiftConfirmNotice2": {
+    "message": "请在打赏窗口中直接输入金额。",
+    "description": "确认打赏提示2"
+  },
+  "donationGiftWarningTitle": {
+    "message": "⚠️ 注意事项",
+    "description": "注意事项标题"
+  },
+  "donationGiftWarning1": {
+    "message": "此功能是为用户便利而提供的。",
+    "description": "注意事项1"
+  },
+  "donationGiftWarning2": {
+    "message": "打赏后产生的所有后果由用户本人承担。",
+    "description": "注意事项2"
+  },
+  "donationGiftWarning3": {
+    "message": "开发者不对使用此功能造成的任何损失或问题负责。",
+    "description": "注意事项3"
+  },
+  "donationGiftConfirmOk": {
+    "message": "确认",
+    "description": "确认按钮"
+  },
+  "donationGiftOpened": {
+    "message": "已打开 $name$ 的打赏窗口",
+    "description": "打赏窗口已打开消息",
+    "placeholders": {
+      "name": { "content": "$1" }
+    }
+  },
+  "donationGiftAddFav": {
+    "message": "添加收藏",
+    "description": "添加收藏提示"
+  },
+  "donationGiftRemoveFav": {
+    "message": "取消收藏",
+    "description": "取消收藏提示"
+  },
+  "donationSyncCharge": {
+    "message": "充值记录 $date$",
+    "description": "充值记录同步状态",
+    "placeholders": {
+      "date": { "content": "$1" }
+    }
+  },
+  "donationSyncGift": {
+    "message": "礼物记录第$page$页",
+    "description": "礼物记录同步状态",
+    "placeholders": {
+      "page": { "content": "$1" }
+    }
+  },
+  "donationSyncGiftAll": {
+    "message": "礼物记录全部页面",
+    "description": "礼物记录全部同步状态"
+  },
+  "taglineCreepy": {
+    "message": "我一直在看着你..",
+    "description": "恐怖标语"
   }
 }
