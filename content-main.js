@@ -1,4 +1,4 @@
-// ===== 숲토킹 v3.7.2 - Content Script (MAIN) =====
+// ===== 숲토킹 v4.0.2 - Content Script (MAIN) =====
 // MAIN world Canvas 녹화 스크립트
 // v3.7.0 - requestAnimationFrame + captureStream(0) 기반 프레임 동기화 녹화
 //        - H.264 하드웨어 가속 코덱 우선 적용
@@ -1327,6 +1327,6 @@
     }, '*');
   });
 
-  console.log('[숲토킹 Recorder] v3.7.2 메시지 리스너 등록 완료 (rAF + captureStream(0) 프레임 동기화)');
+  console.log('[숲토킹 Recorder] v4.0.2 메시지 리스너 등록 완료 (rAF + captureStream(0) 프레임 동기화)');
 
 })();
