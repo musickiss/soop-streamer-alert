@@ -726,6 +726,18 @@
     "message": "要查看打赏消息，请重新进入主播的聊天室。",
     "description": "打赏提示2"
   },
+  "donationGiftBtnTooltip1": {
+    "message": "直接向主播直播间打赏。",
+    "description": "打赏按钮提示1"
+  },
+  "donationGiftBtnTooltip2": {
+    "message": "查看打赏消息需要重新进入直播聊天室",
+    "description": "打赏按钮提示2"
+  },
+  "donationGiftBtnTooltip3": {
+    "message": "用户操作失误等造成的后果，开发者不承担责任。",
+    "description": "打赏按钮提示3（免责声明）"
+  },
   "donationGiftBalance": {
     "message": "余额: $amount$个",
     "description": "星气球余额",
@@ -756,6 +768,10 @@
   "donationGiftCancel": {
     "message": "取消",
     "description": "取消按钮"
+  },
+  "donationGiftClose": {
+    "message": "关闭",
+    "description": "关闭按钮"
   },
   "donationGiftExecute": {
     "message": "打赏",

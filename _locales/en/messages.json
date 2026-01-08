@@ -726,6 +726,18 @@
     "message": "To see the gift message, please rejoin the streamer's chat.",
     "description": "Gift notice 2"
   },
+  "donationGiftBtnTooltip1": {
+    "message": "Send gifts directly to the streamer's station.",
+    "description": "Gift button tooltip 1"
+  },
+  "donationGiftBtnTooltip2": {
+    "message": "Rejoin live chat to see gift messages",
+    "description": "Gift button tooltip 2"
+  },
+  "donationGiftBtnTooltip3": {
+    "message": "The developer is not responsible for any consequences from user mistakes.",
+    "description": "Gift button tooltip 3 (disclaimer)"
+  },
   "donationGiftBalance": {
     "message": "Balance: $amount$",
     "description": "Star balloon balance",
@@ -756,6 +768,10 @@
   "donationGiftCancel": {
     "message": "Cancel",
     "description": "Cancel button"
+  },
+  "donationGiftClose": {
+    "message": "Close",
+    "description": "Close button"
   },
   "donationGiftExecute": {
     "message": "Send Gift",

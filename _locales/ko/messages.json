@@ -726,6 +726,18 @@
     "message": "후원 메시지를 확인하려면 해당 스트리머의 채팅창에 재입장해주세요.",
     "description": "후원 안내 2"
   },
+  "donationGiftBtnTooltip1": {
+    "message": "스트리머 방송국에 직접 후원합니다.",
+    "description": "후원 버튼 툴팁 1"
+  },
+  "donationGiftBtnTooltip2": {
+    "message": "후원 메시지 확인은 라이브 채팅창 재입장 필요",
+    "description": "후원 버튼 툴팁 2"
+  },
+  "donationGiftBtnTooltip3": {
+    "message": "사용자 조작 실수 등 이용에 따른 결과는 개발자가 책임지지 않습니다.",
+    "description": "후원 버튼 툴팁 3 (면책조항)"
+  },
   "donationGiftBalance": {
     "message": "보유: $amount$개",
     "description": "보유 별풍선",
@@ -756,6 +768,10 @@
   "donationGiftCancel": {
     "message": "취소",
     "description": "취소 버튼"
+  },
+  "donationGiftClose": {
+    "message": "닫기",
+    "description": "닫기 버튼"
   },
   "donationGiftExecute": {
     "message": "후원하기",

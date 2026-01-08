@@ -726,6 +726,18 @@
     "message": "投げ銭メッセージを確認するには、配信者のチャットに再入場してください。",
     "description": "投げ銭案内2"
   },
+  "donationGiftBtnTooltip1": {
+    "message": "配信者の放送局に直接投げ銭します。",
+    "description": "投げ銭ボタンツールチップ1"
+  },
+  "donationGiftBtnTooltip2": {
+    "message": "投げ銭メッセージ確認はライブチャット再入場が必要",
+    "description": "投げ銭ボタンツールチップ2"
+  },
+  "donationGiftBtnTooltip3": {
+    "message": "ユーザーの操作ミス等による結果について開発者は責任を負いません。",
+    "description": "投げ銭ボタンツールチップ3（免責事項）"
+  },
   "donationGiftBalance": {
     "message": "残高: $amount$個",
     "description": "保有スター風船",
@@ -756,6 +768,10 @@
   "donationGiftCancel": {
     "message": "キャンセル",
     "description": "キャンセルボタン"
+  },
+  "donationGiftClose": {
+    "message": "閉じる",
+    "description": "閉じるボタン"
   },
   "donationGiftExecute": {
     "message": "投げ銭する",

@@ -128,6 +128,9 @@ chrome.runtime.onStartup.addListener(async () => {
   await loadSettings();
   await loadRecordingsFromStorage();  // ⭐ v3.5.15: 녹화 상태 복구 추가
 
+  // ⭐ 브라우저 시작 시 clearOnExit 설정 확인 및 후원 데이터 삭제
+  await checkAndClearDonationData();
+
   // ⭐ v3.6.0: Analytics 초기화
   await Analytics.initAnalytics();
 
@@ -135,6 +138,31 @@ chrome.runtime.onStartup.addListener(async () => {
     startMonitoring();
   }
 });
+
+// ===== 브라우저 시작 시 후원 데이터 삭제 (clearOnExit 설정) =====
+async function checkAndClearDonationData() {
+  try {
+    const result = await chrome.storage.local.get('myDonation');
+    const donationData = result.myDonation;
+
+    if (donationData?.settings?.clearOnExit) {
+      console.log('[숲토킹] clearOnExit 설정이 활성화됨 - 후원 데이터 삭제');
+
+      // 데이터만 삭제하고 settings는 유지
+      const clearedData = {
+        lastSync: null,
+        isLoggedIn: null,
+        data: null,
+        settings: donationData.settings  // clearOnExit 설정 유지
+      };
+
+      await chrome.storage.local.set({ myDonation: clearedData });
+      console.log('[숲토킹] 후원 데이터 삭제 완료');
+    }
+  } catch (error) {
+    console.error('[숲토킹] 후원 데이터 삭제 확인 중 오류:', error);
+  }
+}
 
 // ===== 설정 저장/로드 =====
 

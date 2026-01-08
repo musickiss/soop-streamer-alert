@@ -726,6 +726,18 @@
     "message": "要查看贊助訊息，請重新進入實況主的聊天室。",
     "description": "贊助提示2"
   },
+  "donationGiftBtnTooltip1": {
+    "message": "直接向實況主直播間贊助。",
+    "description": "贊助按鈕提示1"
+  },
+  "donationGiftBtnTooltip2": {
+    "message": "查看贊助訊息需要重新進入直播聊天室",
+    "description": "贊助按鈕提示2"
+  },
+  "donationGiftBtnTooltip3": {
+    "message": "用戶操作失誤等造成的後果，開發者不承擔責任。",
+    "description": "贊助按鈕提示3（免責聲明）"
+  },
   "donationGiftBalance": {
     "message": "餘額: $amount$個",
     "description": "星氣球餘額",
@@ -756,6 +768,10 @@
   "donationGiftCancel": {
     "message": "取消",
     "description": "取消按鈕"
+  },
+  "donationGiftClose": {
+    "message": "關閉",
+    "description": "關閉按鈕"
   },
   "donationGiftExecute": {
     "message": "贊助",

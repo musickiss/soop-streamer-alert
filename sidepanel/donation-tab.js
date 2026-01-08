@@ -43,13 +43,12 @@ const DonationTab = (function() {
     data: null,
     settings: {
       defaultPeriod: '3m',
-      defaultChartType: 'bar',
-      autoSync: true
+      autoSync: true,
+      clearOnExit: false  // 브라우저 종료 시 데이터 삭제
     },
     // UI 상태
     currentSubTab: 'gift', // charge, gift, exchange
     currentPeriod: '3m',
-    currentChartType: 'bar',
     searchQuery: '',
     listPage: 1, // 현재 페이지
     // 전체 동기화 진행 상태
@@ -81,7 +80,6 @@ const DonationTab = (function() {
   async function init() {
     // 중복 초기화 방지
     if (isInitialized) {
-      console.log('[DonationTab] Already initialized, showing...');
       show();
       return;
     }
@@ -92,7 +90,6 @@ const DonationTab = (function() {
       return;
     }
 
-    console.log('[DonationTab] Initializing...');
     isInitialized = true;
 
     renderInitialUI();
@@ -100,27 +97,17 @@ const DonationTab = (function() {
     bindEvents();
     await loadFromStorage();
 
-    // 초기화 후 자동 동기화 (데이터가 없거나 오래된 경우)
-    console.log('[DonationTab] Checking if sync needed...');
-    console.log('[DonationTab] state.data:', state.data);
-    console.log('[DonationTab] state.lastSync:', state.lastSync);
-
-    // 데이터 유효성 검사 추가
+    // 데이터 유효성 검사
     const hasValidData = state.data &&
       (state.data.giftHistory?.length > 0 ||
        state.data.chargeHistory?.length > 0 ||
        state.data.balance?.current > 0);
 
-    console.log('[DonationTab] hasValidData:', hasValidData);
-
     if (shouldSync() || !hasValidData) {
-      console.log('[DonationTab] Sync needed, starting sync...');
       sync();
     } else if (state.data) {
-      console.log('[DonationTab] Using cached data');
       render();
     } else {
-      console.log('[DonationTab] No data, rendering empty state');
       renderEmpty();
     }
   }
@@ -212,6 +199,8 @@ const DonationTab = (function() {
     const syncText = i18n('donationSync') || '동기화';
     const fullSyncText = i18n('donationFullSync') || '전체';
     const fullSyncTooltip = i18n('donationFullSyncTooltip') || '전체 데이터 다시 불러오기';
+    const clearOnExitLabel = i18n('donationClearOnExit') || '브라우저 종료 시 데이터 삭제';
+    const clearOnExitTooltip = i18n('donationClearOnExitTooltip') || '브라우저 실행 시 새롭게 정보를 수집하고, 브라우저가 닫히면 수집한 데이터를 모두 초기화합니다.';
 
     container.innerHTML = `
       <div class="donation-tab">
@@ -220,25 +209,39 @@ const DonationTab = (function() {
           <!-- 동적으로 렌더링 -->
         </div>
 
-        <!-- 하단 고정: 검색 + 동기화 바 -->
+        <!-- 하단 고정: 검색 + 동기화 + 설정 (2줄) -->
         <div class="donation-bottom-bar">
-          <div class="donation-search-row">
+          <div class="donation-bottom-row donation-search-row">
             <div class="donation-search-input-wrap">
-              <span class="donation-search-icon">🔍</span>
+              <svg class="donation-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+              </svg>
               <input type="text" class="donation-search-input" id="donationSearchInput"
                      placeholder="${searchPlaceholder}">
-              <button class="donation-search-clear" id="donationSearchClear" style="display:none;">✕</button>
+              <button class="donation-search-clear" id="donationSearchClear" style="display:none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
             </div>
           </div>
-          <div class="donation-sync-row">
-            <button class="donation-sync-btn" id="donationSyncBtn">
-              <span class="donation-sync-icon" id="donationSyncIcon">🔄</span>
-              <span>${syncText}</span>
+          <div class="donation-bottom-row donation-controls-row">
+            <button class="donation-sync-btn" id="donationSyncBtn" title="${syncText}">
+              <svg class="donation-sync-icon" id="donationSyncIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M23 4v6h-6M1 20v-6h6"/>
+                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+              </svg>
             </button>
             <button class="donation-sync-btn donation-sync-full" id="donationFullSyncBtn" title="${fullSyncTooltip}">
-              ${fullSyncText}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+              </svg>
             </button>
             <span class="donation-sync-time" id="donationSyncTime">-</span>
+            <label class="donation-clear-on-exit-label" title="${clearOnExitTooltip}">
+              <input type="checkbox" id="donationClearOnExit" class="donation-clear-on-exit-checkbox">
+              <span class="donation-clear-on-exit-text">${clearOnExitLabel}</span>
+            </label>
           </div>
         </div>
       </div>
@@ -253,11 +256,18 @@ const DonationTab = (function() {
     elements.fullSyncBtn = document.getElementById('donationFullSyncBtn');
     elements.syncIcon = document.getElementById('donationSyncIcon');
     elements.syncTime = document.getElementById('donationSyncTime');
+    elements.clearOnExitCheckbox = document.getElementById('donationClearOnExit');
   }
 
   // ============================================
   // 이벤트 바인딩
   // ============================================
+
+  // 이벤트 핸들러 래퍼 (unbind를 위해 참조 유지)
+  const eventHandlers = {
+    syncClick: () => sync(false),
+    fullSyncClick: () => sync(true)
+  };
 
   function bindEvents() {
     // 검색
@@ -265,19 +275,29 @@ const DonationTab = (function() {
     elements.searchClear?.addEventListener('click', clearSearch);
 
     // 동기화
-    elements.syncBtn?.addEventListener('click', () => sync(false));
-    elements.fullSyncBtn?.addEventListener('click', () => sync(true));
+    elements.syncBtn?.addEventListener('click', eventHandlers.syncClick);
+    elements.fullSyncBtn?.addEventListener('click', eventHandlers.fullSyncClick);
 
     // 컨텐츠 영역 이벤트 위임
     elements.content?.addEventListener('click', handleContentClick);
     elements.content?.addEventListener('change', handleContentChange);
+
+    // 빠른 후원 아바타 우클릭 (컨텍스트 메뉴)
+    elements.content?.addEventListener('contextmenu', handleQuickGiftContextMenu);
+
+    // 브라우저 종료 시 데이터 삭제 체크박스
+    elements.clearOnExitCheckbox?.addEventListener('change', handleClearOnExitChange);
   }
 
   function unbindEvents() {
     elements.searchInput?.removeEventListener('input', handleSearch);
     elements.searchClear?.removeEventListener('click', clearSearch);
-    elements.syncBtn?.removeEventListener('click', () => sync(false));
-    elements.fullSyncBtn?.removeEventListener('click', () => sync(true));
+    elements.syncBtn?.removeEventListener('click', eventHandlers.syncClick);
+    elements.fullSyncBtn?.removeEventListener('click', eventHandlers.fullSyncClick);
+    elements.content?.removeEventListener('click', handleContentClick);
+    elements.content?.removeEventListener('change', handleContentChange);
+    elements.content?.removeEventListener('contextmenu', handleQuickGiftContextMenu);
+    elements.clearOnExitCheckbox?.removeEventListener('change', handleClearOnExitChange);
   }
 
   // ============================================
@@ -299,20 +319,15 @@ const DonationTab = (function() {
     renderList();
   }
 
-  function toggleSettings() {
-    const panel = elements.settingsPanel;
-    if (panel) {
-      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-    }
+  function handleClearOnExitChange(e) {
+    state.settings.clearOnExit = e.target.checked;
+    saveToStorage();
   }
 
-  function handleSettingChange() {
-    state.settings.defaultChartType = elements.settingChartType.value;
-    state.settings.defaultPeriod = elements.settingPeriod.value;
-    state.currentChartType = state.settings.defaultChartType;
-    state.currentPeriod = state.settings.defaultPeriod;
-    saveToStorage();
-    render();
+  function updateClearOnExitCheckbox() {
+    if (elements.clearOnExitCheckbox) {
+      elements.clearOnExitCheckbox.checked = state.settings.clearOnExit;
+    }
   }
 
   function handleContentClick(e) {
@@ -333,9 +348,22 @@ const DonationTab = (function() {
       return;
     }
 
-    // 후원하기 버튼
+    // 후원하기 버튼 - 빠른 후원 스트리머가 선택되어 있으면 바로 후원
     if (target.id === 'donationGiftBtn' || target.closest('#donationGiftBtn')) {
-      openGiftModal();
+      executeQuickGift();
+      return;
+    }
+
+    // 빠른 후원 아바타 클릭
+    if (target.closest('.quick-gift-avatar')) {
+      const avatar = target.closest('.quick-gift-avatar');
+      selectQuickGiftStreamer(avatar.dataset.id, avatar.dataset.nick);
+      return;
+    }
+
+    // 빠른 후원 추가 버튼
+    if (target.id === 'quickGiftAddBtn' || target.closest('#quickGiftAddBtn')) {
+      openQuickGiftAddPopup();
       return;
     }
   }
@@ -377,14 +405,9 @@ const DonationTab = (function() {
 
         // 설정값 UI 반영
         state.currentPeriod = state.settings.defaultPeriod;
-        state.currentChartType = state.settings.defaultChartType;
 
-        if (elements.settingChartType) {
-          elements.settingChartType.value = state.settings.defaultChartType;
-        }
-        if (elements.settingPeriod) {
-          elements.settingPeriod.value = state.settings.defaultPeriod;
-        }
+        // 브라우저 종료 시 데이터 삭제 체크박스 반영
+        updateClearOnExitCheckbox();
       }
 
       updateSyncTime();
@@ -419,8 +442,6 @@ const DonationTab = (function() {
 
   async function fetchDonationData(fullSync = false) {
     try {
-      console.log('[DonationTab] Fetching data, fullSync:', fullSync);
-
       // 1단계: 기본 페이지 가져오기 (잔액 정보 + 첫 페이지 데이터)
       const baseResult = await fetchPage({ year: new Date().getFullYear(), month: new Date().getMonth() + 1 });
 
@@ -432,12 +453,15 @@ const DonationTab = (function() {
 
       // 전체 동기화: 모든 연월 + 모든 페이지 가져오기
       if (fullSync) {
-        console.log('[DonationTab] Starting full sync...');
         allData = await performFullSync(allData);
       } else {
         // 일반 동기화: 최근 12개월 충전 내역 가져오기
-        console.log('[DonationTab] Fetching recent 12 months...');
         allData = await fetchRecentMonths(allData, 12);
+
+        // 기존 저장된 데이터가 있으면 병합 (오래된 데이터 보존)
+        if (state.data) {
+          allData = mergeWithExistingData(allData, state.data);
+        }
       }
 
       return { success: true, data: allData };
@@ -445,6 +469,68 @@ const DonationTab = (function() {
       console.error('[DonationTab] Fetch error:', error);
       return { success: false, error: error.message };
     }
+  }
+
+  /**
+   * 새로 가져온 데이터와 기존 저장된 데이터 병합
+   * 새 데이터의 잔액 정보는 사용하고, 히스토리는 중복 제거 후 병합
+   */
+  function mergeWithExistingData(newData, existingData) {
+    // 선물 내역 병합 (중복 제거)
+    const giftKeys = new Set();
+    const mergedGiftHistory = [];
+
+    // 새 데이터 먼저 추가
+    (newData.giftHistory || []).forEach(item => {
+      const key = `gift_${item.date}_${item.streamer}_${item.amount}`;
+      if (!giftKeys.has(key)) {
+        giftKeys.add(key);
+        mergedGiftHistory.push(item);
+      }
+    });
+
+    // 기존 데이터 추가 (중복 아닌 것만)
+    (existingData.giftHistory || []).forEach(item => {
+      const key = `gift_${item.date}_${item.streamer}_${item.amount}`;
+      if (!giftKeys.has(key)) {
+        giftKeys.add(key);
+        mergedGiftHistory.push(item);
+      }
+    });
+
+    // 충전 내역 병합 (중복 제거)
+    const chargeKeys = new Set();
+    const mergedChargeHistory = [];
+
+    (newData.chargeHistory || []).forEach(item => {
+      const key = `charge_${item.date}_${item.amount}`;
+      if (!chargeKeys.has(key)) {
+        chargeKeys.add(key);
+        mergedChargeHistory.push(item);
+      }
+    });
+
+    (existingData.chargeHistory || []).forEach(item => {
+      const key = `charge_${item.date}_${item.amount}`;
+      if (!chargeKeys.has(key)) {
+        chargeKeys.add(key);
+        mergedChargeHistory.push(item);
+      }
+    });
+
+    // 정렬 (최신순)
+    mergedGiftHistory.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    mergedChargeHistory.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+    // summary 재계산
+    const summary = calculateSummary(mergedGiftHistory, mergedChargeHistory);
+
+    return {
+      balance: newData.balance, // 잔액은 항상 최신 데이터 사용
+      giftHistory: mergedGiftHistory,
+      chargeHistory: mergedChargeHistory,
+      summary
+    };
   }
 
   /**
@@ -472,8 +558,6 @@ const DonationTab = (function() {
         month: targetDate.getMonth() + 1
       });
     }
-
-    console.log('[DonationTab] Fetching', monthsToFetch.length, 'months for charge history');
 
     // 각 월별로 충전 내역 가져오기
     for (const { year, month } of monthsToFetch) {
@@ -527,7 +611,6 @@ const DonationTab = (function() {
       if (month) urlParams.append('month', String(month).padStart(2, '0'));
 
       const requestUrl = `${DATA_URL}?${urlParams.toString()}`;
-      console.log('[DonationTab] Fetching page:', requestUrl);
 
       const response = await fetch(requestUrl, {
         method: 'GET',
@@ -539,7 +622,6 @@ const DonationTab = (function() {
 
       // 리다이렉트 체크 (로그인 필요)
       if (response.url.includes('login.sooplive.co.kr') || response.url.includes('login.afreecatv.com')) {
-        console.log('[DonationTab] Login required (redirect)');
         return { success: false, loginRequired: true };
       }
 
@@ -551,7 +633,6 @@ const DonationTab = (function() {
 
       // 로그인 페이지 체크 (HTML 내용으로)
       if (html.includes('login.sooplive.co.kr') || html.includes('로그인이 필요')) {
-        console.log('[DonationTab] Login required (HTML content)');
         return { success: false, loginRequired: true };
       }
 
@@ -598,8 +679,6 @@ const DonationTab = (function() {
     state.syncProgress.isFullSync = true;
     state.syncProgress.totalSteps = monthsToFetch.length;
     state.syncProgress.completedSteps = 0;
-
-    console.log('[DonationTab] Full sync: fetching', monthsToFetch.length, 'months');
 
     // 각 연월별로 충전 내역 가져오기
     for (const { year, month } of monthsToFetch) {
@@ -672,11 +751,6 @@ const DonationTab = (function() {
     state.syncProgress.isFullSync = false;
     state.syncProgress.totalGiftPages = giftPage - 1;
 
-    console.log('[DonationTab] Full sync complete:', {
-      chargeHistory: allChargeHistory.length,
-      giftHistory: allGiftHistory.length
-    });
-
     // 정렬 (최신순)
     allChargeHistory.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     allGiftHistory.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
@@ -721,8 +795,6 @@ const DonationTab = (function() {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
-    console.log('[DonationTab] Starting HTML parsing...');
-
     // ===== 별풍선 잔액 파싱 =====
     const balance = {
       current: 0,
@@ -732,14 +804,11 @@ const DonationTab = (function() {
 
     // 페이지 텍스트에서 정보 추출
     const bodyText = doc.body?.textContent || '';
-    console.log('[DonationTab] Body text preview:', bodyText.substring(0, 500));
 
     // 패턴 0: HTML에서 <em> 태그 안의 숫자 추출 (가장 정확)
-    // <div class="myitem_info">...보유중인 별풍선은 <em>17</em>개 입니다.</div>
     const emBalanceMatch = html.match(/보유중인\s*별풍선은\s*<em>([0-9,]+)<\/em>\s*개/);
     if (emBalanceMatch) {
       balance.current = parseInt(emBalanceMatch[1].replace(/,/g, ''), 10);
-      console.log('[DonationTab] Found balance (em tag):', balance.current);
     }
 
     // 패턴 1: myitem_info 클래스에서 직접 추출
@@ -749,7 +818,6 @@ const DonationTab = (function() {
         const emTag = myitemInfo.querySelector('em');
         if (emTag) {
           balance.current = parseInt(emTag.textContent.replace(/,/g, ''), 10);
-          console.log('[DonationTab] Found balance (myitem_info em):', balance.current);
         }
       }
     }
@@ -759,7 +827,6 @@ const DonationTab = (function() {
       const balanceMatch = bodyText.match(/보유중인\s*별풍선은\s*([0-9,]+)\s*개/);
       if (balanceMatch) {
         balance.current = parseInt(balanceMatch[1].replace(/,/g, ''), 10);
-        console.log('[DonationTab] Found balance (textContent):', balance.current);
       }
     }
 
@@ -767,7 +834,6 @@ const DonationTab = (function() {
     const usedMatch = bodyText.match(/이미\s*선물한\s*별풍선\s*[:\s]*([0-9,]+)/);
     if (usedMatch) {
       balance.used = parseInt(usedMatch[1].replace(/,/g, ''), 10);
-      console.log('[DonationTab] Found used:', balance.used);
     }
 
     // ===== 충전 내역 파싱 (별풍선 충전 내역 테이블) =====
@@ -777,28 +843,22 @@ const DonationTab = (function() {
 
     // 충전 테이블 찾기: "구매일", "충전수", "결제수단" 등의 헤더가 있는 테이블
     const tables = doc.querySelectorAll('table');
-    console.log('[DonationTab] Found tables:', tables.length);
 
     tables.forEach((table, tableIdx) => {
       const headerRow = table.querySelector('tr');
       const headerText = headerRow?.textContent || '';
-      console.log('[DonationTab] Table', tableIdx, 'header:', headerText.substring(0, 100));
 
       // 충전 내역 테이블 (구매일, 충전수, 결제수단, 결제금액, 사용기간)
       if (headerText.includes('구매일') || headerText.includes('충전수') || headerText.includes('결제금액')) {
-        console.log('[DonationTab] Found charge history table');
         const rows = table.querySelectorAll('tr');
         rows.forEach((row, idx) => {
           if (idx === 0) return; // 헤더 스킵
           const cells = row.querySelectorAll('td');
-          console.log('[DonationTab] Charge row', idx, 'cells:', cells.length);
           if (cells.length >= 4) {
             const dateText = cells[0]?.textContent?.trim() || '';
             const chargeText = cells[1]?.textContent?.trim() || '';
             const methodText = cells[2]?.textContent?.trim() || '';
             const priceText = cells[3]?.textContent?.trim() || '';
-
-            console.log('[DonationTab] Charge data:', { dateText, chargeText, methodText, priceText });
 
             const chargeMatch = chargeText.match(/([0-9,]+)/);
             const priceMatch = priceText.match(/([0-9,]+)/);
@@ -818,7 +878,6 @@ const DonationTab = (function() {
 
       // 선물 내역 테이블 (선물한 별풍선 | 목스리 선물 개수 | 별풍선을 선물한 스트리머 | 선물 일시)
       if (headerText.includes('선물한') || headerText.includes('스트리머') || headerText.includes('선물 일시')) {
-        console.log('[DonationTab] Found gift history table');
         const rows = table.querySelectorAll('tr');
         rows.forEach((row, idx) => {
           if (idx === 0) return; // 헤더 스킵
@@ -866,9 +925,6 @@ const DonationTab = (function() {
       }
     });
 
-    console.log('[DonationTab] Parsed chargeHistory:', chargeHistory.length);
-    console.log('[DonationTab] Parsed giftHistory:', giftHistory.length);
-
     // 집계 계산
     const summary = calculateSummary(giftHistory, chargeHistory, exchangeHistory);
 
@@ -881,7 +937,7 @@ const DonationTab = (function() {
     };
   }
 
-  function calculateSummary(giftHistory, chargeHistory, exchangeHistory) {
+  function calculateSummary(giftHistory, chargeHistory, exchangeHistory = []) {
     const byStreamer = {};
     const byMonth = {};
 
@@ -890,7 +946,7 @@ const DonationTab = (function() {
     let totalExchanged = 0;
 
     // 선물 집계
-    giftHistory.forEach(item => {
+    (giftHistory || []).forEach(item => {
       totalGifted += item.amount;
 
       // 스트리머별
@@ -911,7 +967,7 @@ const DonationTab = (function() {
     });
 
     // 충전 집계
-    chargeHistory.forEach(item => {
+    (chargeHistory || []).forEach(item => {
       totalCharged += item.amount;
       const month = item.date?.substring(0, 7) || 'unknown';
       if (!byMonth[month]) {
@@ -921,7 +977,7 @@ const DonationTab = (function() {
     });
 
     // 환전 집계
-    exchangeHistory.forEach(item => {
+    (exchangeHistory || []).forEach(item => {
       totalExchanged += item.amount;
       const month = item.date?.substring(0, 7) || 'unknown';
       if (!byMonth[month]) {
@@ -968,6 +1024,9 @@ const DonationTab = (function() {
     const usedLabel = i18n('donationUsed') || '사용';
     const unitLabel = i18n('donationUnit') || '개';
     const giftBtnText = i18n('donationGiftBtn') || '🎁 후원하기';
+    const giftBtnTooltip1 = i18n('donationGiftBtnTooltip1') || '스트리머 방송국에 직접 후원합니다.';
+    const giftBtnTooltip2 = i18n('donationGiftBtnTooltip2') || '후원 메시지 확인은 라이브 채팅창 재입장 필요';
+    const giftBtnTooltip3 = i18n('donationGiftBtnTooltip3') || '사용자 조작 실수 등 이용에 따른 결과는 개발자가 책임지지 않습니다.';
     const tabGift = i18n('donationTabGift') || '🎁 선물';
     const tabCharge = i18n('donationTabCharge') || '💳 충전';
     const period1m = i18n('donationPeriod1m') || '1개월';
@@ -1000,9 +1059,23 @@ const DonationTab = (function() {
               <span class="donation-balance-text">${usedLabel} <strong>${formatNumber(balance.used)}</strong>${unitLabel}</span>
             </div>
           </div>
-          <button class="donation-gift-btn" id="donationGiftBtn">
-            ${giftBtnText}
-          </button>
+          <div class="donation-gift-btn-wrap">
+            <button class="donation-gift-btn" id="donationGiftBtn">
+              ${giftBtnText}
+            </button>
+            <div class="donation-gift-tooltip">
+              <div class="donation-gift-tooltip-content">
+                <p class="donation-gift-tooltip-title">${giftBtnTooltip1}</p>
+                <p class="donation-gift-tooltip-desc">${giftBtnTooltip2}</p>
+                <p class="donation-gift-tooltip-notice">${giftBtnTooltip3}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 빠른 후원 영역 -->
+        <div class="quick-gift-section" id="quickGiftSection">
+          <!-- 동적 렌더링 -->
         </div>
 
         <!-- 서브탭 -->
@@ -1046,6 +1119,291 @@ const DonationTab = (function() {
     renderChart();
     renderList();
     updateSyncTime();
+    renderQuickGift();
+  }
+
+  // ============================================
+  // 빠른 후원 기능
+  // ============================================
+  const quickGiftState = {
+    selectedStreamer: null  // 빠른 후원용 선택된 스트리머
+  };
+
+  async function renderQuickGift() {
+    const container = document.getElementById('quickGiftSection');
+    if (!container) return;
+
+    const giftFavorites = await getGiftFavorites();
+
+    // 즐겨찾기가 없으면 빠른 후원 섹션 숨김
+    if (giftFavorites.length === 0) {
+      container.style.display = 'none';
+      return;
+    }
+
+    container.style.display = 'flex';
+
+    // 이전에 선택된 스트리머가 여전히 즐겨찾기에 있는지 확인
+    if (quickGiftState.selectedStreamer) {
+      const stillExists = giftFavorites.some(f => f.id === quickGiftState.selectedStreamer.id);
+      if (!stillExists) {
+        quickGiftState.selectedStreamer = null;
+      }
+    }
+
+    // 선택된 스트리머가 없으면 첫 번째 즐겨찾기 스트리머 자동 선택
+    if (!quickGiftState.selectedStreamer && giftFavorites.length > 0) {
+      quickGiftState.selectedStreamer = {
+        id: giftFavorites[0].id,
+        nick: giftFavorites[0].nickname
+      };
+    }
+
+    const quickGiftLabel = i18n('quickGiftLabel') || '빠른 후원';
+    const selectedNick = quickGiftState.selectedStreamer?.nick || '';
+
+    // 아바타 칩 생성
+    const avatarChipsHtml = giftFavorites.map(s => {
+      const isSelected = quickGiftState.selectedStreamer?.id === s.id;
+      const firstChar = getFirstChar(s.nickname);
+      return `
+        <div class="quick-gift-avatar${isSelected ? ' selected' : ''}"
+             data-id="${s.id}"
+             data-nick="${s.nickname}"
+             title="${s.nickname}">
+          <span class="quick-gift-avatar-char">${firstChar}</span>
+        </div>
+      `;
+    }).join('');
+
+    container.innerHTML = `
+      <div class="quick-gift-label">⭐ ${quickGiftLabel}</div>
+      <div class="quick-gift-avatars">
+        ${avatarChipsHtml}
+        <button class="quick-gift-add-btn" id="quickGiftAddBtn" title="즐겨찾기 추가/편집">+</button>
+      </div>
+      <div class="quick-gift-selected-name">${selectedNick}</div>
+    `;
+  }
+
+  // 첫 글자 추출 함수
+  function getFirstChar(name) {
+    if (!name) return '?';
+    return name.charAt(0);
+  }
+
+  // 빠른 후원 스트리머 선택
+  function selectQuickGiftStreamer(id, nick) {
+    quickGiftState.selectedStreamer = { id, nick };
+
+    // UI 업데이트
+    document.querySelectorAll('.quick-gift-avatar').forEach(el => {
+      el.classList.toggle('selected', el.dataset.id === id);
+    });
+
+    const nameEl = document.querySelector('.quick-gift-selected-name');
+    if (nameEl) {
+      nameEl.textContent = nick;
+    }
+  }
+
+  // 빠른 후원 즐겨찾기에서 제거
+  async function removeQuickGiftFavorite(id) {
+    const favorites = await getGiftFavorites();
+    const index = favorites.findIndex(f => f.id === id);
+
+    if (index >= 0) {
+      favorites.splice(index, 1);
+      await saveGiftFavorites(favorites);
+
+      // 삭제된 스트리머가 현재 선택된 경우 선택 해제
+      if (quickGiftState.selectedStreamer?.id === id) {
+        quickGiftState.selectedStreamer = null;
+      }
+
+      // UI 갱신
+      renderQuickGift();
+
+      const removedMsg = i18n('quickGiftRemoved') || '빠른 후원에서 제거되었습니다';
+      showToast(removedMsg);
+    }
+  }
+
+  // 빠른 후원 스트리머 추가 팝업
+  async function openQuickGiftAddPopup() {
+    const giftFavorites = await getGiftFavorites();
+    const monitoringStreamers = await getMonitoringStreamers();
+    const giftFavIds = new Set(giftFavorites.map(f => f.id));
+
+    const popupTitle = i18n('quickGiftPopupTitle') || '빠른 후원 스트리머 선택';
+    const maxNotice = i18n('quickGiftMaxNotice') || '최대 5명까지 선택 가능';
+    const closeText = i18n('donationGiftClose') || '닫기';
+
+    const popup = document.createElement('div');
+    popup.className = 'quick-gift-popup-overlay';
+
+    // 스트리머 목록 HTML
+    const streamerListHtml = monitoringStreamers.map(s => {
+      const isFav = giftFavIds.has(s.id);
+      return `
+        <div class="quick-gift-popup-item${isFav ? ' is-fav' : ''}" data-id="${s.id}" data-nick="${s.nickname}">
+          <span class="quick-gift-popup-nick">${s.nickname}</span>
+          <span class="quick-gift-popup-id">@${s.id}</span>
+          <span class="quick-gift-popup-star">${isFav ? '★' : '☆'}</span>
+        </div>
+      `;
+    }).join('');
+
+    const emptyText = i18n('quickGiftNoStreamers') || '모니터링 중인 스트리머가 없습니다';
+
+    popup.innerHTML = `
+      <div class="quick-gift-popup">
+        <div class="quick-gift-popup-header">
+          <span class="quick-gift-popup-title">${popupTitle}</span>
+          <button class="quick-gift-popup-close">✕</button>
+        </div>
+        <div class="quick-gift-popup-notice">${maxNotice}</div>
+        <div class="quick-gift-popup-list">
+          ${monitoringStreamers.length > 0 ? streamerListHtml : `<div class="quick-gift-popup-empty">${emptyText}</div>`}
+        </div>
+        <div class="quick-gift-popup-footer">
+          <button class="quick-gift-popup-close-btn">${closeText}</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(popup);
+
+    // 팝업 이벤트 바인딩
+    popup.addEventListener('click', handleQuickGiftPopupClick);
+  }
+
+  function handleQuickGiftPopupClick(e) {
+    const target = e.target;
+
+    // 팝업 닫기
+    if (target.classList.contains('quick-gift-popup-overlay') ||
+        target.classList.contains('quick-gift-popup-close') ||
+        target.classList.contains('quick-gift-popup-close-btn')) {
+      closeQuickGiftPopup();
+      return;
+    }
+
+    // 스트리머 토글
+    const item = target.closest('.quick-gift-popup-item');
+    if (item) {
+      toggleQuickGiftPopupItem(item);
+    }
+  }
+
+  async function toggleQuickGiftPopupItem(item) {
+    const id = item.dataset.id;
+    const nick = item.dataset.nick;
+    const isFav = item.classList.contains('is-fav');
+
+    const favorites = await getGiftFavorites();
+
+    if (isFav) {
+      // 제거
+      const index = favorites.findIndex(f => f.id === id);
+      if (index >= 0) {
+        favorites.splice(index, 1);
+      }
+      item.classList.remove('is-fav');
+      item.querySelector('.quick-gift-popup-star').textContent = '☆';
+    } else {
+      // 추가 (최대 5명 제한)
+      if (favorites.length >= 5) {
+        const maxMsg = i18n('quickGiftMaxReached') || '최대 5명까지만 추가할 수 있습니다';
+        showToast(maxMsg);
+        return;
+      }
+      favorites.push({ id, nickname: nick });
+      item.classList.add('is-fav');
+      item.querySelector('.quick-gift-popup-star').textContent = '★';
+    }
+
+    await saveGiftFavorites(favorites);
+    // 빠른 후원 영역 갱신
+    renderQuickGift();
+  }
+
+  function closeQuickGiftPopup() {
+    const popup = document.querySelector('.quick-gift-popup-overlay');
+    if (popup) {
+      popup.remove();
+    }
+  }
+
+  // 빠른 후원 실행 (후원하기 버튼 클릭 시)
+  async function executeQuickGift() {
+    if (!quickGiftState.selectedStreamer) {
+      // 선택된 스트리머가 없으면 기존 모달 열기
+      openGiftModal();
+      return;
+    }
+
+    const { id, nick } = quickGiftState.selectedStreamer;
+
+    // 확인 팝업 없이 바로 후원창 열기
+    await processGift(id, nick);
+  }
+
+  // 빠른 후원 아바타 우클릭 핸들러
+  function handleQuickGiftContextMenu(e) {
+    const avatar = e.target.closest('.quick-gift-avatar');
+    if (!avatar) return;
+
+    e.preventDefault();
+
+    const id = avatar.dataset.id;
+    const nick = avatar.dataset.nick;
+
+    // 컨텍스트 메뉴 표시
+    showQuickGiftContextMenu(e.clientX, e.clientY, id, nick);
+  }
+
+  function showQuickGiftContextMenu(x, y, id, nick) {
+    // 기존 컨텍스트 메뉴 제거
+    closeQuickGiftContextMenu();
+
+    const removeText = i18n('quickGiftRemove') || '빠른 후원에서 제거';
+
+    const menu = document.createElement('div');
+    menu.className = 'quick-gift-context-menu';
+    menu.innerHTML = `
+      <div class="quick-gift-context-item" data-action="remove" data-id="${id}">
+        <span class="quick-gift-context-icon">✕</span>
+        <span class="quick-gift-context-text">${removeText}</span>
+      </div>
+    `;
+
+    // 위치 설정
+    menu.style.left = `${x}px`;
+    menu.style.top = `${y}px`;
+
+    document.body.appendChild(menu);
+
+    // 클릭 이벤트
+    menu.addEventListener('click', async (e) => {
+      const item = e.target.closest('.quick-gift-context-item');
+      if (item && item.dataset.action === 'remove') {
+        await removeQuickGiftFavorite(item.dataset.id);
+      }
+      closeQuickGiftContextMenu();
+    });
+
+    // 외부 클릭 시 닫기
+    setTimeout(() => {
+      document.addEventListener('click', closeQuickGiftContextMenu, { once: true });
+    }, 0);
+  }
+
+  function closeQuickGiftContextMenu() {
+    const menu = document.querySelector('.quick-gift-context-menu');
+    if (menu) {
+      menu.remove();
+    }
   }
 
   function renderLoading() {
@@ -1108,65 +1466,6 @@ const DonationTab = (function() {
 
     // 원형 차트만 사용
     renderPieChart(chartContainer, summary);
-  }
-
-  function renderBarChart(container, summary) {
-    let data;
-
-    if (state.currentSubTab === 'gift') {
-      // 선물: 스트리머별로 표시 (전체 데이터 - 기간 필터 없음)
-      const allGifts = state.data.giftHistory || [];
-
-      const byStreamer = {};
-      allGifts.forEach(item => {
-        const nick = item.streamerNick || i18n('donationUnknown') || '알 수 없음';
-        if (!byStreamer[nick]) byStreamer[nick] = 0;
-        byStreamer[nick] += item.amount || 0;
-      });
-
-      data = Object.entries(byStreamer)
-        .map(([nick, amount]) => ({ label: nick, value: amount }))
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 6);
-    } else {
-      // 충전/환전: 월별로 표시
-      data = Object.entries(summary.byMonth)
-        .map(([month, v]) => ({
-          label: month,
-          value: state.currentSubTab === 'charge' ? v.charged : v.exchanged
-        }))
-        .filter(d => d.value > 0);
-
-      data = filterByPeriod(data, 'label');
-      data = data.slice(0, 6);
-    }
-
-    const maxValue = Math.max(...data.map(d => d.value), 1);
-
-    if (data.length === 0) {
-      container.innerHTML = `<div class="donation-chart-empty">${i18n('donationChartEmpty') || '데이터가 없습니다'}</div>`;
-      return;
-    }
-
-    const unit = i18n('donationUnit') || '개';
-    const chartTitle = state.currentSubTab === 'gift'
-      ? `🎁 ${i18n('donationChartGift') || '스트리머별 선물'}`
-      : `📊 ${getSubTabLabel()} ${i18n('donationChartCharge') ? '' : '현황'}`;
-
-    container.innerHTML = `
-      <div class="donation-chart-title">${chartTitle}</div>
-      <div class="donation-bar-chart">
-        ${data.map(item => `
-          <div class="donation-bar-item">
-            <span class="donation-bar-label" title="${item.label}">${item.label.length > 8 ? item.label.substring(0, 8) + '..' : item.label}</span>
-            <div class="donation-bar-track">
-              <div class="donation-bar-fill" style="width: ${(item.value / maxValue) * 100}%"></div>
-            </div>
-            <span class="donation-bar-value">${formatNumber(item.value)}${unit}</span>
-          </div>
-        `).join('')}
-      </div>
-    `;
   }
 
   function renderPieChart(container, summary) {
@@ -1289,57 +1588,6 @@ const DonationTab = (function() {
             <span class="donation-data-percent">${Math.round((item.value / total) * 100)}%</span>
           </div>
         `).join('')}
-      </div>
-    `;
-  }
-
-  function renderLineChart(container, summary) {
-    const data = Object.entries(summary.byMonth)
-      .map(([month, v]) => ({
-        label: month,
-        value: state.currentSubTab === 'gift' ? v.gifted
-             : state.currentSubTab === 'charge' ? v.charged
-             : v.exchanged
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-
-    const filteredData = filterByPeriod(data);
-
-    if (filteredData.length === 0) {
-      container.innerHTML = `<div class="donation-chart-empty">${i18n('donationChartEmpty') || '데이터가 없습니다'}</div>`;
-      return;
-    }
-
-    const maxValue = Math.max(...filteredData.map(d => d.value), 1);
-    const height = 120;
-    const width = 280;
-    const padding = 10;
-
-    const points = filteredData.map((d, i) => {
-      const x = padding + (i / Math.max(filteredData.length - 1, 1)) * (width - padding * 2);
-      const y = height - padding - (d.value / maxValue) * (height - padding * 2);
-      return `${x},${y}`;
-    });
-
-    container.innerHTML = `
-      <div class="donation-chart-title">📊 ${getSubTabLabel()} 추이</div>
-      <div class="donation-line-chart">
-        <svg class="donation-line-chart-svg" viewBox="0 0 ${width} ${height}">
-          <defs>
-            <linearGradient id="lineGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" style="stop-color:#FFC107;stop-opacity:0.3" />
-              <stop offset="100%" style="stop-color:#FFC107;stop-opacity:0" />
-            </linearGradient>
-          </defs>
-          <polyline class="donation-chart-line" points="${points.join(' ')}" />
-          ${points.map(p => {
-            const [x, y] = p.split(',');
-            return `<circle class="donation-chart-dot" cx="${x}" cy="${y}" r="3" />`;
-          }).join('')}
-        </svg>
-        <div class="donation-chart-x-labels">
-          ${filteredData.map(d => `<span>${d.label.substring(5) || d.label}</span>`).join('')}
-        </div>
       </div>
     `;
   }
@@ -1627,13 +1875,20 @@ const DonationTab = (function() {
       // 이미 있으면 제거
       favorites.splice(index, 1);
     } else {
-      // 없으면 추가
+      // 없으면 추가 (최대 5명 제한)
+      if (favorites.length >= 5) {
+        const maxMsg = i18n('quickGiftMaxReached') || '최대 5명까지만 추가할 수 있습니다';
+        showToast(maxMsg);
+        return;
+      }
       favorites.push({ id, nickname: nick });
     }
 
     await saveGiftFavorites(favorites);
     // 모달 스트리머 목록 새로고침
     refreshStreamerList();
+    // 빠른 후원 영역도 갱신
+    renderQuickGift();
   }
 
   async function refreshStreamerList() {
@@ -2013,6 +2268,3 @@ const DonationTab = (function() {
 
 // 전역 노출 (sidepanel.js에서 접근용)
 window.DonationTab = DonationTab;
-
-// 즉시 로드 확인 로그
-console.log('[DonationTab] Script loaded, DonationTab:', typeof DonationTab);
