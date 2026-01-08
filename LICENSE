@@ -1,21 +1,42 @@
-MIT License
+# Dual License
 
 Copyright (c) 2024-2026 musickiss
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This software is available under two licenses. Choose the one that fits your needs:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## 1. PolyForm Noncommercial License 1.0.0 (Free)
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+For personal, educational, charitable, and non-profit use.
+
+- No commercial advantage or monetary compensation
+- Free of charge
+- See [LICENSE-NC.md](LICENSE-NC.md) for full terms
+
+## 2. Commercial License (Paid)
+
+For commercial, business, and for-profit use.
+
+- Includes technical support options
+- Removes non-commercial restrictions
+- See [LICENSE-COMMERCIAL.md](LICENSE-COMMERCIAL.md) for details
+
+---
+
+## Quick Guide
+
+| Use Case | License | Cost |
+|----------|---------|------|
+| Personal use | Noncommercial | Free |
+| Educational/Research | Noncommercial | Free |
+| Non-profit organization | Noncommercial | Free |
+| Open source project | Noncommercial | Free |
+| Commercial/Business | Commercial | Paid |
+| SaaS/Product integration | Commercial | Paid |
+
+---
+
+## Contact
+
+For commercial licensing inquiries:
+- GitHub: https://github.com/musickiss/soop-streamer-alert/issues
+- SOOP: https://www.sooplive.co.kr/station/teamilh
