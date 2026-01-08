@@ -592,6 +592,14 @@
     "message": "同步中",
     "description": "同步中状态"
   },
+  "donationClearOnExit": {
+    "message": "浏览器关闭时删除收集的数据",
+    "description": "浏览器关闭时删除数据复选框"
+  },
+  "donationClearOnExitTooltip": {
+    "message": "浏览器启动时重新收集信息，浏览器关闭时清除所有收集的数据。",
+    "description": "浏览器关闭时删除数据提示"
+  },
   "donationLastSync": {
     "message": "上次: $time$",
     "description": "上次同步时间",

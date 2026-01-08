@@ -199,7 +199,7 @@ const DonationTab = (function() {
     const syncText = i18n('donationSync') || '동기화';
     const fullSyncText = i18n('donationFullSync') || '전체';
     const fullSyncTooltip = i18n('donationFullSyncTooltip') || '전체 데이터 다시 불러오기';
-    const clearOnExitLabel = i18n('donationClearOnExit') || '브라우저 종료 시 데이터 삭제';
+    const clearOnExitLabel = i18n('donationClearOnExit') || '브라우저 종료 시 수집된 데이터 삭제';
     const clearOnExitTooltip = i18n('donationClearOnExitTooltip') || '브라우저 실행 시 새롭게 정보를 수집하고, 브라우저가 닫히면 수집한 데이터를 모두 초기화합니다.';
 
     container.innerHTML = `
@@ -226,6 +226,10 @@ const DonationTab = (function() {
             </div>
           </div>
           <div class="donation-bottom-row donation-controls-row">
+            <label class="donation-clear-on-exit-label" title="${clearOnExitTooltip}">
+              <input type="checkbox" id="donationClearOnExit" class="donation-clear-on-exit-checkbox">
+              <span class="donation-clear-on-exit-text">${clearOnExitLabel}</span>
+            </label>
             <button class="donation-sync-btn" id="donationSyncBtn" title="${syncText}">
               <svg class="donation-sync-icon" id="donationSyncIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M23 4v6h-6M1 20v-6h6"/>
@@ -238,10 +242,6 @@ const DonationTab = (function() {
               </svg>
             </button>
             <span class="donation-sync-time" id="donationSyncTime">-</span>
-            <label class="donation-clear-on-exit-label" title="${clearOnExitTooltip}">
-              <input type="checkbox" id="donationClearOnExit" class="donation-clear-on-exit-checkbox">
-              <span class="donation-clear-on-exit-text">${clearOnExitLabel}</span>
-            </label>
           </div>
         </div>
       </div>
@@ -344,7 +344,7 @@ const DonationTab = (function() {
 
     // 로그인 버튼
     if (target.id === 'donationLoginBtn') {
-      window.open('https://login.sooplive.co.kr/', '_blank');
+      window.open('https://www.sooplive.co.kr/', '_blank');
       return;
     }
 
@@ -398,10 +398,24 @@ const DonationTab = (function() {
       const saved = result[STORAGE_KEY];
 
       if (saved) {
-        state.lastSync = saved.lastSync || null;
-        state.isLoggedIn = saved.isLoggedIn ?? null;
-        state.data = saved.data || null;
-        state.settings = { ...state.settings, ...saved.settings };
+        // ⭐ clearOnExit 설정 확인 - 새 세션이면 데이터 삭제
+        if (saved.settings?.clearOnExit && !sessionStorage.getItem('donationSessionChecked')) {
+          sessionStorage.setItem('donationSessionChecked', 'true');
+
+          // 데이터만 삭제하고 settings 유지
+          state.lastSync = null;
+          state.isLoggedIn = null;
+          state.data = null;
+          state.settings = { ...state.settings, ...saved.settings };
+
+          // 스토리지에 삭제된 상태 저장
+          await saveToStorage();
+        } else {
+          state.lastSync = saved.lastSync || null;
+          state.isLoggedIn = saved.isLoggedIn ?? null;
+          state.data = saved.data || null;
+          state.settings = { ...state.settings, ...saved.settings };
+        }
 
         // 설정값 UI 반영
         state.currentPeriod = state.settings.defaultPeriod;
@@ -1558,14 +1572,9 @@ const DonationTab = (function() {
       </span>
     ` : '';
 
-    const totalLabel = (i18n('donationChartTotal') || '총 $amount$$unit$')
-      .replace('$amount$', formatNumber(total))
-      .replace('$unit$', unit);
-
     container.innerHTML = `
       <div class="donation-chart-header">
         <span class="donation-chart-title">${chartTitle}${infoIcon}</span>
-        <span class="donation-chart-total">${totalLabel}</span>
       </div>
 
       <!-- 원형 차트 (중앙 배치) -->
@@ -1809,9 +1818,7 @@ const DonationTab = (function() {
       const date = new Date(state.lastSync);
       const hours = date.getHours().toString().padStart(2, '0');
       const minutes = date.getMinutes().toString().padStart(2, '0');
-      const lastSyncText = (i18n('donationLastSync') || '마지막: $time$')
-        .replace('$time$', `${hours}:${minutes}`);
-      elements.syncTime.textContent = lastSyncText;
+      elements.syncTime.textContent = `${hours}:${minutes}`;
     } else {
       elements.syncTime.textContent = '-';
     }

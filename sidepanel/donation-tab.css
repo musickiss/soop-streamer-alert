@@ -913,8 +913,8 @@
   gap: 4px;
   cursor: pointer;
   user-select: none;
-  margin-left: auto;
   flex-shrink: 0;
+  margin-right: auto;
 }
 
 .donation-clear-on-exit-checkbox {

@@ -592,6 +592,14 @@
     "message": "Syncing",
     "description": "Syncing status"
   },
+  "donationClearOnExit": {
+    "message": "Clear collected data on browser exit",
+    "description": "Clear data on browser exit checkbox"
+  },
+  "donationClearOnExitTooltip": {
+    "message": "Collects new data when browser starts and clears all collected data when browser closes.",
+    "description": "Clear data on browser exit tooltip"
+  },
   "donationLastSync": {
     "message": "Last: $time$",
     "description": "Last sync time",

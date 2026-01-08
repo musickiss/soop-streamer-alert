@@ -592,6 +592,14 @@
     "message": "同期中",
     "description": "同期中状態"
   },
+  "donationClearOnExit": {
+    "message": "ブラウザ終了時に収集データを削除",
+    "description": "ブラウザ終了時データ削除チェックボックス"
+  },
+  "donationClearOnExitTooltip": {
+    "message": "ブラウザ起動時に新しく情報を収集し、ブラウザを閉じると収集したデータをすべて初期化します。",
+    "description": "ブラウザ終了時データ削除ツールチップ"
+  },
   "donationLastSync": {
     "message": "最終: $time$",
     "description": "最終同期時間",

@@ -592,6 +592,14 @@
     "message": "동기화 중",
     "description": "동기화 중 상태"
   },
+  "donationClearOnExit": {
+    "message": "브라우저 종료 시 수집된 데이터 삭제",
+    "description": "브라우저 종료 시 데이터 삭제 체크박스"
+  },
+  "donationClearOnExitTooltip": {
+    "message": "브라우저 실행 시 새롭게 정보를 수집하고, 브라우저가 닫히면 수집한 데이터를 모두 초기화합니다.",
+    "description": "브라우저 종료 시 데이터 삭제 툴팁"
+  },
   "donationLastSync": {
     "message": "마지막: $time$",
     "description": "마지막 동기화 시간",

@@ -592,6 +592,14 @@
     "message": "同步中",
     "description": "同步中狀態"
   },
+  "donationClearOnExit": {
+    "message": "瀏覽器關閉時刪除收集的資料",
+    "description": "瀏覽器關閉時刪除資料核取方塊"
+  },
+  "donationClearOnExitTooltip": {
+    "message": "瀏覽器啟動時重新收集資訊，瀏覽器關閉時清除所有收集的資料。",
+    "description": "瀏覽器關閉時刪除資料提示"
+  },
   "donationLastSync": {
     "message": "上次: $time$",
     "description": "上次同步時間",
