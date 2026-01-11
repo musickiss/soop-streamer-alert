@@ -28,13 +28,7 @@ SOOP(구 아프리카TV) 스트리머 방송 알림 및 녹화 Chrome 확장 프
 
 ## 📥 설치 방법
 
-### Chrome 웹스토어 (권장)
 [Chrome 웹스토어](https://chromewebstore.google.com/detail/bmmihbljmhbmhkijinicehdbjlinalfi)에서 "숲토킹" 검색 후 설치
-
-### 수동 설치
-1. [GitHub에서 다운로드](https://github.com/musickiss/soop-streamer-alert/archive/refs/heads/master.zip) 후 압축 해제
-2. `chrome://extensions/` 접속 → 개발자 모드 ON
-3. "압축해제된 확장 프로그램을 로드합니다" → 폴더 선택
 
 ---
 
