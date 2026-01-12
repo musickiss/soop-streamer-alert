@@ -35,6 +35,16 @@
           } else {
             console.error('[Sidepanel] DonationTab not found or init not a function');
           }
+        } else if (targetTab === 'chat') {
+          document.getElementById('chatTabContent')?.classList.add('active');
+          // ChatTab 모듈 초기화 (최초 1회)
+          console.log('[Sidepanel] Chat tab clicked, ChatTab:', window.ChatTab);
+          if (window.ChatTab && typeof window.ChatTab.init === 'function') {
+            console.log('[Sidepanel] Calling ChatTab.init()');
+            window.ChatTab.init();
+          } else {
+            console.error('[Sidepanel] ChatTab not found or init not a function');
+          }
         }
       });
     });

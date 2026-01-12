@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="sidepanel.css">
   <link rel="stylesheet" href="donation-tab.css">
+  <link rel="stylesheet" href="chat-tab.css">
 </head>
 <body>
   <!-- ===== 메인 탭 네비게이션 ===== -->
@@ -21,6 +22,10 @@
     <button class="main-tab-btn" data-tab="donation">
       <span class="main-tab-icon">🎁</span>
       <span class="main-tab-text" data-i18n="tabDonation">내 후원</span>
+    </button>
+    <button class="main-tab-btn" data-tab="chat">
+      <span class="main-tab-icon">💬</span>
+      <span class="main-tab-text" data-i18n="tabChat">채팅</span>
     </button>
   </div>
 
@@ -237,7 +242,16 @@
     </div>
   </div>
 
+  <!-- ===== 채팅 수집 탭 컨텐츠 ===== -->
+  <div class="main-tab-content" id="chatTabContent">
+    <div class="chat-tab-container active" id="chatTabContainer">
+      <!-- ChatTab 모듈이 동적으로 렌더링 -->
+    </div>
+  </div>
+
   <script src="sidepanel.js"></script>
   <script src="donation-tab.js"></script>
+  <script src="chat-db.js"></script>
+  <script src="chat-tab.js"></script>
 </body>
 </html>

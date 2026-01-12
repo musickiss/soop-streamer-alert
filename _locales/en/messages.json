@@ -860,5 +860,196 @@
   "taglineCreepy": {
     "message": "I'm always watching..",
     "description": "Creepy tagline"
+  },
+
+  "tabChat": {
+    "message": "Chat",
+    "description": "Chat tab name"
+  },
+  "chatCollecting": {
+    "message": "Collecting",
+    "description": "Chat collecting status"
+  },
+  "chatPaused": {
+    "message": "Paused",
+    "description": "Chat collection paused status"
+  },
+  "chatStopped": {
+    "message": "Stopped",
+    "description": "Chat collection stopped status"
+  },
+  "chatStartCollection": {
+    "message": "Start",
+    "description": "Start collection button"
+  },
+  "chatStopCollection": {
+    "message": "Stop",
+    "description": "Stop collection button"
+  },
+  "chatTogglePause": {
+    "message": "Pause",
+    "description": "Pause toggle"
+  },
+  "chatTodayCount": {
+    "message": "$count$ today",
+    "description": "Today's collected chat count",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatTotalCount": {
+    "message": "$count$ total",
+    "description": "Total collected chat count",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatSearchPlaceholder": {
+    "message": "Search chats... (e.g., what John said about pizza yesterday)",
+    "description": "AI search placeholder"
+  },
+  "chatSearchHint1": {
+    "message": "user: John",
+    "description": "Search hint 1"
+  },
+  "chatSearchHint2": {
+    "message": "today's chat",
+    "description": "Search hint 2"
+  },
+  "chatSearchHint3": {
+    "message": "last week pizza",
+    "description": "Search hint 3"
+  },
+  "chatSearchNoResult": {
+    "message": "No results found",
+    "description": "No search results"
+  },
+  "chatSearchResultCount": {
+    "message": "$count$ results",
+    "description": "Search result count",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatSearchClear": {
+    "message": "Clear search",
+    "description": "Clear search button"
+  },
+  "chatEmptyTitle": {
+    "message": "No chats collected",
+    "description": "Empty state title"
+  },
+  "chatEmptyDesc": {
+    "message": "Chats will be collected automatically when you join a SOOP stream",
+    "description": "Empty state description"
+  },
+  "chatExport": {
+    "message": "Export",
+    "description": "Export button"
+  },
+  "chatImport": {
+    "message": "Import",
+    "description": "Import button"
+  },
+  "chatDelete": {
+    "message": "Delete",
+    "description": "Delete button"
+  },
+  "chatExportJson": {
+    "message": "Export as JSON",
+    "description": "JSON export"
+  },
+  "chatExportJsonDesc": {
+    "message": "Full backup (can be restored)",
+    "description": "JSON export description"
+  },
+  "chatExportCsv": {
+    "message": "Export as CSV",
+    "description": "CSV export"
+  },
+  "chatExportCsvDesc": {
+    "message": "For Excel/analysis (cannot be restored)",
+    "description": "CSV export description"
+  },
+  "chatImportJson": {
+    "message": "Import JSON",
+    "description": "JSON import"
+  },
+  "chatImportJsonDesc": {
+    "message": "Restore backup (duplicates auto-removed)",
+    "description": "JSON import description"
+  },
+  "chatDeleteAll": {
+    "message": "Delete All",
+    "description": "Delete all button"
+  },
+  "chatDeleteAllDesc": {
+    "message": "Delete all chat data (cannot be undone)",
+    "description": "Delete all description"
+  },
+  "chatDeleteConfirm": {
+    "message": "Are you sure you want to delete all chat data?\nThis action cannot be undone.",
+    "description": "Delete confirmation message"
+  },
+  "chatExportSuccess": {
+    "message": "Exported $count$ chats",
+    "description": "Export success",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatImportSuccess": {
+    "message": "Imported $count$ chats",
+    "description": "Import success",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatDeleteSuccess": {
+    "message": "All chat data has been deleted",
+    "description": "Delete success"
+  },
+  "chatAiBadge": {
+    "message": "AI",
+    "description": "AI badge"
+  },
+  "chatAiFallback": {
+    "message": "Search",
+    "description": "AI fallback badge"
+  },
+  "chatStorageUsed": {
+    "message": "$size$ used",
+    "description": "Storage usage",
+    "placeholders": {
+      "size": { "content": "$1" }
+    }
+  },
+  "chatFilterToday": {
+    "message": "Today",
+    "description": "Today filter"
+  },
+  "chatFilterWeek": {
+    "message": "This Week",
+    "description": "This week filter"
+  },
+  "chatFilterMonth": {
+    "message": "This Month",
+    "description": "This month filter"
+  },
+  "chatFilterAll": {
+    "message": "All",
+    "description": "All filter"
+  },
+  "chatAllStreamers": {
+    "message": "All Streamers",
+    "description": "All streamers filter"
+  },
+  "chatDataManage": {
+    "message": "Data Management",
+    "description": "Data management modal title"
+  },
+  "chatLoading": {
+    "message": "Loading chats...",
+    "description": "Loading message"
   }
 }

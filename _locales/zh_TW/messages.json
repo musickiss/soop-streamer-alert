@@ -860,5 +860,196 @@
   "taglineCreepy": {
     "message": "我一直在看著你..",
     "description": "恐怖標語"
+  },
+
+  "tabChat": {
+    "message": "聊天",
+    "description": "聊天標籤名"
+  },
+  "chatCollecting": {
+    "message": "收集中",
+    "description": "聊天收集中狀態"
+  },
+  "chatPaused": {
+    "message": "已暫停",
+    "description": "聊天收集暫停狀態"
+  },
+  "chatStopped": {
+    "message": "已停止",
+    "description": "聊天收集停止狀態"
+  },
+  "chatStartCollection": {
+    "message": "開始收集",
+    "description": "開始收集按鈕"
+  },
+  "chatStopCollection": {
+    "message": "停止收集",
+    "description": "停止收集按鈕"
+  },
+  "chatTogglePause": {
+    "message": "暫停",
+    "description": "暫停切換"
+  },
+  "chatTodayCount": {
+    "message": "今天 $count$ 則",
+    "description": "今天收集的聊天數",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatTotalCount": {
+    "message": "共 $count$ 則",
+    "description": "總收集聊天數",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatSearchPlaceholder": {
+    "message": "搜尋聊天... (例: 昨天小明說的披薩)",
+    "description": "AI搜尋佔位符"
+  },
+  "chatSearchHint1": {
+    "message": "使用者: 小明",
+    "description": "搜尋提示1"
+  },
+  "chatSearchHint2": {
+    "message": "今天的聊天",
+    "description": "搜尋提示2"
+  },
+  "chatSearchHint3": {
+    "message": "上週 披薩",
+    "description": "搜尋提示3"
+  },
+  "chatSearchNoResult": {
+    "message": "沒有搜尋結果",
+    "description": "無搜尋結果"
+  },
+  "chatSearchResultCount": {
+    "message": "找到 $count$ 則",
+    "description": "搜尋結果數",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatSearchClear": {
+    "message": "清除搜尋",
+    "description": "清除搜尋按鈕"
+  },
+  "chatEmptyTitle": {
+    "message": "沒有收集的聊天",
+    "description": "空狀態標題"
+  },
+  "chatEmptyDesc": {
+    "message": "加入SOOP直播時聊天會自動收集",
+    "description": "空狀態描述"
+  },
+  "chatExport": {
+    "message": "匯出",
+    "description": "匯出按鈕"
+  },
+  "chatImport": {
+    "message": "匯入",
+    "description": "匯入按鈕"
+  },
+  "chatDelete": {
+    "message": "刪除",
+    "description": "刪除按鈕"
+  },
+  "chatExportJson": {
+    "message": "匯出為JSON",
+    "description": "JSON匯出"
+  },
+  "chatExportJsonDesc": {
+    "message": "完整備份（可還原）",
+    "description": "JSON匯出描述"
+  },
+  "chatExportCsv": {
+    "message": "匯出為CSV",
+    "description": "CSV匯出"
+  },
+  "chatExportCsvDesc": {
+    "message": "Excel/分析用（不可還原）",
+    "description": "CSV匯出描述"
+  },
+  "chatImportJson": {
+    "message": "匯入JSON",
+    "description": "JSON匯入"
+  },
+  "chatImportJsonDesc": {
+    "message": "還原備份（自動去重）",
+    "description": "JSON匯入描述"
+  },
+  "chatDeleteAll": {
+    "message": "全部刪除",
+    "description": "全部刪除按鈕"
+  },
+  "chatDeleteAllDesc": {
+    "message": "刪除所有聊天資料（不可還原）",
+    "description": "全部刪除描述"
+  },
+  "chatDeleteConfirm": {
+    "message": "確定要刪除所有聊天資料嗎？\n此操作無法復原。",
+    "description": "刪除確認訊息"
+  },
+  "chatExportSuccess": {
+    "message": "已匯出 $count$ 則聊天",
+    "description": "匯出成功",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatImportSuccess": {
+    "message": "已匯入 $count$ 則聊天",
+    "description": "匯入成功",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatDeleteSuccess": {
+    "message": "所有聊天資料已刪除",
+    "description": "刪除成功"
+  },
+  "chatAiBadge": {
+    "message": "AI",
+    "description": "AI徽章"
+  },
+  "chatAiFallback": {
+    "message": "搜尋",
+    "description": "AI備用徽章"
+  },
+  "chatStorageUsed": {
+    "message": "已用 $size$",
+    "description": "儲存使用量",
+    "placeholders": {
+      "size": { "content": "$1" }
+    }
+  },
+  "chatFilterToday": {
+    "message": "今天",
+    "description": "今天篩選"
+  },
+  "chatFilterWeek": {
+    "message": "本週",
+    "description": "本週篩選"
+  },
+  "chatFilterMonth": {
+    "message": "本月",
+    "description": "本月篩選"
+  },
+  "chatFilterAll": {
+    "message": "全部",
+    "description": "全部篩選"
+  },
+  "chatAllStreamers": {
+    "message": "所有實況主",
+    "description": "所有實況主篩選"
+  },
+  "chatDataManage": {
+    "message": "資料管理",
+    "description": "資料管理模態框標題"
+  },
+  "chatLoading": {
+    "message": "載入聊天中...",
+    "description": "載入中訊息"
   }
 }

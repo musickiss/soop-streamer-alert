@@ -860,5 +860,196 @@
   "taglineCreepy": {
     "message": "내가 늘 지켜보고 있어..",
     "description": "크리피 태그라인"
+  },
+
+  "tabChat": {
+    "message": "채팅",
+    "description": "채팅 탭 이름"
+  },
+  "chatCollecting": {
+    "message": "수집 중",
+    "description": "채팅 수집 중 상태"
+  },
+  "chatPaused": {
+    "message": "일시정지",
+    "description": "채팅 수집 일시정지 상태"
+  },
+  "chatStopped": {
+    "message": "수집 중지",
+    "description": "채팅 수집 중지 상태"
+  },
+  "chatStartCollection": {
+    "message": "수집 시작",
+    "description": "수집 시작 버튼"
+  },
+  "chatStopCollection": {
+    "message": "수집 중지",
+    "description": "수집 중지 버튼"
+  },
+  "chatTogglePause": {
+    "message": "일시정지",
+    "description": "일시정지 토글"
+  },
+  "chatTodayCount": {
+    "message": "오늘 $count$건",
+    "description": "오늘 수집된 채팅 수",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatTotalCount": {
+    "message": "총 $count$건",
+    "description": "전체 수집된 채팅 수",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatSearchPlaceholder": {
+    "message": "채팅 검색... (예: 어제 홍길동이 말한 피자)",
+    "description": "AI 검색 플레이스홀더"
+  },
+  "chatSearchHint1": {
+    "message": "닉네임: 홍길동",
+    "description": "검색 힌트 1"
+  },
+  "chatSearchHint2": {
+    "message": "오늘 채팅",
+    "description": "검색 힌트 2"
+  },
+  "chatSearchHint3": {
+    "message": "지난주 피자",
+    "description": "검색 힌트 3"
+  },
+  "chatSearchNoResult": {
+    "message": "검색 결과가 없습니다",
+    "description": "검색 결과 없음"
+  },
+  "chatSearchResultCount": {
+    "message": "$count$건 검색됨",
+    "description": "검색 결과 수",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatSearchClear": {
+    "message": "검색 초기화",
+    "description": "검색 초기화 버튼"
+  },
+  "chatEmptyTitle": {
+    "message": "수집된 채팅이 없습니다",
+    "description": "빈 상태 제목"
+  },
+  "chatEmptyDesc": {
+    "message": "SOOP 방송 참여 시 채팅이 자동으로 수집됩니다",
+    "description": "빈 상태 설명"
+  },
+  "chatExport": {
+    "message": "내보내기",
+    "description": "내보내기 버튼"
+  },
+  "chatImport": {
+    "message": "가져오기",
+    "description": "가져오기 버튼"
+  },
+  "chatDelete": {
+    "message": "삭제",
+    "description": "삭제 버튼"
+  },
+  "chatExportJson": {
+    "message": "JSON으로 내보내기",
+    "description": "JSON 내보내기"
+  },
+  "chatExportJsonDesc": {
+    "message": "전체 데이터 백업 (복원 가능)",
+    "description": "JSON 내보내기 설명"
+  },
+  "chatExportCsv": {
+    "message": "CSV로 내보내기",
+    "description": "CSV 내보내기"
+  },
+  "chatExportCsvDesc": {
+    "message": "엑셀/분석용 (복원 불가)",
+    "description": "CSV 내보내기 설명"
+  },
+  "chatImportJson": {
+    "message": "JSON 가져오기",
+    "description": "JSON 가져오기"
+  },
+  "chatImportJsonDesc": {
+    "message": "백업 파일 복원 (중복 자동 제거)",
+    "description": "JSON 가져오기 설명"
+  },
+  "chatDeleteAll": {
+    "message": "전체 삭제",
+    "description": "전체 삭제 버튼"
+  },
+  "chatDeleteAllDesc": {
+    "message": "모든 채팅 데이터 삭제 (복구 불가)",
+    "description": "전체 삭제 설명"
+  },
+  "chatDeleteConfirm": {
+    "message": "정말로 모든 채팅 데이터를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.",
+    "description": "삭제 확인 메시지"
+  },
+  "chatExportSuccess": {
+    "message": "$count$건의 채팅을 내보냈습니다",
+    "description": "내보내기 성공",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatImportSuccess": {
+    "message": "$count$건의 채팅을 가져왔습니다",
+    "description": "가져오기 성공",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatDeleteSuccess": {
+    "message": "모든 채팅 데이터가 삭제되었습니다",
+    "description": "삭제 성공"
+  },
+  "chatAiBadge": {
+    "message": "AI",
+    "description": "AI 배지"
+  },
+  "chatAiFallback": {
+    "message": "검색",
+    "description": "AI 폴백 배지"
+  },
+  "chatStorageUsed": {
+    "message": "$size$ 사용 중",
+    "description": "저장 공간 사용량",
+    "placeholders": {
+      "size": { "content": "$1" }
+    }
+  },
+  "chatFilterToday": {
+    "message": "오늘",
+    "description": "오늘 필터"
+  },
+  "chatFilterWeek": {
+    "message": "이번 주",
+    "description": "이번 주 필터"
+  },
+  "chatFilterMonth": {
+    "message": "이번 달",
+    "description": "이번 달 필터"
+  },
+  "chatFilterAll": {
+    "message": "전체",
+    "description": "전체 필터"
+  },
+  "chatAllStreamers": {
+    "message": "모든 스트리머",
+    "description": "모든 스트리머 필터"
+  },
+  "chatDataManage": {
+    "message": "데이터 관리",
+    "description": "데이터 관리 모달 제목"
+  },
+  "chatLoading": {
+    "message": "채팅 불러오는 중...",
+    "description": "로딩 중 메시지"
   }
 }

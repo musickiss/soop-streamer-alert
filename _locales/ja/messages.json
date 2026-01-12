@@ -860,5 +860,196 @@
   "taglineCreepy": {
     "message": "いつも見守っています..",
     "description": "クリーピータグライン"
+  },
+
+  "tabChat": {
+    "message": "チャット",
+    "description": "チャットタブ名"
+  },
+  "chatCollecting": {
+    "message": "収集中",
+    "description": "チャット収集中状態"
+  },
+  "chatPaused": {
+    "message": "一時停止",
+    "description": "チャット収集一時停止状態"
+  },
+  "chatStopped": {
+    "message": "収集停止",
+    "description": "チャット収集停止状態"
+  },
+  "chatStartCollection": {
+    "message": "収集開始",
+    "description": "収集開始ボタン"
+  },
+  "chatStopCollection": {
+    "message": "収集停止",
+    "description": "収集停止ボタン"
+  },
+  "chatTogglePause": {
+    "message": "一時停止",
+    "description": "一時停止トグル"
+  },
+  "chatTodayCount": {
+    "message": "今日 $count$件",
+    "description": "今日の収集チャット数",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatTotalCount": {
+    "message": "合計 $count$件",
+    "description": "合計収集チャット数",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatSearchPlaceholder": {
+    "message": "チャット検索... (例: 昨日田中さんが言ったピザ)",
+    "description": "AI検索プレースホルダー"
+  },
+  "chatSearchHint1": {
+    "message": "ユーザー: 田中",
+    "description": "検索ヒント1"
+  },
+  "chatSearchHint2": {
+    "message": "今日のチャット",
+    "description": "検索ヒント2"
+  },
+  "chatSearchHint3": {
+    "message": "先週 ピザ",
+    "description": "検索ヒント3"
+  },
+  "chatSearchNoResult": {
+    "message": "検索結果がありません",
+    "description": "検索結果なし"
+  },
+  "chatSearchResultCount": {
+    "message": "$count$件の結果",
+    "description": "検索結果数",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatSearchClear": {
+    "message": "検索クリア",
+    "description": "検索クリアボタン"
+  },
+  "chatEmptyTitle": {
+    "message": "収集されたチャットがありません",
+    "description": "空状態タイトル"
+  },
+  "chatEmptyDesc": {
+    "message": "SOOP配信に参加するとチャットが自動的に収集されます",
+    "description": "空状態説明"
+  },
+  "chatExport": {
+    "message": "エクスポート",
+    "description": "エクスポートボタン"
+  },
+  "chatImport": {
+    "message": "インポート",
+    "description": "インポートボタン"
+  },
+  "chatDelete": {
+    "message": "削除",
+    "description": "削除ボタン"
+  },
+  "chatExportJson": {
+    "message": "JSONでエクスポート",
+    "description": "JSONエクスポート"
+  },
+  "chatExportJsonDesc": {
+    "message": "完全バックアップ（復元可能）",
+    "description": "JSONエクスポート説明"
+  },
+  "chatExportCsv": {
+    "message": "CSVでエクスポート",
+    "description": "CSVエクスポート"
+  },
+  "chatExportCsvDesc": {
+    "message": "Excel/分析用（復元不可）",
+    "description": "CSVエクスポート説明"
+  },
+  "chatImportJson": {
+    "message": "JSONインポート",
+    "description": "JSONインポート"
+  },
+  "chatImportJsonDesc": {
+    "message": "バックアップ復元（重複自動削除）",
+    "description": "JSONインポート説明"
+  },
+  "chatDeleteAll": {
+    "message": "全削除",
+    "description": "全削除ボタン"
+  },
+  "chatDeleteAllDesc": {
+    "message": "すべてのチャットデータを削除（復元不可）",
+    "description": "全削除説明"
+  },
+  "chatDeleteConfirm": {
+    "message": "本当にすべてのチャットデータを削除しますか？\nこの操作は元に戻せません。",
+    "description": "削除確認メッセージ"
+  },
+  "chatExportSuccess": {
+    "message": "$count$件のチャットをエクスポートしました",
+    "description": "エクスポート成功",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatImportSuccess": {
+    "message": "$count$件のチャットをインポートしました",
+    "description": "インポート成功",
+    "placeholders": {
+      "count": { "content": "$1" }
+    }
+  },
+  "chatDeleteSuccess": {
+    "message": "すべてのチャットデータが削除されました",
+    "description": "削除成功"
+  },
+  "chatAiBadge": {
+    "message": "AI",
+    "description": "AIバッジ"
+  },
+  "chatAiFallback": {
+    "message": "検索",
+    "description": "AIフォールバックバッジ"
+  },
+  "chatStorageUsed": {
+    "message": "$size$ 使用中",
+    "description": "ストレージ使用量",
+    "placeholders": {
+      "size": { "content": "$1" }
+    }
+  },
+  "chatFilterToday": {
+    "message": "今日",
+    "description": "今日フィルター"
+  },
+  "chatFilterWeek": {
+    "message": "今週",
+    "description": "今週フィルター"
+  },
+  "chatFilterMonth": {
+    "message": "今月",
+    "description": "今月フィルター"
+  },
+  "chatFilterAll": {
+    "message": "全期間",
+    "description": "全期間フィルター"
+  },
+  "chatAllStreamers": {
+    "message": "全配信者",
+    "description": "全配信者フィルター"
+  },
+  "chatDataManage": {
+    "message": "データ管理",
+    "description": "データ管理モーダルタイトル"
+  },
+  "chatLoading": {
+    "message": "チャット読み込み中...",
+    "description": "読み込み中メッセージ"
   }
 }
