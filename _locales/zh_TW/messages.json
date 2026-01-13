@@ -566,7 +566,7 @@
     "description": "全部同步按鈕"
   },
   "donationFullSyncTooltip": {
-    "message": "重新載入所有資料",
+    "message": "清除現有資料後重新載入全部",
     "description": "全部同步提示"
   },
   "donationSearchPlaceholder": {
@@ -1051,5 +1051,166 @@
   "chatLoading": {
     "message": "載入聊天中...",
     "description": "載入中訊息"
+  },
+
+  "daySun": {
+    "message": "日",
+    "description": "星期 - 星期日"
+  },
+  "dayMon": {
+    "message": "一",
+    "description": "星期 - 星期一"
+  },
+  "dayTue": {
+    "message": "二",
+    "description": "星期 - 星期二"
+  },
+  "dayWed": {
+    "message": "三",
+    "description": "星期 - 星期三"
+  },
+  "dayThu": {
+    "message": "四",
+    "description": "星期 - 星期四"
+  },
+  "dayFri": {
+    "message": "五",
+    "description": "星期 - 星期五"
+  },
+  "daySat": {
+    "message": "六",
+    "description": "星期 - 星期六"
+  },
+  "chatSearchInputPlaceholder": {
+    "message": "搜尋訊息、@暱稱...",
+    "description": "聊天搜尋輸入佔位符"
+  },
+  "streamerIdInputPlaceholder": {
+    "message": "輸入實況主ID",
+    "description": "實況主ID輸入佔位符"
+  },
+  "collectModeOff": {
+    "message": "不收集",
+    "description": "收集模式 - 不收集"
+  },
+  "collectModeAll": {
+    "message": "所有聊天室",
+    "description": "收集模式 - 所有"
+  },
+  "collectModeSelected": {
+    "message": "選定的實況主",
+    "description": "收集模式 - 選定"
+  },
+  "collectModeSelectedOnly": {
+    "message": "僅選定的實況主",
+    "description": "收集模式 - 僅選定"
+  },
+  "settingsCollectMode": {
+    "message": "收集模式",
+    "description": "設定 - 收集模式標題"
+  },
+  "settingsCollectStreamers": {
+    "message": "聊天收集實況主",
+    "description": "設定 - 聊天收集實況主標題"
+  },
+  "settingsCollectHint": {
+    "message": "加入選定實況主的直播時會自動收集聊天。",
+    "description": "設定 - 聊天收集提示"
+  },
+  "noSelectedStreamers": {
+    "message": "沒有選定的實況主",
+    "description": "沒有選定的實況主"
+  },
+  "recentCollectedStreamers": {
+    "message": "最近收集的實況主",
+    "description": "最近收集的實況主標題"
+  },
+  "settingsDataRetention": {
+    "message": "資料保留",
+    "description": "設定 - 資料保留標題"
+  },
+  "retentionPeriod": {
+    "message": "保留期限",
+    "description": "保留期限標籤"
+  },
+  "settingsDataManageHint": {
+    "message": "刪除或整理收集的聊天資料。",
+    "description": "設定 - 資料管理提示"
+  },
+  "dataDelete": {
+    "message": "刪除資料",
+    "description": "刪除資料按鈕"
+  },
+  "unitDay": {
+    "message": "天",
+    "description": "單位 - 天"
+  },
+  "unitYear": {
+    "message": "年",
+    "description": "單位 - 年"
+  },
+  "unitPerson": {
+    "message": "人",
+    "description": "單位 - 人"
+  },
+  "unitCount": {
+    "message": "條",
+    "description": "單位 - 條"
+  },
+  "unlimited": {
+    "message": "無限制",
+    "description": "無限制"
+  },
+  "selectStartDate": {
+    "message": "選擇開始日期",
+    "description": "選擇開始日期按鈕"
+  },
+  "selectEndDate": {
+    "message": "選擇結束日期",
+    "description": "選擇結束日期按鈕"
+  },
+  "deleteSelectedStreamerData": {
+    "message": "刪除選定實況主的資料",
+    "description": "刪除選定實況主資料按鈕"
+  },
+  "deleteByStreamerTitle": {
+    "message": "按實況主刪除資料",
+    "description": "按實況主刪除資料對話框標題"
+  },
+  "andOthers": {
+    "message": "等",
+    "description": "等N人"
+  },
+  "deleteConfirmSuffix": {
+    "message": "的聊天資料",
+    "description": "刪除確認訊息後綴"
+  },
+  "deleteConfirmQuestion": {
+    "message": "，確定刪除嗎？",
+    "description": "刪除確認問題"
+  },
+  "creatingBackup": {
+    "message": "正在建立備份檔案...",
+    "description": "正在建立備份訊息"
+  },
+  "deleteComplete": {
+    "message": "刪除完成",
+    "description": "刪除完成訊息"
+  },
+  "deleteError": {
+    "message": "刪除時發生錯誤",
+    "description": "刪除錯誤訊息"
+  },
+  "deleteAllTitle": {
+    "message": "刪除全部資料",
+    "description": "刪除全部資料對話框標題"
+  },
+  "deleteAllMessage": {
+    "message": "收集的所有聊天資料",
+    "description": "刪除全部確認訊息"
+  },
+  "cannotUndo": {
+    "message": "此操作無法撤銷。",
+    "description": "無法撤銷警告"
   }
 }

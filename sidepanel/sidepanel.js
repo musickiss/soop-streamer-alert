@@ -37,13 +37,13 @@
           }
         } else if (targetTab === 'chat') {
           document.getElementById('chatTabContent')?.classList.add('active');
-          // ChatTab 모듈 초기화 (최초 1회)
+          // ChatTab 모듈 표시 (init + render)
           console.log('[Sidepanel] Chat tab clicked, ChatTab:', window.ChatTab);
-          if (window.ChatTab && typeof window.ChatTab.init === 'function') {
-            console.log('[Sidepanel] Calling ChatTab.init()');
-            window.ChatTab.init();
+          if (window.ChatTab && typeof window.ChatTab.show === 'function') {
+            console.log('[Sidepanel] Calling ChatTab.show()');
+            window.ChatTab.show();
           } else {
-            console.error('[Sidepanel] ChatTab not found or init not a function');
+            console.error('[Sidepanel] ChatTab not found or show not a function');
           }
         }
       });
@@ -1063,6 +1063,9 @@
   }
 
   function bindStreamerCardEvents() {
+    // M-4 참고: 현재 forEach 방식은 스트리머 목록 렌더링 시 1회만 호출되므로
+    // 성능 영향이 크지 않음. 이벤트 위임 패턴은 향후 개선 시 적용 가능.
+
     // 카드 확장/축소 (v3.2.4 - 안정화된 아코디언)
     document.querySelectorAll('.streamer-card-header').forEach(header => {
       header.addEventListener('click', (e) => {

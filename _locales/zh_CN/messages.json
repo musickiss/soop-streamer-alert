@@ -566,7 +566,7 @@
     "description": "全部同步按钮"
   },
   "donationFullSyncTooltip": {
-    "message": "重新加载所有数据",
+    "message": "清除现有数据后重新加载全部",
     "description": "全部同步提示"
   },
   "donationSearchPlaceholder": {
@@ -1051,5 +1051,166 @@
   "chatLoading": {
     "message": "加载聊天中...",
     "description": "加载中消息"
+  },
+
+  "daySun": {
+    "message": "日",
+    "description": "星期 - 星期日"
+  },
+  "dayMon": {
+    "message": "一",
+    "description": "星期 - 星期一"
+  },
+  "dayTue": {
+    "message": "二",
+    "description": "星期 - 星期二"
+  },
+  "dayWed": {
+    "message": "三",
+    "description": "星期 - 星期三"
+  },
+  "dayThu": {
+    "message": "四",
+    "description": "星期 - 星期四"
+  },
+  "dayFri": {
+    "message": "五",
+    "description": "星期 - 星期五"
+  },
+  "daySat": {
+    "message": "六",
+    "description": "星期 - 星期六"
+  },
+  "chatSearchInputPlaceholder": {
+    "message": "搜索消息、@昵称...",
+    "description": "聊天搜索输入占位符"
+  },
+  "streamerIdInputPlaceholder": {
+    "message": "输入主播ID",
+    "description": "主播ID输入占位符"
+  },
+  "collectModeOff": {
+    "message": "不收集",
+    "description": "收集模式 - 不收集"
+  },
+  "collectModeAll": {
+    "message": "所有聊天室",
+    "description": "收集模式 - 所有"
+  },
+  "collectModeSelected": {
+    "message": "选定的主播",
+    "description": "收集模式 - 选定"
+  },
+  "collectModeSelectedOnly": {
+    "message": "仅选定的主播",
+    "description": "收集模式 - 仅选定"
+  },
+  "settingsCollectMode": {
+    "message": "收集模式",
+    "description": "设置 - 收集模式标题"
+  },
+  "settingsCollectStreamers": {
+    "message": "聊天收集主播",
+    "description": "设置 - 聊天收集主播标题"
+  },
+  "settingsCollectHint": {
+    "message": "加入选定主播的直播时会自动收集聊天。",
+    "description": "设置 - 聊天收集提示"
+  },
+  "noSelectedStreamers": {
+    "message": "没有选定的主播",
+    "description": "没有选定的主播"
+  },
+  "recentCollectedStreamers": {
+    "message": "最近收集的主播",
+    "description": "最近收集的主播标题"
+  },
+  "settingsDataRetention": {
+    "message": "数据保留",
+    "description": "设置 - 数据保留标题"
+  },
+  "retentionPeriod": {
+    "message": "保留期限",
+    "description": "保留期限标签"
+  },
+  "settingsDataManageHint": {
+    "message": "删除或整理收集的聊天数据。",
+    "description": "设置 - 数据管理提示"
+  },
+  "dataDelete": {
+    "message": "删除数据",
+    "description": "删除数据按钮"
+  },
+  "unitDay": {
+    "message": "天",
+    "description": "单位 - 天"
+  },
+  "unitYear": {
+    "message": "年",
+    "description": "单位 - 年"
+  },
+  "unitPerson": {
+    "message": "人",
+    "description": "单位 - 人"
+  },
+  "unitCount": {
+    "message": "条",
+    "description": "单位 - 条"
+  },
+  "unlimited": {
+    "message": "无限制",
+    "description": "无限制"
+  },
+  "selectStartDate": {
+    "message": "选择开始日期",
+    "description": "选择开始日期按钮"
+  },
+  "selectEndDate": {
+    "message": "选择结束日期",
+    "description": "选择结束日期按钮"
+  },
+  "deleteSelectedStreamerData": {
+    "message": "删除选定主播的数据",
+    "description": "删除选定主播数据按钮"
+  },
+  "deleteByStreamerTitle": {
+    "message": "按主播删除数据",
+    "description": "按主播删除数据对话框标题"
+  },
+  "andOthers": {
+    "message": "等",
+    "description": "等N人"
+  },
+  "deleteConfirmSuffix": {
+    "message": "的聊天数据",
+    "description": "删除确认消息后缀"
+  },
+  "deleteConfirmQuestion": {
+    "message": "，确定删除吗？",
+    "description": "删除确认问题"
+  },
+  "creatingBackup": {
+    "message": "正在创建备份文件...",
+    "description": "正在创建备份消息"
+  },
+  "deleteComplete": {
+    "message": "删除完成",
+    "description": "删除完成消息"
+  },
+  "deleteError": {
+    "message": "删除时发生错误",
+    "description": "删除错误消息"
+  },
+  "deleteAllTitle": {
+    "message": "删除全部数据",
+    "description": "删除全部数据对话框标题"
+  },
+  "deleteAllMessage": {
+    "message": "收集的所有聊天数据",
+    "description": "删除全部确认消息"
+  },
+  "cannotUndo": {
+    "message": "此操作无法撤销。",
+    "description": "无法撤销警告"
   }
 }

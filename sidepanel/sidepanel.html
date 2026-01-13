@@ -249,9 +249,18 @@
     </div>
   </div>
 
+  <!-- sql.js WASM 라이브러리 -->
+  <script src="../lib/sql-wasm.js"></script>
+
+  <!-- 저장소 모듈 (순서 중요) -->
+  <script src="chat-db.js"></script>
+  <script src="chat-sqlite.js"></script>
+  <script src="chat-storage.js"></script>
+  <script src="chat-backup.js"></script>
+
+  <!-- UI 모듈 -->
   <script src="sidepanel.js"></script>
   <script src="donation-tab.js"></script>
-  <script src="chat-db.js"></script>
   <script src="chat-tab.js"></script>
 </body>
 </html>

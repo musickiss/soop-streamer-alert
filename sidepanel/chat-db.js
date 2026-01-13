@@ -165,36 +165,51 @@ const ChatDB = (function() {
       dateEnd = '',
       streamers = [],
       limit = 500
-    } = query;
+    } = query || {};
 
     // 기본 날짜 범위 (전체)
     const start = dateStart || '2020-01-01';
     const end = dateEnd || formatDate(new Date());
 
     // 기간별 메시지 가져오기
-    let messages = await getMessagesByDateRange(start, end, 10000);
+    let messages = [];
+    try {
+      messages = await getMessagesByDateRange(start, end, 10000);
+    } catch (e) {
+      console.error('[ChatDB] 기간별 메시지 조회 실패:', e);
+      return [];
+    }
 
-    // 닉네임 필터
-    if (nicknames.length > 0) {
-      const lowerNicknames = nicknames.map(n => n.toLowerCase());
-      messages = messages.filter(m =>
-        lowerNicknames.some(n => m.nickname.toLowerCase().includes(n))
-      );
+    if (!messages || messages.length === 0) {
+      return [];
+    }
+
+    // 닉네임 또는 userId 필터
+    if (nicknames && nicknames.length > 0) {
+      const lowerNicknames = nicknames.map(n => String(n).toLowerCase());
+      messages = messages.filter(m => {
+        if (!m) return false;
+        // 닉네임 매칭
+        const nicknameMatch = m.nickname && lowerNicknames.some(n => m.nickname.toLowerCase().includes(n));
+        // userId 매칭
+        const userIdMatch = m.userId && lowerNicknames.some(n => m.userId.toLowerCase().includes(n));
+        return nicknameMatch || userIdMatch;
+      });
     }
 
     // 키워드 필터
-    if (keywords.length > 0) {
-      const lowerKeywords = keywords.map(k => k.toLowerCase());
+    if (keywords && keywords.length > 0) {
+      const lowerKeywords = keywords.map(k => String(k).toLowerCase());
       messages = messages.filter(m =>
-        lowerKeywords.some(k => m.message.toLowerCase().includes(k))
+        m && m.message && lowerKeywords.some(k => m.message.toLowerCase().includes(k))
       );
     }
 
     // 스트리머 필터
-    if (streamers.length > 0) {
-      const lowerStreamers = streamers.map(s => s.toLowerCase());
+    if (streamers && streamers.length > 0) {
+      const lowerStreamers = streamers.map(s => String(s).toLowerCase());
       messages = messages.filter(m =>
-        lowerStreamers.includes(m.streamerId.toLowerCase())
+        m && m.streamerId && lowerStreamers.includes(m.streamerId.toLowerCase())
       );
     }
 
@@ -228,31 +243,66 @@ const ChatDB = (function() {
   }
 
   // ===== 스트리머 목록 조회 =====
+  // v5.4.0: messages 기반으로 변경 (실제 저장된 모든 스트리머 표시)
   async function getStreamers() {
     if (!db) await init();
 
     return new Promise((resolve, reject) => {
-      const transaction = db.transaction([STORE_SESSIONS], 'readonly');
-      const store = transaction.objectStore(STORE_SESSIONS);
-      const request = store.getAll();
+      const transaction = db.transaction([STORE_MESSAGES, STORE_SESSIONS], 'readonly');
+      const messagesStore = transaction.objectStore(STORE_MESSAGES);
+      const sessionsStore = transaction.objectStore(STORE_SESSIONS);
 
-      request.onsuccess = () => {
-        const sessions = request.result || [];
-        const streamers = new Map();
+      // 1. 세션에서 닉네임 맵 구축
+      const sessionsRequest = sessionsStore.getAll();
+      const nickMap = new Map(); // streamerId (lowercase) -> streamerNick
 
+      sessionsRequest.onsuccess = () => {
+        const sessions = sessionsRequest.result || [];
         for (const session of sessions) {
-          if (!streamers.has(session.streamerId)) {
-            streamers.set(session.streamerId, {
-              id: session.streamerId,
-              nickname: session.streamerNick
-            });
+          if (session.streamerNick && session.streamerId) {
+            const key = session.streamerId.toLowerCase();
+            if (!nickMap.has(key) || nickMap.get(key) === session.streamerId) {
+              nickMap.set(key, session.streamerNick);
+            }
           }
         }
 
-        resolve(Array.from(streamers.values()));
+        // 2. 메시지에서 스트리머 목록 구축
+        const messagesRequest = messagesStore.openCursor();
+        const streamers = new Map(); // streamerId (lowercase) -> { id, nickname, lastTime }
+
+        messagesRequest.onsuccess = (event) => {
+          const cursor = event.target.result;
+          if (cursor) {
+            const msg = cursor.value;
+            if (msg && msg.streamerId) {
+              const key = msg.streamerId.toLowerCase();
+              const existing = streamers.get(key);
+
+              if (!existing || msg.timestamp > existing.lastTime) {
+                // 닉네임 우선순위: 세션 닉네임 > 메시지 닉네임 > ID
+                const nickname = nickMap.get(key) || msg.streamerNick || msg.streamerId;
+                streamers.set(key, {
+                  id: msg.streamerId,
+                  nickname: nickname,
+                  lastTime: msg.timestamp
+                });
+              }
+            }
+            cursor.continue();
+          } else {
+            // 정렬: 최근 메시지 순
+            const result = Array.from(streamers.values())
+              .sort((a, b) => b.lastTime - a.lastTime)
+              .map(s => ({ id: s.id, nickname: s.nickname }));
+            resolve(result);
+          }
+        };
+
+        messagesRequest.onerror = () => reject(messagesRequest.error);
       };
 
-      request.onerror = () => reject(request.error);
+      sessionsRequest.onerror = () => reject(sessionsRequest.error);
     });
   }
 
@@ -301,6 +351,52 @@ const ChatDB = (function() {
     return {
       version: '1.0',
       exportedAt: new Date().toISOString(),
+      messageCount: messages.length,
+      sessionCount: sessions.length,
+      messages,
+      sessions
+    };
+  }
+
+  // ===== 스트리머별 데이터 내보내기 =====
+  async function exportByStreamers(streamerIds) {
+    if (!db) await init();
+    if (!streamerIds || streamerIds.length === 0) {
+      return { version: '1.0', exportedAt: new Date().toISOString(), messageCount: 0, sessionCount: 0, messages: [], sessions: [] };
+    }
+
+    // 스트리머 ID를 소문자로 변환 (대소문자 무시 비교)
+    const lowerStreamerIds = streamerIds.map(id => id.toLowerCase());
+
+    // 전체 메시지 조회 후 필터링
+    const allMessages = await new Promise((resolve, reject) => {
+      const request = db.transaction([STORE_MESSAGES], 'readonly')
+        .objectStore(STORE_MESSAGES).getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
+    // 스트리머 ID로 필터링
+    const messages = allMessages.filter(m =>
+      m && m.streamerId && lowerStreamerIds.includes(m.streamerId.toLowerCase())
+    );
+
+    // 세션도 필터링
+    const allSessions = await new Promise((resolve, reject) => {
+      const request = db.transaction([STORE_SESSIONS], 'readonly')
+        .objectStore(STORE_SESSIONS).getAll();
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+
+    const sessions = allSessions.filter(s =>
+      s && s.streamerId && lowerStreamerIds.includes(s.streamerId.toLowerCase())
+    );
+
+    return {
+      version: '1.0',
+      exportedAt: new Date().toISOString(),
+      exportedStreamers: streamerIds,
       messageCount: messages.length,
       sessionCount: sessions.length,
       messages,
@@ -376,6 +472,128 @@ const ChatDB = (function() {
       };
 
       transaction.onerror = () => reject(transaction.error);
+    });
+  }
+
+  // ===== 스트리머별 데이터 삭제 =====
+  async function deleteByStreamers(streamerIds) {
+    if (!db) await init();
+    if (!streamerIds || streamerIds.length === 0) return { deleted: 0 };
+
+    const lowerStreamerIds = streamerIds.map(id => id.toLowerCase());
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORE_MESSAGES, STORE_SESSIONS], 'readwrite');
+      const messagesStore = transaction.objectStore(STORE_MESSAGES);
+      const sessionsStore = transaction.objectStore(STORE_SESSIONS);
+
+      let deletedMessages = 0;
+      let deletedSessions = 0;
+
+      // 메시지 삭제
+      const msgRequest = messagesStore.openCursor();
+      msgRequest.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          const msg = cursor.value;
+          if (msg && msg.streamerId && lowerStreamerIds.includes(msg.streamerId.toLowerCase())) {
+            cursor.delete();
+            deletedMessages++;
+          }
+          cursor.continue();
+        }
+      };
+
+      // 세션 삭제
+      const sessionRequest = sessionsStore.openCursor();
+      sessionRequest.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          const session = cursor.value;
+          if (session && session.streamerId && lowerStreamerIds.includes(session.streamerId.toLowerCase())) {
+            cursor.delete();
+            deletedSessions++;
+          }
+          cursor.continue();
+        }
+      };
+
+      transaction.oncomplete = () => {
+        console.log(`[ChatDB] 스트리머별 삭제 완료: 메시지 ${deletedMessages}건, 세션 ${deletedSessions}건`);
+        resolve({ deletedMessages, deletedSessions });
+      };
+
+      transaction.onerror = () => {
+        console.error('[ChatDB] 스트리머별 삭제 실패:', transaction.error);
+        reject(transaction.error);
+      };
+    });
+  }
+
+  // ===== 전체 데이터 삭제 =====
+  async function deleteAllData() {
+    if (!db) await init();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORE_MESSAGES, STORE_SESSIONS], 'readwrite');
+      const messagesStore = transaction.objectStore(STORE_MESSAGES);
+      const sessionsStore = transaction.objectStore(STORE_SESSIONS);
+
+      let deletedMessages = 0;
+      let deletedSessions = 0;
+
+      // 메시지 개수 확인 후 전체 삭제
+      const msgCountRequest = messagesStore.count();
+      msgCountRequest.onsuccess = () => {
+        deletedMessages = msgCountRequest.result;
+        messagesStore.clear();
+      };
+
+      // 세션 개수 확인 후 전체 삭제
+      const sessionCountRequest = sessionsStore.count();
+      sessionCountRequest.onsuccess = () => {
+        deletedSessions = sessionCountRequest.result;
+        sessionsStore.clear();
+      };
+
+      transaction.oncomplete = () => {
+        console.log(`[ChatDB] 전체 삭제 완료: 메시지 ${deletedMessages}건, 세션 ${deletedSessions}건`);
+        resolve({ deletedMessages, deletedSessions });
+      };
+
+      transaction.onerror = () => {
+        console.error('[ChatDB] 전체 삭제 실패:', transaction.error);
+        reject(transaction.error);
+      };
+    });
+  }
+
+  // ===== 스트리머별 메시지 개수 조회 (M-3: cursor 기반으로 변경) =====
+  async function getMessageCountByStreamer() {
+    if (!db) await init();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORE_MESSAGES], 'readonly');
+      const store = transaction.objectStore(STORE_MESSAGES);
+      const request = store.openCursor();  // M-3: getAll() 대신 cursor 사용
+
+      const counts = {};
+
+      request.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) {
+          const msg = cursor.value;
+          if (msg && msg.streamerId) {
+            const id = msg.streamerId.toLowerCase();
+            counts[id] = (counts[id] || 0) + 1;
+          }
+          cursor.continue();
+        } else {
+          resolve(counts);
+        }
+      };
+
+      request.onerror = () => reject(request.error);
     });
   }
 
@@ -469,8 +687,12 @@ const ChatDB = (function() {
     getStreamers,
     getStats,
     exportAll,
+    exportByStreamers,
     importData,
     deleteByDate,
+    deleteByStreamers,
+    deleteAllData,
+    getMessageCountByStreamer,
     cleanupOldData,
     saveSetting,
     getSetting,

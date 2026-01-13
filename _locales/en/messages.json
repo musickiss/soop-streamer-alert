@@ -566,7 +566,7 @@
     "description": "Full sync button"
   },
   "donationFullSyncTooltip": {
-    "message": "Reload all data",
+    "message": "Clear existing data and reload all",
     "description": "Full sync tooltip"
   },
   "donationSearchPlaceholder": {
@@ -1051,5 +1051,166 @@
   "chatLoading": {
     "message": "Loading chats...",
     "description": "Loading message"
+  },
+
+  "daySun": {
+    "message": "Sun",
+    "description": "Day - Sunday"
+  },
+  "dayMon": {
+    "message": "Mon",
+    "description": "Day - Monday"
+  },
+  "dayTue": {
+    "message": "Tue",
+    "description": "Day - Tuesday"
+  },
+  "dayWed": {
+    "message": "Wed",
+    "description": "Day - Wednesday"
+  },
+  "dayThu": {
+    "message": "Thu",
+    "description": "Day - Thursday"
+  },
+  "dayFri": {
+    "message": "Fri",
+    "description": "Day - Friday"
+  },
+  "daySat": {
+    "message": "Sat",
+    "description": "Day - Saturday"
+  },
+  "chatSearchInputPlaceholder": {
+    "message": "Search messages, @nickname...",
+    "description": "Chat search input placeholder"
+  },
+  "streamerIdInputPlaceholder": {
+    "message": "Enter streamer ID",
+    "description": "Streamer ID input placeholder"
+  },
+  "collectModeOff": {
+    "message": "Not collecting",
+    "description": "Collect mode - off"
+  },
+  "collectModeAll": {
+    "message": "All chat rooms",
+    "description": "Collect mode - all"
+  },
+  "collectModeSelected": {
+    "message": "Selected streamers",
+    "description": "Collect mode - selected"
+  },
+  "collectModeSelectedOnly": {
+    "message": "Selected streamers only",
+    "description": "Collect mode - selected only"
+  },
+  "settingsCollectMode": {
+    "message": "Collection Mode",
+    "description": "Settings - collection mode title"
+  },
+  "settingsCollectStreamers": {
+    "message": "Chat Collection Streamers",
+    "description": "Settings - chat collection streamers title"
+  },
+  "settingsCollectHint": {
+    "message": "Chats will be collected automatically when you join selected streamer's broadcast.",
+    "description": "Settings - chat collection hint"
+  },
+  "noSelectedStreamers": {
+    "message": "No streamers selected",
+    "description": "No selected streamers"
+  },
+  "recentCollectedStreamers": {
+    "message": "Recently Collected Streamers",
+    "description": "Recently collected streamers title"
+  },
+  "settingsDataRetention": {
+    "message": "Data Retention",
+    "description": "Settings - data retention title"
+  },
+  "retentionPeriod": {
+    "message": "Retention Period",
+    "description": "Retention period label"
+  },
+  "settingsDataManageHint": {
+    "message": "Delete or clean up collected chat data.",
+    "description": "Settings - data management hint"
+  },
+  "dataDelete": {
+    "message": "Delete Data",
+    "description": "Delete data button"
+  },
+  "unitDay": {
+    "message": " days",
+    "description": "Unit - days"
+  },
+  "unitYear": {
+    "message": " year",
+    "description": "Unit - year"
+  },
+  "unitPerson": {
+    "message": "",
+    "description": "Unit - persons"
+  },
+  "unitCount": {
+    "message": "",
+    "description": "Unit - count"
+  },
+  "unlimited": {
+    "message": "Unlimited",
+    "gouDescription": "Unlimited"
+  },
+  "selectStartDate": {
+    "message": "Select start date",
+    "description": "Select start date button"
+  },
+  "selectEndDate": {
+    "message": "Select end date",
+    "description": "Select end date button"
+  },
+  "deleteSelectedStreamerData": {
+    "message": "Delete selected streamer data",
+    "description": "Delete selected streamer data button"
+  },
+  "deleteByStreamerTitle": {
+    "message": "Delete Data by Streamer",
+    "description": "Delete by streamer dialog title"
+  },
+  "andOthers": {
+    "message": "and",
+    "description": "and N others"
+  },
+  "deleteConfirmSuffix": {
+    "message": "'s chat data",
+    "description": "Delete confirmation message suffix"
+  },
+  "deleteConfirmQuestion": {
+    "message": ". Delete?",
+    "description": "Delete confirmation question"
+  },
+  "creatingBackup": {
+    "message": "Creating backup...",
+    "description": "Creating backup message"
+  },
+  "deleteComplete": {
+    "message": "deleted",
+    "description": "Delete complete message"
+  },
+  "deleteError": {
+    "message": "Error occurred during deletion",
+    "description": "Delete error message"
+  },
+  "deleteAllTitle": {
+    "message": "Delete All Data",
+    "description": "Delete all data dialog title"
+  },
+  "deleteAllMessage": {
+    "message": "All collected chat data",
+    "description": "Delete all confirmation message"
+  },
+  "cannotUndo": {
+    "message": "This action cannot be undone.",
+    "description": "Cannot undo warning"
   }
 }

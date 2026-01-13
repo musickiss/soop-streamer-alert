@@ -51,6 +51,112 @@ function formatDuration(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+// ===== v5.0.0: 채팅 IndexedDB 직접 저장 헬퍼 =====
+const CHAT_DB_NAME = 'sooptalkingChat';
+const CHAT_DB_VERSION = 1;
+let chatDB = null;
+
+// 날짜 포맷 헬퍼 (채팅용)
+function formatDateForChat(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// IndexedDB 연결 (Background에서 직접 접근)
+async function getChatDB() {
+  if (chatDB) return chatDB;
+
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(CHAT_DB_NAME, CHAT_DB_VERSION);
+
+    request.onerror = () => {
+      console.error('[숲토킹] 채팅 DB 열기 실패:', request.error);
+      reject(request.error);
+    };
+
+    request.onsuccess = () => {
+      chatDB = request.result;
+      console.log('[숲토킹] 채팅 DB 연결 완료 (Background)');
+      resolve(chatDB);
+    };
+
+    request.onupgradeneeded = (event) => {
+      const database = event.target.result;
+      console.log('[숲토킹] 채팅 DB 스키마 업그레이드');
+
+      // messages 스토어
+      if (!database.objectStoreNames.contains('messages')) {
+        const messagesStore = database.createObjectStore('messages', { keyPath: 'id' });
+        messagesStore.createIndex('date', 'date', { unique: false });
+        messagesStore.createIndex('date_streamer', ['date', 'streamerId'], { unique: false });
+        messagesStore.createIndex('userId', 'userId', { unique: false });
+        messagesStore.createIndex('nickname', 'nickname', { unique: false });
+        messagesStore.createIndex('sessionId', 'sessionId', { unique: false });
+        messagesStore.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+
+      // sessions 스토어
+      if (!database.objectStoreNames.contains('sessions')) {
+        const sessionsStore = database.createObjectStore('sessions', { keyPath: 'id' });
+        sessionsStore.createIndex('date', 'date', { unique: false });
+        sessionsStore.createIndex('streamerId', 'streamerId', { unique: false });
+      }
+
+      // settings 스토어
+      if (!database.objectStoreNames.contains('settings')) {
+        database.createObjectStore('settings', { keyPath: 'key' });
+      }
+    };
+  });
+}
+
+// 채팅 메시지 저장 (Background에서 직접)
+async function saveChatMessagesToIndexedDB(messages) {
+  if (!messages || messages.length === 0) return;
+
+  const db = await getChatDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['messages'], 'readwrite');
+    const store = transaction.objectStore('messages');
+
+    let saved = 0;
+    let errors = 0;
+
+    for (const msg of messages) {
+      const request = store.put(msg);
+      request.onsuccess = () => saved++;
+      request.onerror = () => errors++;
+    }
+
+    transaction.oncomplete = () => {
+      console.log(`[숲토킹] 채팅 저장 완료 (Background): ${saved}건`);
+      resolve({ saved, errors });
+    };
+
+    transaction.onerror = () => {
+      console.error('[숲토킹] 채팅 저장 실패:', transaction.error);
+      reject(transaction.error);
+    };
+  });
+}
+
+// 채팅 세션 저장 (Background에서 직접)
+async function saveChatSessionToIndexedDB(session) {
+  const db = await getChatDB();
+
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(['sessions'], 'readwrite');
+    const store = transaction.objectStore('sessions');
+    const request = store.put(session);
+
+    request.onsuccess = () => resolve(session);
+    request.onerror = () => reject(request.error);
+  });
+}
+
 // ===== 스트리머 닉네임 업데이트 헬퍼 (v3.5.12) =====
 function updateStreamerNickname(streamerId, newNickname) {
   if (!newNickname || typeof newNickname !== 'string') return false;
@@ -116,6 +222,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   } else if (details.reason === 'update') {
     Analytics.trackUpdate(details.previousVersion, manifest.version);
   }
+
+  // ⭐ v5.3.0: 자동 백업 알람 설정
+  await setupBackupAlarm();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
@@ -134,8 +243,47 @@ chrome.runtime.onStartup.addListener(async () => {
   // ⭐ v3.6.0: Analytics 초기화
   await Analytics.initAnalytics();
 
+  // ⭐ v5.3.0: 자동 백업 알람 설정
+  await setupBackupAlarm();
+
   if (state.isMonitoring) {
     startMonitoring();
+  }
+});
+
+// ===== v5.3.0: 자동 백업 알람 설정 =====
+async function setupBackupAlarm() {
+  try {
+    // 기존 알람 제거 후 재설정
+    await chrome.alarms.clear('chatBackupAlarm');
+
+    // 6시간마다 백업 체크 알람 생성
+    chrome.alarms.create('chatBackupAlarm', {
+      delayInMinutes: 1,           // 1분 후 첫 실행
+      periodInMinutes: 60          // 매 1시간마다 체크 (실제 백업은 BackupManager가 주기 판단)
+    });
+
+    console.log('[숲토킹] 자동 백업 알람 설정 완료');
+  } catch (e) {
+    console.warn('[숲토킹] 자동 백업 알람 설정 실패:', e);
+  }
+}
+
+// 알람 이벤트 핸들러
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name === 'chatBackupAlarm') {
+    console.log('[숲토킹] 자동 백업 알람 트리거');
+    // Side Panel에 백업 요청 메시지 전송
+    try {
+      await chrome.runtime.sendMessage({
+        type: 'TRIGGER_CHAT_BACKUP'
+      });
+    } catch (e) {
+      // Side Panel이 열려있지 않으면 무시
+      if (!e.message?.includes('Receiving end does not exist')) {
+        console.warn('[숲토킹] 백업 트리거 실패:', e);
+      }
+    }
   }
 });
 
@@ -1075,6 +1223,8 @@ async function downloadRecording(blobUrl, fileName) {
 }
 
 // ===== 메시지 핸들러 =====
+// M-1 참고: Chrome 서비스 워커에서는 리스너가 자동 관리되므로
+// 중복 등록 체크가 불필요함 (재시작 시 기존 리스너 자동 해제)
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   handleMessage(message, sender, sendResponse);
@@ -1515,7 +1665,46 @@ async function handleMessage(message, sender, sendResponse) {
     // ===== v5.0.0: 채팅 수집 관련 메시지 =====
 
     case 'CHAT_COLLECTOR_LOADED':
+      // v5.3.0: 수집기 로드 시 자동 수집 시작 트리거
       console.log('[숲토킹] 채팅 수집기 로드됨:', message.streamerId);
+      (async () => {
+        try {
+          // 현재 설정 확인
+          const chatSettings = await chrome.storage.local.get(['chatCollectMode', 'chatCollectStreamers']);
+          const collectMode = chatSettings.chatCollectMode || 'all';
+          const collectStreamers = chatSettings.chatCollectStreamers || [];
+
+          // 수집 모드가 off가 아니면 수집 시작 명령 전송
+          if (collectMode !== 'off' && message.streamerId && sender.tab?.id) {
+            // 선택 모드일 때 대상 스트리머인지 확인
+            if (collectMode === 'selected') {
+              const isTarget = collectStreamers.some(s =>
+                s.id === message.streamerId || s.id?.toLowerCase() === message.streamerId?.toLowerCase()
+              );
+              if (!isTarget) {
+                console.log('[숲토킹] 수집 대상 아님:', message.streamerId);
+                return;
+              }
+            }
+
+            // 약간의 지연 후 수집 시작 명령 (페이지 로드 완료 대기)
+            setTimeout(async () => {
+              try {
+                await chrome.tabs.sendMessage(sender.tab.id, {
+                  type: 'START_CHAT_COLLECTION',
+                  streamerId: message.streamerId,
+                  streamerNick: message.streamerId
+                });
+                console.log('[숲토킹] 채팅 수집 시작 명령 전송:', message.streamerId);
+              } catch (e) {
+                console.log('[숲토킹] 채팅 수집 시작 명령 전송 실패:', e.message);
+              }
+            }, 2000);
+          }
+        } catch (e) {
+          console.error('[숲토킹] 채팅 수집기 초기화 오류:', e);
+        }
+      })();
       sendResponse({ success: true });
       break;
 
@@ -1544,14 +1733,87 @@ async function handleMessage(message, sender, sendResponse) {
     case 'GET_CHAT_COLLECTION_SETTINGS':
       // 채팅 수집 설정 조회
       try {
-        const chatSettings = await chrome.storage.local.get(['chatCollectionEnabled', 'chatCollectionStreamers']);
+        const chatSettings = await chrome.storage.local.get(['chatCollectMode', 'chatCollectStreamers']);
         sendResponse({
           success: true,
           data: {
-            enabled: chatSettings.chatCollectionEnabled !== false, // 기본값 true
-            streamers: chatSettings.chatCollectionStreamers || []
+            collectMode: chatSettings.chatCollectMode || 'all',
+            collectStreamers: chatSettings.chatCollectStreamers || []
           }
         });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+      break;
+
+    case 'GET_STREAMER_NICKNAME':
+      // v5.4.0: favoriteStreamers에서 스트리머 닉네임 조회
+      try {
+        const targetId = message.streamerId;
+        const foundStreamer = state.favoriteStreamers.find(s =>
+          s.id === targetId || s.id?.toLowerCase() === targetId?.toLowerCase()
+        );
+        if (foundStreamer?.nickname) {
+          sendResponse({ success: true, nickname: foundStreamer.nickname });
+        } else {
+          sendResponse({ success: false, nickname: null });
+        }
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+      break;
+
+    case 'CHAT_SETTINGS_CHANGED':
+      // 채팅 수집 설정 변경 - 모든 SOOP 탭에 알림
+      try {
+        // storage에 설정 저장
+        await chrome.storage.local.set({
+          chatCollectMode: message.settings.collectMode,
+          chatCollectStreamers: message.settings.collectStreamers
+        });
+
+        // 모든 SOOP 탭에 설정 변경 알림
+        const soopTabsForSettings = await chrome.tabs.query({ url: '*://play.sooplive.co.kr/*' });
+        for (const tab of soopTabsForSettings) {
+          try {
+            await chrome.tabs.sendMessage(tab.id, {
+              type: 'CHAT_SETTINGS_CHANGED',
+              settings: message.settings
+            });
+          } catch (e) {
+            // 탭에서 응답 없음 - 무시
+          }
+        }
+
+        sendResponse({ success: true });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+      break;
+
+    case 'GET_CHAT_COLLECTION_STATUS_FROM_TABS':
+      // Side Panel에서 요청 - 탭에서 수집 상태 조회
+      try {
+        const soopTabsForStatus = await chrome.tabs.query({ url: '*://play.sooplive.co.kr/*' });
+        let chatStatus = null;
+
+        for (const tab of soopTabsForStatus) {
+          try {
+            const tabResponse = await chrome.tabs.sendMessage(tab.id, {
+              type: 'GET_CHAT_COLLECTION_STATUS'
+            });
+            if (tabResponse?.isCollecting) {
+              chatStatus = tabResponse;
+              break;
+            } else if (!chatStatus && tabResponse) {
+              chatStatus = tabResponse;
+            }
+          } catch (e) {
+            // 탭에서 응답 없음
+          }
+        }
+
+        sendResponse({ success: true, status: chatStatus });
       } catch (error) {
         sendResponse({ success: false, error: error.message });
       }
@@ -1582,52 +1844,94 @@ async function handleMessage(message, sender, sendResponse) {
       break;
 
     case 'CHAT_MESSAGES_BATCH':
-      // 채팅 메시지 배치 저장
-      broadcastToSidepanel({
-        type: 'CHAT_SAVE_BATCH',
-        messages: message.messages,
-        sessionId: message.sessionId,
-        streamerId: message.streamerId
-      });
-      sendResponse({ success: true });
+      // 채팅 메시지 배치 저장 - Background에서 직접 IndexedDB에 저장
+      try {
+        // IndexedDB에 직접 저장 (Side Panel 종속성 제거)
+        await saveChatMessagesToIndexedDB(message.messages);
+
+        // Side Panel에 UI 업데이트 알림 (선택적 - 실패해도 저장은 완료됨)
+        broadcastToSidepanel({
+          type: 'CHAT_SAVE_BATCH',
+          messages: message.messages,
+          sessionId: message.sessionId,
+          streamerId: message.streamerId
+        });
+
+        sendResponse({ success: true, saved: message.messages?.length || 0 });
+      } catch (error) {
+        console.error('[숲토킹] 채팅 메시지 저장 실패:', error);
+        sendResponse({ success: false, error: error.message });
+      }
       break;
 
     case 'CHAT_SESSION_START':
-      // 채팅 세션 시작
+      // 채팅 세션 시작 - Background에서 직접 IndexedDB에 저장
       console.log('[숲토킹] 채팅 세션 시작:', message.streamerId);
-      broadcastToSidepanel({
-        type: 'CHAT_SESSION_START_UPDATE',
-        sessionId: message.sessionId,
-        streamerId: message.streamerId,
-        streamerNick: message.streamerNick,
-        startTime: message.startTime
-      });
+      try {
+        await saveChatSessionToIndexedDB({
+          id: message.sessionId,
+          streamerId: message.streamerId,
+          streamerNick: message.streamerNick,
+          date: formatDateForChat(new Date()),
+          startTime: message.startTime,
+          endTime: null
+        });
+
+        broadcastToSidepanel({
+          type: 'CHAT_SESSION_START_UPDATE',
+          sessionId: message.sessionId,
+          streamerId: message.streamerId,
+          streamerNick: message.streamerNick,
+          startTime: message.startTime
+        });
+      } catch (error) {
+        console.error('[숲토킹] 세션 저장 실패:', error);
+      }
       sendResponse({ success: true });
       break;
 
     case 'CHAT_SESSION_END':
-      // 채팅 세션 종료
+      // 채팅 세션 종료 - Background에서 직접 IndexedDB에 저장
       console.log('[숲토킹] 채팅 세션 종료:', message.streamerId);
-      broadcastToSidepanel({
-        type: 'CHAT_SESSION_END_UPDATE',
-        sessionId: message.sessionId,
-        streamerId: message.streamerId,
-        endTime: message.endTime
-      });
+      try {
+        await saveChatSessionToIndexedDB({
+          id: message.sessionId,
+          streamerId: message.streamerId,
+          date: formatDateForChat(new Date()),
+          endTime: message.endTime
+        });
+
+        broadcastToSidepanel({
+          type: 'CHAT_SESSION_END_UPDATE',
+          sessionId: message.sessionId,
+          streamerId: message.streamerId,
+          endTime: message.endTime
+        });
+      } catch (error) {
+        console.error('[숲토킹] 세션 종료 저장 실패:', error);
+      }
       sendResponse({ success: true });
       break;
 
     case 'CHAT_EMERGENCY_SAVE':
-      // 긴급 저장 (페이지 언로드 시)
+      // 긴급 저장 (페이지 언로드 시) - Background에서 직접 저장
       console.log('[숲토킹] 채팅 긴급 저장:', message.messages?.length || 0, '건');
-      broadcastToSidepanel({
-        type: 'CHAT_SAVE_BATCH',
-        messages: message.messages,
-        sessionId: message.sessionId,
-        streamerId: message.streamerId,
-        emergency: true
-      });
-      sendResponse({ success: true });
+      try {
+        if (message.messages && message.messages.length > 0) {
+          await saveChatMessagesToIndexedDB(message.messages);
+        }
+        broadcastToSidepanel({
+          type: 'CHAT_SAVE_BATCH',
+          messages: message.messages,
+          sessionId: message.sessionId,
+          streamerId: message.streamerId,
+          emergency: true
+        });
+        sendResponse({ success: true });
+      } catch (error) {
+        console.error('[숲토킹] 긴급 저장 실패:', error);
+        sendResponse({ success: false, error: error.message });
+      }
       break;
 
     default:

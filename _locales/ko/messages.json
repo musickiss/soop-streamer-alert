@@ -566,7 +566,7 @@
     "description": "전체 동기화 버튼"
   },
   "donationFullSyncTooltip": {
-    "message": "전체 데이터 다시 불러오기",
+    "message": "기존 데이터 초기화 후 전체 다시 불러오기",
     "description": "전체 동기화 툴팁"
   },
   "donationSearchPlaceholder": {
@@ -905,8 +905,12 @@
     }
   },
   "chatSearchPlaceholder": {
-    "message": "채팅 검색... (예: 어제 홍길동이 말한 피자)",
-    "description": "AI 검색 플레이스홀더"
+    "message": "검색",
+    "description": "검색 플레이스홀더"
+  },
+  "nicknameOrUserId": {
+    "message": "닉네임 또는 User ID",
+    "description": "닉네임/UserID 필드 라벨"
   },
   "chatSearchHint1": {
     "message": "닉네임: 홍길동",
@@ -1051,5 +1055,166 @@
   "chatLoading": {
     "message": "채팅 불러오는 중...",
     "description": "로딩 중 메시지"
+  },
+
+  "daySun": {
+    "message": "일",
+    "description": "요일 - 일요일"
+  },
+  "dayMon": {
+    "message": "월",
+    "description": "요일 - 월요일"
+  },
+  "dayTue": {
+    "message": "화",
+    "description": "요일 - 화요일"
+  },
+  "dayWed": {
+    "message": "수",
+    "description": "요일 - 수요일"
+  },
+  "dayThu": {
+    "message": "목",
+    "description": "요일 - 목요일"
+  },
+  "dayFri": {
+    "message": "금",
+    "description": "요일 - 금요일"
+  },
+  "daySat": {
+    "message": "토",
+    "description": "요일 - 토요일"
+  },
+  "chatSearchInputPlaceholder": {
+    "message": "메시지, @닉네임 검색...",
+    "description": "채팅 검색 입력 플레이스홀더"
+  },
+  "streamerIdInputPlaceholder": {
+    "message": "스트리머 ID 입력",
+    "description": "스트리머 ID 입력 플레이스홀더"
+  },
+  "collectModeOff": {
+    "message": "수집 안함",
+    "description": "수집 모드 - 수집 안함"
+  },
+  "collectModeAll": {
+    "message": "모든 채팅방",
+    "description": "수집 모드 - 모든 채팅방"
+  },
+  "collectModeSelected": {
+    "message": "선택한 스트리머",
+    "description": "수집 모드 - 선택한 스트리머"
+  },
+  "collectModeSelectedOnly": {
+    "message": "선택한 스트리머만",
+    "description": "수집 모드 - 선택한 스트리머만"
+  },
+  "settingsCollectMode": {
+    "message": "수집 모드",
+    "description": "설정 - 수집 모드 제목"
+  },
+  "settingsCollectStreamers": {
+    "message": "채팅 수집 스트리머",
+    "description": "설정 - 채팅 수집 스트리머 제목"
+  },
+  "settingsCollectHint": {
+    "message": "선택한 스트리머 방송에 참여하면 채팅이 자동 수집됩니다.",
+    "description": "설정 - 채팅 수집 힌트"
+  },
+  "noSelectedStreamers": {
+    "message": "선택된 스트리머가 없습니다",
+    "description": "선택된 스트리머 없음"
+  },
+  "recentCollectedStreamers": {
+    "message": "최근 수집한 스트리머",
+    "description": "최근 수집한 스트리머 제목"
+  },
+  "settingsDataRetention": {
+    "message": "데이터 보관",
+    "description": "설정 - 데이터 보관 제목"
+  },
+  "retentionPeriod": {
+    "message": "보관 기간",
+    "description": "보관 기간 라벨"
+  },
+  "settingsDataManageHint": {
+    "message": "수집된 채팅 데이터를 삭제하거나 정리할 수 있습니다.",
+    "description": "설정 - 데이터 관리 힌트"
+  },
+  "dataDelete": {
+    "message": "데이터 삭제",
+    "description": "데이터 삭제 버튼"
+  },
+  "unitDay": {
+    "message": "일",
+    "description": "단위 - 일"
+  },
+  "unitYear": {
+    "message": "년",
+    "description": "단위 - 년"
+  },
+  "unitPerson": {
+    "message": "명",
+    "description": "단위 - 명"
+  },
+  "unitCount": {
+    "message": "건",
+    "description": "단위 - 건"
+  },
+  "unlimited": {
+    "message": "무제한",
+    "description": "무제한"
+  },
+  "selectStartDate": {
+    "message": "시작일 선택",
+    "description": "시작일 선택 버튼"
+  },
+  "selectEndDate": {
+    "message": "종료일 선택",
+    "description": "종료일 선택 버튼"
+  },
+  "deleteSelectedStreamerData": {
+    "message": "선택한 스트리머 데이터 삭제",
+    "description": "선택한 스트리머 데이터 삭제 버튼"
+  },
+  "deleteByStreamerTitle": {
+    "message": "스트리머별 데이터 삭제",
+    "description": "스트리머별 데이터 삭제 다이얼로그 제목"
+  },
+  "andOthers": {
+    "message": "외",
+    "description": "외 N명"
+  },
+  "deleteConfirmSuffix": {
+    "message": "의 채팅 데이터",
+    "description": "삭제 확인 메시지 접미사"
+  },
+  "deleteConfirmQuestion": {
+    "message": "을 삭제하시겠습니까?",
+    "description": "삭제 확인 질문"
+  },
+  "creatingBackup": {
+    "message": "백업 파일 생성 중...",
+    "description": "백업 생성 중 메시지"
+  },
+  "deleteComplete": {
+    "message": "삭제 완료",
+    "description": "삭제 완료 메시지"
+  },
+  "deleteError": {
+    "message": "삭제 중 오류가 발생했습니다",
+    "description": "삭제 오류 메시지"
+  },
+  "deleteAllTitle": {
+    "message": "전체 데이터 삭제",
+    "description": "전체 데이터 삭제 다이얼로그 제목"
+  },
+  "deleteAllMessage": {
+    "message": "수집된 모든 채팅 데이터",
+    "description": "전체 삭제 확인 메시지"
+  },
+  "cannotUndo": {
+    "message": "이 작업은 되돌릴 수 없습니다.",
+    "description": "되돌릴 수 없음 경고"
   }
 }

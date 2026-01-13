@@ -1,17 +1,23 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "5.0.0",
+  "version": "5.4.0",
   "description": "__MSG_extDescription__",
   "default_locale": "ko",
 
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+
   "permissions": [
     "storage",
+    "unlimitedStorage",
     "tabs",
     "notifications",
     "sidePanel",
     "downloads",
-    "scripting"
+    "scripting",
+    "alarms"
   ],
 
   "host_permissions": [
@@ -61,5 +67,12 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/sql-wasm.wasm"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

@@ -566,7 +566,7 @@
     "description": "全同期ボタン"
   },
   "donationFullSyncTooltip": {
-    "message": "全データを再読み込み",
+    "message": "既存データを削除して全て再読み込み",
     "description": "全同期ツールチップ"
   },
   "donationSearchPlaceholder": {
@@ -1051,5 +1051,166 @@
   "chatLoading": {
     "message": "チャット読み込み中...",
     "description": "読み込み中メッセージ"
+  },
+
+  "daySun": {
+    "message": "日",
+    "description": "曜日 - 日曜日"
+  },
+  "dayMon": {
+    "message": "月",
+    "description": "曜日 - 月曜日"
+  },
+  "dayTue": {
+    "message": "火",
+    "description": "曜日 - 火曜日"
+  },
+  "dayWed": {
+    "message": "水",
+    "description": "曜日 - 水曜日"
+  },
+  "dayThu": {
+    "message": "木",
+    "description": "曜日 - 木曜日"
+  },
+  "dayFri": {
+    "message": "金",
+    "description": "曜日 - 金曜日"
+  },
+  "daySat": {
+    "message": "土",
+    "description": "曜日 - 土曜日"
+  },
+  "chatSearchInputPlaceholder": {
+    "message": "メッセージ、@ニックネーム検索...",
+    "description": "チャット検索入力プレースホルダー"
+  },
+  "streamerIdInputPlaceholder": {
+    "message": "配信者ID入力",
+    "description": "配信者ID入力プレースホルダー"
+  },
+  "collectModeOff": {
+    "message": "収集しない",
+    "description": "収集モード - 収集しない"
+  },
+  "collectModeAll": {
+    "message": "すべてのチャットルーム",
+    "description": "収集モード - すべて"
+  },
+  "collectModeSelected": {
+    "message": "選択した配信者",
+    "description": "収集モード - 選択"
+  },
+  "collectModeSelectedOnly": {
+    "message": "選択した配信者のみ",
+    "description": "収集モード - 選択のみ"
+  },
+  "settingsCollectMode": {
+    "message": "収集モード",
+    "description": "設定 - 収集モードタイトル"
+  },
+  "settingsCollectStreamers": {
+    "message": "チャット収集配信者",
+    "description": "設定 - チャット収集配信者タイトル"
+  },
+  "settingsCollectHint": {
+    "message": "選択した配信者の配信に参加するとチャットが自動収集されます。",
+    "description": "設定 - チャット収集ヒント"
+  },
+  "noSelectedStreamers": {
+    "message": "選択された配信者がいません",
+    "description": "選択された配信者なし"
+  },
+  "recentCollectedStreamers": {
+    "message": "最近収集した配信者",
+    "description": "最近収集した配信者タイトル"
+  },
+  "settingsDataRetention": {
+    "message": "データ保管",
+    "description": "設定 - データ保管タイトル"
+  },
+  "retentionPeriod": {
+    "message": "保管期間",
+    "description": "保管期間ラベル"
+  },
+  "settingsDataManageHint": {
+    "message": "収集したチャットデータを削除または整理できます。",
+    "description": "設定 - データ管理ヒント"
+  },
+  "dataDelete": {
+    "message": "データ削除",
+    "description": "データ削除ボタン"
+  },
+  "unitDay": {
+    "message": "日",
+    "description": "単位 - 日"
+  },
+  "unitYear": {
+    "message": "年",
+    "description": "単位 - 年"
+  },
+  "unitPerson": {
+    "message": "人",
+    "description": "単位 - 人"
+  },
+  "unitCount": {
+    "message": "件",
+    "description": "単位 - 件"
+  },
+  "unlimited": {
+    "message": "無制限",
+    "description": "無制限"
+  },
+  "selectStartDate": {
+    "message": "開始日を選択",
+    "description": "開始日選択ボタン"
+  },
+  "selectEndDate": {
+    "message": "終了日を選択",
+    "description": "終了日選択ボタン"
+  },
+  "deleteSelectedStreamerData": {
+    "message": "選択した配信者のデータを削除",
+    "description": "選択した配信者のデータ削除ボタン"
+  },
+  "deleteByStreamerTitle": {
+    "message": "配信者別データ削除",
+    "description": "配信者別データ削除ダイアログタイトル"
+  },
+  "andOthers": {
+    "message": "他",
+    "description": "他N人"
+  },
+  "deleteConfirmSuffix": {
+    "message": "のチャットデータ",
+    "description": "削除確認メッセージ接尾辞"
+  },
+  "deleteConfirmQuestion": {
+    "message": "を削除しますか？",
+    "description": "削除確認質問"
+  },
+  "creatingBackup": {
+    "message": "バックアップファイル作成中...",
+    "description": "バックアップ作成中メッセージ"
+  },
+  "deleteComplete": {
+    "message": "削除完了",
+    "description": "削除完了メッセージ"
+  },
+  "deleteError": {
+    "message": "削除中にエラーが発生しました",
+    "description": "削除エラーメッセージ"
+  },
+  "deleteAllTitle": {
+    "message": "全データ削除",
+    "description": "全データ削除ダイアログタイトル"
+  },
+  "deleteAllMessage": {
+    "message": "収集したすべてのチャットデータ",
+    "description": "全削除確認メッセージ"
+  },
+  "cannotUndo": {
+    "message": "この操作は元に戻せません。",
+    "description": "元に戻せない警告"
   }
 }

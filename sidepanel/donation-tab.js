@@ -71,6 +71,16 @@ const DonationTab = (function() {
   let isInitialized = false;
 
   // ============================================
+  // M-5: XSS 방어용 escapeHtml 함수
+  // ============================================
+  function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // ============================================
   // 공개 API
   // ============================================
 
@@ -149,6 +159,13 @@ const DonationTab = (function() {
     renderLoading();
 
     try {
+      // 전체 동기화: 기존 데이터 초기화 후 새로 불러오기 (계정 변경 시 데이터 혼합 방지)
+      if (fullSync) {
+        state.data = null;
+        state.lastSync = null;
+        await saveToStorage();
+      }
+
       const result = await fetchDonationData(fullSync);
 
       if (result.success) {
@@ -198,7 +215,7 @@ const DonationTab = (function() {
     const searchPlaceholder = i18n('donationSearchPlaceholder') || '스트리머, 금액 검색...';
     const syncText = i18n('donationSync') || '동기화';
     const fullSyncText = i18n('donationFullSync') || '전체';
-    const fullSyncTooltip = i18n('donationFullSyncTooltip') || '전체 데이터 다시 불러오기';
+    const fullSyncTooltip = i18n('donationFullSyncTooltip') || '기존 데이터 초기화 후 전체 다시 불러오기';
     const clearOnExitLabel = i18n('donationClearOnExit') || '브라우저 종료 시 수집된 데이터 삭제';
     const clearOnExitTooltip = i18n('donationClearOnExitTooltip') || '브라우저 실행 시 새롭게 정보를 수집하고, 브라우저가 닫히면 수집한 데이터를 모두 초기화합니다.';
 
@@ -440,7 +457,12 @@ const DonationTab = (function() {
       };
       await chrome.storage.local.set({ [STORAGE_KEY]: data });
     } catch (error) {
-      console.error('[DonationTab] Save to storage error:', error);
+      // quota 초과 오류는 조용히 처리 (unlimitedStorage 권한으로 해결됨)
+      if (error.message && error.message.includes('quota')) {
+        console.warn('[DonationTab] Storage quota exceeded, data not saved');
+      } else {
+        console.error('[DonationTab] Save to storage error:', error);
+      }
     }
   }
 
@@ -1176,16 +1198,18 @@ const DonationTab = (function() {
     const quickGiftLabel = i18n('quickGiftLabel') || '빠른 후원';
     const selectedNick = quickGiftState.selectedStreamer?.nick || '';
 
-    // 아바타 칩 생성
+    // 아바타 칩 생성 (M-5: escapeHtml 적용)
     const avatarChipsHtml = giftFavorites.map(s => {
       const isSelected = quickGiftState.selectedStreamer?.id === s.id;
       const firstChar = getFirstChar(s.nickname);
+      const safeNick = escapeHtml(s.nickname);
+      const safeId = escapeHtml(s.id);
       return `
         <div class="quick-gift-avatar${isSelected ? ' selected' : ''}"
-             data-id="${s.id}"
-             data-nick="${s.nickname}"
-             title="${s.nickname}">
-          <span class="quick-gift-avatar-char">${firstChar}</span>
+             data-id="${safeId}"
+             data-nick="${safeNick}"
+             title="${safeNick}">
+          <span class="quick-gift-avatar-char">${escapeHtml(firstChar)}</span>
         </div>
       `;
     }).join('');
@@ -1196,7 +1220,7 @@ const DonationTab = (function() {
         ${avatarChipsHtml}
         <button class="quick-gift-add-btn" id="quickGiftAddBtn" title="즐겨찾기 추가/편집">+</button>
       </div>
-      <div class="quick-gift-selected-name">${selectedNick}</div>
+      <div class="quick-gift-selected-name">${escapeHtml(selectedNick)}</div>
     `;
   }
 
@@ -1256,13 +1280,15 @@ const DonationTab = (function() {
     const popup = document.createElement('div');
     popup.className = 'quick-gift-popup-overlay';
 
-    // 스트리머 목록 HTML
+    // 스트리머 목록 HTML (M-5: escapeHtml 적용)
     const streamerListHtml = monitoringStreamers.map(s => {
       const isFav = giftFavIds.has(s.id);
+      const safeId = escapeHtml(s.id);
+      const safeNick = escapeHtml(s.nickname);
       return `
-        <div class="quick-gift-popup-item${isFav ? ' is-fav' : ''}" data-id="${s.id}" data-nick="${s.nickname}">
-          <span class="quick-gift-popup-nick">${s.nickname}</span>
-          <span class="quick-gift-popup-id">@${s.id}</span>
+        <div class="quick-gift-popup-item${isFav ? ' is-fav' : ''}" data-id="${safeId}" data-nick="${safeNick}">
+          <span class="quick-gift-popup-nick">${safeNick}</span>
+          <span class="quick-gift-popup-id">@${safeId}</span>
           <span class="quick-gift-popup-star">${isFav ? '★' : '☆'}</span>
         </div>
       `;
@@ -1917,23 +1943,31 @@ const DonationTab = (function() {
     const favFixedEl = sectionEl.querySelector('.gift-favorites-fixed');
     const othersEl = sectionEl.querySelector('.gift-others-section');
 
-    // 즐겨찾기 HTML
-    const favoritesHtml = giftFavorites.map(s => `
-      <div class="gift-streamer-item${giftState.selectedStreamer?.id === s.id ? ' selected' : ''}" data-id="${s.id}" data-nick="${s.nickname}">
-        <span class="gift-streamer-nick">${s.nickname}</span>
-        <span class="gift-streamer-id">@${s.id}</span>
-        <button class="gift-fav-btn is-fav" data-id="${s.id}" data-nick="${s.nickname}" title="${removeFavTitle}">★</button>
-      </div>
-    `).join('');
+    // 즐겨찾기 HTML (M-5: escapeHtml 적용)
+    const favoritesHtml = giftFavorites.map(s => {
+      const safeId = escapeHtml(s.id);
+      const safeNick = escapeHtml(s.nickname);
+      return `
+        <div class="gift-streamer-item${giftState.selectedStreamer?.id === s.id ? ' selected' : ''}" data-id="${safeId}" data-nick="${safeNick}">
+          <span class="gift-streamer-nick">${safeNick}</span>
+          <span class="gift-streamer-id">@${safeId}</span>
+          <button class="gift-fav-btn is-fav" data-id="${safeId}" data-nick="${safeNick}" title="${removeFavTitle}">★</button>
+        </div>
+      `;
+    }).join('');
 
-    // 모니터링 HTML
-    const otherListHtml = otherStreamers.map(s => `
-      <div class="gift-streamer-item${giftState.selectedStreamer?.id === s.id ? ' selected' : ''}" data-id="${s.id}" data-nick="${s.nickname}">
-        <span class="gift-streamer-nick">${s.nickname}</span>
-        <span class="gift-streamer-id">@${s.id}</span>
-        <button class="gift-fav-btn" data-id="${s.id}" data-nick="${s.nickname}" title="${addFavTitle}">☆</button>
-      </div>
-    `).join('');
+    // 모니터링 HTML (M-5: escapeHtml 적용)
+    const otherListHtml = otherStreamers.map(s => {
+      const safeId = escapeHtml(s.id);
+      const safeNick = escapeHtml(s.nickname);
+      return `
+        <div class="gift-streamer-item${giftState.selectedStreamer?.id === s.id ? ' selected' : ''}" data-id="${safeId}" data-nick="${safeNick}">
+          <span class="gift-streamer-nick">${safeNick}</span>
+          <span class="gift-streamer-id">@${safeId}</span>
+          <button class="gift-fav-btn" data-id="${safeId}" data-nick="${safeNick}" title="${addFavTitle}">☆</button>
+        </div>
+      `;
+    }).join('');
 
     // 즐겨찾기 영역 업데이트/생성/제거
     if (giftFavorites.length > 0) {
@@ -1999,28 +2033,36 @@ const DonationTab = (function() {
     const modal = document.createElement('div');
     modal.className = 'gift-modal-overlay';
 
-    // 즐겨찾기 스트리머 HTML (고정 영역)
+    // 즐겨찾기 스트리머 HTML (고정 영역) (M-5: escapeHtml 적용)
     let favoritesHtml = '';
     if (giftFavorites.length > 0) {
-      favoritesHtml = giftFavorites.map(s => `
-        <div class="gift-streamer-item" data-id="${s.id}" data-nick="${s.nickname}">
-          <span class="gift-streamer-nick">${s.nickname}</span>
-          <span class="gift-streamer-id">@${s.id}</span>
-          <button class="gift-fav-btn is-fav" data-id="${s.id}" data-nick="${s.nickname}" title="${removeFavTitle}">★</button>
-        </div>
-      `).join('');
+      favoritesHtml = giftFavorites.map(s => {
+        const safeId = escapeHtml(s.id);
+        const safeNick = escapeHtml(s.nickname);
+        return `
+          <div class="gift-streamer-item" data-id="${safeId}" data-nick="${safeNick}">
+            <span class="gift-streamer-nick">${safeNick}</span>
+            <span class="gift-streamer-id">@${safeId}</span>
+            <button class="gift-fav-btn is-fav" data-id="${safeId}" data-nick="${safeNick}" title="${removeFavTitle}">★</button>
+          </div>
+        `;
+      }).join('');
     }
 
-    // 모니터링 스트리머 HTML (스크롤 영역)
+    // 모니터링 스트리머 HTML (스크롤 영역) (M-5: escapeHtml 적용)
     let otherListHtml = '';
     if (otherStreamers.length > 0) {
-      otherListHtml = otherStreamers.map(s => `
-        <div class="gift-streamer-item" data-id="${s.id}" data-nick="${s.nickname}">
-          <span class="gift-streamer-nick">${s.nickname}</span>
-          <span class="gift-streamer-id">@${s.id}</span>
-          <button class="gift-fav-btn" data-id="${s.id}" data-nick="${s.nickname}" title="${addFavTitle}">☆</button>
-        </div>
-      `).join('');
+      otherListHtml = otherStreamers.map(s => {
+        const safeId = escapeHtml(s.id);
+        const safeNick = escapeHtml(s.nickname);
+        return `
+          <div class="gift-streamer-item" data-id="${safeId}" data-nick="${safeNick}">
+            <span class="gift-streamer-nick">${safeNick}</span>
+            <span class="gift-streamer-id">@${safeId}</span>
+            <button class="gift-fav-btn" data-id="${safeId}" data-nick="${safeNick}" title="${addFavTitle}">☆</button>
+          </div>
+        `;
+      }).join('');
     }
 
     const hasNoStreamers = giftFavorites.length === 0 && otherStreamers.length === 0;
