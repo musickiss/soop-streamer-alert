@@ -540,7 +540,7 @@ const ChatTab = (function() {
       bufferSize: 0
     },
     settings: {
-      collectMode: COLLECT_MODE.ALL,      // 수집 모드
+      collectMode: COLLECT_MODE.SELECTED,      // 수집 모드 (기본값: 선택한 스트리머)
       collectStreamers: [],                // 선택된 스트리머 목록 (selected 모드용)
       retentionDays: 90
     },
@@ -596,7 +596,7 @@ const ChatTab = (function() {
   // ===== 설정 로드/저장 =====
   async function loadSettings() {
     try {
-      const collectMode = await ChatStorage.getSetting('collectMode', COLLECT_MODE.ALL);
+      const collectMode = await ChatStorage.getSetting('collectMode', COLLECT_MODE.SELECTED);
       const collectStreamers = await ChatStorage.getSetting('collectStreamers', []);
       const retentionDays = await ChatStorage.getSetting('retentionDays', 90);
       state.settings = { collectMode, collectStreamers, retentionDays };

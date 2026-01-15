@@ -631,6 +631,26 @@ const ChatDB = (function() {
     });
   }
 
+  // ===== v5.4.1: 세션 목록 조회 =====
+  async function getSessions() {
+    if (!db) await init();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORE_SESSIONS], 'readonly');
+      const store = transaction.objectStore(STORE_SESSIONS);
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        const sessions = request.result || [];
+        // 최신순 정렬
+        sessions.sort((a, b) => (b.startTime || 0) - (a.startTime || 0));
+        resolve(sessions);
+      };
+
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   // ===== 설정 저장/조회 =====
   async function saveSetting(key, value) {
     if (!db) await init();
@@ -694,6 +714,7 @@ const ChatDB = (function() {
     deleteAllData,
     getMessageCountByStreamer,
     cleanupOldData,
+    getSessions,  // v5.4.1
     saveSetting,
     getSetting,
     close,
