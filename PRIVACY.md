@@ -1,6 +1,6 @@
 # 개인정보처리방침 (Privacy Policy)
 
-**최종 수정일:** 2025년 1월 16일
+**최종 수정일:** 2025년 1월 19일
 
 ## 개요
 
@@ -16,7 +16,7 @@
 
 | 수집 항목 | 설명 | 예시 |
 |----------|------|------|
-| 확장프로그램 버전 | 사용 중인 버전 | `5.4.2` |
+| 확장프로그램 버전 | 사용 중인 버전 | `5.x.x` |
 | 기능 사용 이벤트 | 어떤 기능이 사용되는지 | 녹화 시작, 모니터링 ON/OFF |
 | 브라우저 언어 | 다국어 지원 개선용 | `ko`, `en`, `ja` |
 | 익명 세션 ID | 세션 구분용 (무작위 생성) | `abc123xyz` |
@@ -43,8 +43,8 @@
 | 스트리머 ID 목록 | Chrome Storage | 사용자가 등록한 스트리머 목록 |
 | 확장프로그램 설정 | Chrome Storage | 알림, 자동참여, 자동녹화 설정 |
 | 녹화 파일 | 다운로드 폴더 | `다운로드/SOOPtalking/*.webm` |
-| 채팅 데이터 (v5.0.0+) | IndexedDB / SQLite | 수집된 채팅 메시지 (아래 상세 설명 참조) |
-| 채팅 백업 파일 (v5.4.2+) | 다운로드 폴더 | `다운로드/SOOPtalking/chat/auto-backup/*.csv` |
+| 채팅 데이터 (v5.x+) | IndexedDB / SQLite | 수집된 채팅 메시지 (아래 상세 설명 참조) |
+| 채팅 백업 파일 (v5.x+) | 다운로드 폴더 | `다운로드/SOOPtalking/chat/auto-backup/*.csv` |
 
 이 데이터는 Chrome의 `chrome.storage.local` API, `IndexedDB`, `chrome.downloads` API를 사용하여 **사용자의 기기에만 저장**되며, 외부 서버로 전송되지 않습니다.
 
@@ -56,7 +56,7 @@
 
 - **녹화 방식**: 브라우저 내 video.captureStream() API 사용
 - **저장 위치**: 사용자 다운로드 폴더 내 `SOOPtalking` 하위 폴더
-- **파일 형식**: WebM (VP9/AV1 코덱)
+- **파일 형식**: WebM (H.264 하드웨어 가속)
 - **외부 전송**: 녹화 파일은 외부 서버로 전송되지 않음
 
 ### ⚠️ 저작권 고지
@@ -68,7 +68,7 @@
 
 ---
 
-## 채팅 수집 기능 (v5.0.0+)
+## 채팅 수집 기능 (v5.x+)
 
 본 확장프로그램은 방송 채팅 수집 기능을 제공합니다. 이 기능은 **사용자가 직접 활성화**해야 작동합니다.
 
@@ -121,6 +121,8 @@
 | 대상 | 목적 | 수집 정보 |
 |------|------|----------|
 | SOOP 공식 API (`sooplive.co.kr`) | 스트리머 방송 상태 확인 | 없음 (공개된 방송 정보만 조회) |
+| SOOP 포인트 API (`point.sooplive.co.kr`) | 후원 정보 조회 (v4.x+) | 없음 (사용자 본인의 별풍선 정보만 조회) |
+| 아프리카TV API (`afreecatv.com`) | 레거시 API 호환성 | 없음 (공개된 방송 정보만 조회) |
 | Google Analytics (`google-analytics.com`) | 익명 사용 통계 수집 | 위 "수집하는 정보" 섹션 참조 |
 
 - 개인 식별 가능한 데이터를 외부 서버로 전송하지 않습니다.
@@ -137,7 +139,7 @@
 | 권한 | 사용 목적 |
 |------|----------|
 | `storage` | 스트리머 목록 및 설정을 로컬에 저장 |
-| `unlimitedStorage` | 채팅 데이터 저장을 위한 확장 용량 (v5.0.0+) |
+| `unlimitedStorage` | 채팅 데이터 저장을 위한 확장 용량 (v5.x+) |
 | `tabs` | 방송 시작 시 새 탭 열기 및 기존 탭 확인 |
 | `notifications` | 방송 시작/종료 알림 표시 |
 | `sidePanel` | Side Panel UI 표시 |
@@ -145,6 +147,8 @@
 | `scripting` | 방송 페이지에 녹화/채팅 수집 스크립트 주입 |
 | `alarms` | 주기적 작업 스케줄링 (백업 등) |
 | `host_permissions` (sooplive.co.kr) | SOOP 방송 상태 API 호출, 녹화 및 채팅 수집 기능 |
+| `host_permissions` (point.sooplive.co.kr) | 후원 정보 조회 (별풍선 잔액, 충전 내역) |
+| `host_permissions` (afreecatv.com) | 레거시 API 호환성 유지 |
 
 ---
 
@@ -157,7 +161,7 @@
 녹화 파일은 다운로드 폴더에 저장되므로 확장프로그램 제거 후에도 남아있습니다.
 수동으로 삭제하려면 `다운로드/SOOPtalking/` 폴더를 삭제하십시오.
 
-### 채팅 데이터 (v5.0.0+)
+### 채팅 데이터 (v5.x+)
 - **확장프로그램 내 삭제**: 채팅 탭 → 설정 → 데이터 관리에서 날짜별/스트리머별/전체 삭제 가능
 - **확장프로그램 제거 시**: IndexedDB/SQLite 데이터 자동 삭제
 - **백업 파일**: `다운로드/SOOPtalking/chat/auto-backup/` 폴더의 CSV 파일은 수동 삭제 필요
@@ -186,7 +190,7 @@
 
 # Privacy Policy (English)
 
-**Last Updated:** January 16, 2025
+**Last Updated:** January 19, 2025
 
 ## Overview
 
@@ -202,7 +206,7 @@ This extension collects **anonymous usage statistics** through Google Analytics 
 
 | Collected Item | Description | Example |
 |---------------|-------------|---------|
-| Extension version | Version in use | `5.4.2` |
+| Extension version | Version in use | `5.x.x` |
 | Feature usage events | Which features are used | Recording start, Monitoring ON/OFF |
 | Browser language | For multilingual support improvement | `ko`, `en`, `ja` |
 | Anonymous session ID | For session distinction (randomly generated) | `abc123xyz` |
@@ -229,8 +233,8 @@ This extension stores the following data **only in the user's local browser**:
 | Streamer ID list | Chrome Storage | List of streamers registered by user |
 | Extension settings | Chrome Storage | Notification, auto-join, auto-record settings |
 | Recording files | Downloads folder | `Downloads/SOOPtalking/*.webm` |
-| Chat data (v5.0.0+) | IndexedDB / SQLite | Collected chat messages (see details below) |
-| Chat backup files (v5.4.2+) | Downloads folder | `Downloads/SOOPtalking/chat/auto-backup/*.csv` |
+| Chat data (v5.x+) | IndexedDB / SQLite | Collected chat messages (see details below) |
+| Chat backup files (v5.x+) | Downloads folder | `Downloads/SOOPtalking/chat/auto-backup/*.csv` |
 
 This data is stored **only on the user's device** using Chrome's `chrome.storage.local` API, `IndexedDB`, and `chrome.downloads` API, and is not transmitted to any external servers.
 
@@ -242,7 +246,7 @@ This extension provides broadcast recording functionality:
 
 - **Recording method**: Browser's video.captureStream() API
 - **Storage location**: `SOOPtalking` subfolder in user's Downloads folder
-- **File format**: WebM (VP9/AV1 codec)
+- **File format**: WebM (H.264 hardware acceleration)
 - **External transmission**: Recording files are NOT transmitted to external servers
 
 ### ⚠️ Copyright Notice
@@ -254,7 +258,7 @@ The copyright of recorded content belongs to the respective streamer and SOOP.
 
 ---
 
-## Chat Collection Feature (v5.0.0+)
+## Chat Collection Feature (v5.x+)
 
 This extension provides broadcast chat collection functionality. This feature **must be manually activated by the user**.
 
@@ -307,6 +311,8 @@ This extension communicates externally only for the following purposes:
 | Target | Purpose | Information Collected |
 |--------|---------|----------------------|
 | SOOP Official API (`sooplive.co.kr`) | Check streamer broadcast status | None (only queries publicly available broadcast information) |
+| SOOP Point API (`point.sooplive.co.kr`) | Donation info lookup (v4.x+) | None (only queries user's own star balloon info) |
+| AfreecaTV API (`afreecatv.com`) | Legacy API compatibility | None (only queries publicly available broadcast information) |
 | Google Analytics (`google-analytics.com`) | Anonymous usage statistics | See "Information We Collect" section above |
 
 - No personally identifiable data is transmitted to external servers.
@@ -323,7 +329,7 @@ Browser permissions requested by this extension and their purposes:
 | Permission | Purpose |
 |------------|---------|
 | `storage` | Store streamer list and settings locally |
-| `unlimitedStorage` | Extended storage capacity for chat data (v5.0.0+) |
+| `unlimitedStorage` | Extended storage capacity for chat data (v5.x+) |
 | `tabs` | Open new tabs when broadcasts start and check existing tabs |
 | `notifications` | Display broadcast start/end notifications |
 | `sidePanel` | Display Side Panel UI |
@@ -331,6 +337,8 @@ Browser permissions requested by this extension and their purposes:
 | `scripting` | Inject recording/chat collection scripts into broadcast pages |
 | `alarms` | Schedule periodic tasks (backups, etc.) |
 | `host_permissions` (sooplive.co.kr) | Call SOOP broadcast status API, enable recording and chat collection |
+| `host_permissions` (point.sooplive.co.kr) | Donation info lookup (star balloon balance, charge history) |
+| `host_permissions` (afreecatv.com) | Legacy API compatibility |
 
 ---
 
@@ -343,7 +351,7 @@ All data stored in Chrome Storage and IndexedDB/SQLite is automatically deleted 
 Recording files are saved in the downloads folder and remain after extension removal.
 To delete manually, remove the `Downloads/SOOPtalking/` folder.
 
-### Chat Data (v5.0.0+)
+### Chat Data (v5.x+)
 - **Delete within extension**: Chat Tab → Settings → Data Management allows deletion by date/streamer/all
 - **When extension is removed**: IndexedDB/SQLite data automatically deleted
 - **Backup files**: CSV files in `Downloads/SOOPtalking/chat/auto-backup/` folder must be manually deleted
