@@ -401,25 +401,8 @@
         return true;
 
       case 'START_RECORDING':
-        // ⭐ v3.5.9.2: 상세 로깅 추가
-        console.log('[숲토킹 Content] ========== START_RECORDING 메시지 수신 ==========');
-        console.log('[숲토킹 Content] message:', JSON.stringify(message, null, 2));
-        console.log(`[숲토킹 Content]   - streamerId: "${message.streamerId}"`);
-        console.log(`[숲토킹 Content]   - nickname: "${message.nickname}"`);
-        console.log(`[숲토킹 Content]   - quality: "${message.quality}" (타입: ${typeof message.quality})`);
-        console.log(`[숲토킹 Content]   - splitSize: ${message.splitSize}MB`);
-
         const qualityToSend = message.quality || 'ultra';
         const splitSizeToSend = message.splitSize || 500;
-        if (!message.quality) {
-          console.warn('[숲토킹 Content] ⚠️ quality 누락! 기본값 "ultra" 사용');
-        }
-        if (!message.splitSize) {
-          console.warn('[숲토킹 Content] ⚠️ splitSize 누락! 기본값 500MB 사용');
-        }
-
-        console.log(`[숲토킹 Content] MAIN world로 전달할 quality: "${qualityToSend}", splitSize: ${splitSizeToSend}MB`);
-        console.log('[숲토킹 Content] ================================================');
 
         // MAIN world로 녹화 시작 명령 전달
         window.postMessage({
@@ -481,9 +464,6 @@
 
       if (recordings[tabId]) {
         // 녹화 상태가 남아있지만, 실제 녹화 중이 아님 (새로고침됨)
-        console.log('[숲토킹 Content] 불일치 상태 감지 - 이전 녹화 상태 정리:', tabId);
-
-        // Storage에서 제거
         delete recordings[tabId];
         await chrome.storage.local.set({ [STORAGE_KEY_RECORDINGS]: recordings });
 
@@ -495,9 +475,7 @@
         }).catch(() => {});
       }
     } catch (e) {
-      console.log('[숲토킹 Content] 상태 동기화 실패:', e.message);
+      // 동기화 실패 무시
     }
   });
-
-  console.log('[숲토킹 Content] v4.0.2 ISOLATED 브릿지 로드됨');
 })();

@@ -1,4 +1,4 @@
-// ===== 숲토킹 v4.0.2 - Content Script (MAIN) =====
+// ===== 숲토킹 v5.4.3 - Content Script (MAIN) =====
 // MAIN world Canvas 녹화 스크립트
 // v3.7.0 - requestAnimationFrame + captureStream(0) 기반 프레임 동기화 녹화
 //        - H.264 하드웨어 가속 코덱 우선 적용
@@ -8,12 +8,9 @@
 
   // 이미 로드된 경우 스킵
   if (window.__SOOPTALKING_RECORDER_LOADED__) {
-    console.log('[숲토킹 Recorder] 이미 로드됨, 스킵');
     return;
   }
   window.__SOOPTALKING_RECORDER_LOADED__ = true;
-
-  console.log('[숲토킹 Recorder] 로드됨');
 
   // ===== 설정 =====
   // SOOP 원본 스트리밍: 1080p, 8Mbps, 60fps
@@ -84,23 +81,14 @@
     }
   }
 
-  // ⭐ v3.7.0: 단일 품질 - CONFIG에서 직접 코덱 우선순위 사용
+  // 코덱 선택
   function getBestMimeType() {
-    console.log(`[숲토킹 Recorder] getBestMimeType 호출 (단일 품질: 4Mbps)`);
-    console.log(`[숲토킹 Recorder]   코덱 우선순위: [${CONFIG.CODEC_PRIORITY.join(', ')}]`);
-
     for (const codec of CONFIG.CODEC_PRIORITY) {
       const mimeType = `video/webm;codecs=${codec},opus`;
-      const isSupported = MediaRecorder.isTypeSupported(mimeType);
-      console.log(`[숲토킹 Recorder]   - ${codec}: ${isSupported ? '지원됨 ✓' : '미지원 ✗'}`);
-
-      if (isSupported) {
-        console.log(`[숲토킹 Recorder] ★ 코덱 선택: ${codec.toUpperCase()}`);
+      if (MediaRecorder.isTypeSupported(mimeType)) {
         return mimeType;
       }
     }
-
-    console.warn('[숲토킹 Recorder] 지원되는 코덱 없음, 기본 WebM 사용');
     return 'video/webm';
   }
 
@@ -155,14 +143,16 @@
     });
   }
 
+  // v5.4.3: 속성 접근 캐싱 적용 (js-cache-property-access)
   function findVideoElement() {
     const videos = document.querySelectorAll('video');
     let bestVideo = null;
     let maxArea = 0;
 
     for (const v of videos) {
-      if (v.readyState >= 2 && !v.paused && v.videoWidth > 0) {
-        const area = v.videoWidth * v.videoHeight;
+      const { readyState, paused, videoWidth, videoHeight } = v;
+      if (readyState >= 2 && !paused && videoWidth > 0) {
+        const area = videoWidth * videoHeight;
         if (area > maxArea) {
           maxArea = area;
           bestVideo = v;
@@ -172,7 +162,8 @@
     if (bestVideo) return bestVideo;
 
     for (const v of videos) {
-      if (v.readyState >= 2 && v.videoWidth > 0) {
+      const { readyState, videoWidth } = v;
+      if (readyState >= 2 && videoWidth > 0) {
         return v;
       }
     }
@@ -467,10 +458,8 @@
         lastDrawTime = timestamp;
         frameCount++;
 
-        // FPS 로깅 (10초마다)
+        // FPS 카운터 리셋 (10초마다)
         if (timestamp - lastFpsLogTime >= 10000) {
-          const fps = frameCount / ((timestamp - lastFpsLogTime) / 1000);
-          console.log(`[숲토킹 Recorder] 녹화 FPS: ${fps.toFixed(1)}`);
           frameCount = 0;
           lastFpsLogTime = timestamp;
         }
@@ -1158,21 +1147,17 @@
       if (mediaRecorder.state === 'recording') {
         try {
           mediaRecorder.requestData();
-          console.log('[숲토킹 Recorder] requestData() 호출 - 현재 누적:', formatBytes(totalRecordedBytes));
         } catch (e) {
-          console.warn('[숲토킹 Recorder] requestData 실패:', e.message);
+          // requestData 실패 무시
         }
       }
     }, CONFIG.REQUEST_DATA_INTERVAL);
-
-    console.log('[숲토킹 Recorder] requestData 인터벌 시작 (5초 주기)');
   }
 
   function stopRequestDataInterval() {
     if (requestDataIntervalId) {
       clearInterval(requestDataIntervalId);
       requestDataIntervalId = null;
-      console.log('[숲토킹 Recorder] requestData 인터벌 중지');
     }
   }
 
@@ -1326,7 +1311,5 @@
       result: result
     }, '*');
   });
-
-  console.log('[숲토킹 Recorder] v4.0.2 메시지 리스너 등록 완료 (rAF + captureStream(0) 프레임 동기화)');
 
 })();

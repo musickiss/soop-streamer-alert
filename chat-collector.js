@@ -1,4 +1,4 @@
-// ===== 숲토킹 v5.0.0 - Chat Collector (ISOLATED World) =====
+// ===== 숲토킹 v5.4.3 - Chat Collector (ISOLATED World) =====
 // SOOP 채팅창 DOM 감시 및 수집
 
 (function() {
@@ -55,6 +55,14 @@
     }
   };
 
+  // ⭐ v5.4.3: 정규식 모듈 레벨 호이스팅 (js-hoist-regexp)
+  const TITLE_PATTERNS = [
+    /^(.+?)(?:\s*[-|]|의\s*방송)/,
+    /^(.+?)\s*-\s*SOOP/,
+    /^(.+?)\s*\|\s*SOOP/
+  ];
+  const URL_STREAMER_PATTERN = /^\/([^\/]+)/;
+
   // ===== 상태 =====
   const state = {
     isCollecting: false,
@@ -91,8 +99,6 @@
 
   // ===== 고아 수집기 정리 (Extension context 무효 시) =====
   function cleanupOrphanedCollector() {
-    console.log('[숲토킹 Chat] 고아 수집기 정리 시작');
-
     // Observer 정리
     if (state.observer) {
       state.observer.disconnect();
@@ -114,8 +120,6 @@
 
     // 전역 플래그 해제 (새 확장이 다시 설치할 수 있도록)
     window.__soopChatCollectorInstalled = false;
-
-    console.log('[숲토킹 Chat] 고아 수집기 정리 완료');
   }
 
   function sanitizeText(text, maxLength = 1000) {
@@ -198,7 +202,6 @@
       try {
         const container = document.querySelector(selector);
         if (container) {
-          console.log('[숲토킹 Chat] 채팅 컨테이너 발견:', selector);
           return container;
         }
       } catch (e) {
@@ -250,9 +253,9 @@
     }
     state.processedIds.add(contentHash);
 
-    // 메모리 관리: 오래된 해시 정리
+    // 메모리 관리: 오래된 해시 정리 (v5.4.3: 스프레드 연산자 사용)
     if (state.processedIds.size > 10000) {
-      const arr = Array.from(state.processedIds);
+      const arr = [...state.processedIds];
       state.processedIds = new Set(arr.slice(-5000));
     }
 
@@ -309,9 +312,10 @@
           continue;
         }
 
-        // 하위에서 채팅 아이템 찾기
+        // 하위에서 채팅 아이템 찾기 (v5.4.3: CONFIG 캐싱)
         try {
-          for (const selector of CONFIG.SELECTORS.chatItem) {
+          const chatItemSelectors = CONFIG.SELECTORS.chatItem;
+          for (const selector of chatItemSelectors) {
             const items = node.querySelectorAll(selector);
             for (const item of items) {
               const chatData = parseChatElement(item);
@@ -397,14 +401,7 @@
         streamerId: state.streamerId
       });
 
-      // 디버그 로그 (속도 정보 포함)
-      if (state.messageRate > 0) {
-        console.log(`[숲토킹 Chat] ${messages.length}건 전송 (${state.messageRate.toFixed(1)}msg/s)`);
-      } else {
-        console.log(`[숲토킹 Chat] ${messages.length}건 전송 완료`);
-      }
     } catch (error) {
-      console.error('[숲토킹 Chat] 메시지 전송 실패:', error.message);
       // 실패 시 버퍼에 다시 추가 (최대 크기 제한)
       state.buffer = [...messages, ...state.buffer].slice(0, CONFIG.BUFFER_SIZE * 2);
     }
@@ -426,18 +423,15 @@
     if (state.isCollecting) {
       // 같은 스트리머면 무시
       if (state.streamerId === streamerId) {
-        console.log('[숲토킹 Chat] 이미 동일 스트리머 수집 중:', streamerId);
         return { success: false, reason: 'already_collecting' };
       }
       // 다른 스트리머면 기존 수집 중지 후 새로 시작
-      console.log(`[숲토킹 Chat] 스트리머 변경 감지: ${state.streamerId} → ${streamerId}`);
-      stopCollecting(); // 동기적으로 중지 (비동기 대기 불필요)
+      stopCollecting();
     }
 
     // 채팅 컨테이너 찾기
     state.chatContainer = findChatContainer();
     if (!state.chatContainer) {
-      console.warn('[숲토킹 Chat] 채팅 컨테이너를 찾을 수 없습니다. 재시도...');
 
       if (state.retryCount < CONFIG.MAX_RETRY) {
         state.retryCount++;
@@ -486,7 +480,6 @@
       }).catch(() => {});
     }
 
-    console.log(`[숲토킹 Chat] 수집 시작: ${streamerId} (${streamerNick})`);
     return { success: true, sessionId: state.sessionId };
   }
 
@@ -523,7 +516,7 @@
           endTime: Date.now()
         });
       } catch (e) {
-        console.log('[숲토킹 Chat] 세션 종료 알림 전송 실패:', e.message);
+        // 세션 종료 알림 실패 무시
       }
     }
 
@@ -533,10 +526,9 @@
     state.streamerNick = null;
     state.chatContainer = null;
 
-    // M-2: processedIds Set 정리 (메모리 누수 방지)
+    // processedIds Set 정리 (메모리 누수 방지)
     state.processedIds.clear();
 
-    console.log('[숲토킹 Chat] 수집 중지');
     return { success: true, sessionId };
   }
 
@@ -544,14 +536,12 @@
   function pauseCollecting() {
     if (!state.isCollecting) return { success: false };
     state.isPaused = true;
-    console.log('[숲토킹 Chat] 수집 일시정지');
     return { success: true };
   }
 
   function resumeCollecting() {
     if (!state.isCollecting) return { success: false };
     state.isPaused = false;
-    console.log('[숲토킹 Chat] 수집 재개');
     return { success: true };
   }
 
@@ -602,21 +592,16 @@
       case 'CHAT_SETTINGS_CHANGED':
         // 설정 변경 시 처리
         if (message.settings) {
-          const oldMode = state.collectSettings.mode;
           state.collectSettings.mode = message.settings.collectMode || COLLECT_MODE.ALL;
           state.collectSettings.streamers = message.settings.collectStreamers || [];
-
-          console.log('[숲토킹 Chat] 설정 변경됨:', state.collectSettings);
 
           // 현재 수집 중인 경우, 설정에 따라 중지 여부 결정
           if (state.isCollecting && state.streamerId) {
             if (!shouldCollect(state.streamerId)) {
-              console.log('[숲토킹 Chat] 설정 변경으로 수집 중지:', state.streamerId);
               stopCollecting();
             }
           } else if (!state.isCollecting && state.collectSettings.mode !== COLLECT_MODE.OFF) {
             // 수집 중이 아니고, 새 모드가 OFF가 아니면 자동 시작 시도
-            console.log('[숲토킹 Chat] 설정 변경으로 수집 재시작 시도');
             autoStart();
           }
         }
@@ -665,9 +650,9 @@
     }
   });
 
-  // ===== URL에서 스트리머 ID 추출 =====
+  // ===== URL에서 스트리머 ID 추출 (v5.4.3: 호이스팅된 정규식 사용) =====
   function extractStreamerIdFromUrl() {
-    const match = window.location.pathname.match(/^\/([^\/]+)/);
+    const match = window.location.pathname.match(URL_STREAMER_PATTERN);
     return match ? match[1] : null;
   }
 
@@ -701,31 +686,20 @@
       try {
         const el = document.querySelector(selector);
         if (el && el.textContent.trim()) {
-          const nick = el.textContent.trim();
-          console.log(`[숲토킹 Chat] 닉네임 추출 성공 (${selector}):`, nick);
-          return nick;
+          return el.textContent.trim();
         }
       } catch (e) {}
     }
 
-    // 페이지 타이틀에서 추출 시도 (여러 패턴)
+    // 페이지 타이틀에서 추출 시도 (v5.4.3: 호이스팅된 정규식 사용)
     const title = document.title;
-    const titlePatterns = [
-      /^(.+?)(?:\s*[-|]|의\s*방송)/,
-      /^(.+?)\s*-\s*SOOP/,
-      /^(.+?)\s*\|\s*SOOP/
-    ];
-
-    for (const pattern of titlePatterns) {
+    for (const pattern of TITLE_PATTERNS) {
       const match = title.match(pattern);
       if (match && match[1].trim()) {
-        const nick = match[1].trim();
-        console.log('[숲토킹 Chat] 닉네임 추출 성공 (title):', nick);
-        return nick;
+        return match[1].trim();
       }
     }
 
-    console.log('[숲토킹 Chat] 닉네임 추출 실패, 폴백 사용');
     return null;
   }
 
@@ -738,7 +712,6 @@
       s.id === streamerId || s.id?.toLowerCase() === streamerId?.toLowerCase()
     );
     if (found?.nickname && found.nickname !== found.id) {
-      console.log(`[숲토킹 Chat] 닉네임 설정에서 찾음: ${found.nickname}`);
       return found.nickname;
     }
     return null;
@@ -752,11 +725,10 @@
         streamerId: streamerId
       });
       if (response?.success && response?.nickname) {
-        console.log(`[숲토킹 Chat] 닉네임 background에서 찾음: ${response.nickname}`);
         return response.nickname;
       }
     } catch (e) {
-      console.log('[숲토킹 Chat] background 닉네임 조회 실패:', e.message);
+      // 조회 실패 무시
     }
     return null;
   }
@@ -790,7 +762,6 @@
       if (storageData.chatCollectMode !== undefined) {
         state.collectSettings.mode = storageData.chatCollectMode || COLLECT_MODE.ALL;
         state.collectSettings.streamers = storageData.chatCollectStreamers || [];
-        console.log('[숲토킹 Chat] 설정 로드됨 (storage):', state.collectSettings);
         return true;
       }
 
@@ -802,14 +773,11 @@
       if (response?.success && response?.data) {
         state.collectSettings.mode = response.data.collectMode || COLLECT_MODE.ALL;
         state.collectSettings.streamers = response.data.collectStreamers || [];
-        console.log('[숲토킹 Chat] 설정 로드됨 (background):', state.collectSettings);
         return true;
       }
     } catch (e) {
-      console.log('[숲토킹 Chat] 설정 조회 실패, 기본값 사용:', e.message);
+      // 설정 조회 실패 - 기본값 사용
     }
-    // 기본값: ALL 모드 (모든 채팅 수집)
-    console.log('[숲토킹 Chat] 기본 설정 사용: ALL 모드');
     return false;
   }
 
@@ -820,25 +788,21 @@
 
     // 수집 모드 확인
     if (state.collectSettings.mode === COLLECT_MODE.OFF) {
-      console.log('[숲토킹 Chat] 채팅 수집 비활성화됨 (수집 안함 모드)');
       return;
     }
 
     const streamerId = extractStreamerIdFromUrl();
     if (!streamerId) {
-      console.log('[숲토킹 Chat] 스트리머 ID를 찾을 수 없음');
       return;
     }
 
-    // ⭐ v5.0.0 버그 수정: 이전 세션이 다른 스트리머인 경우 정리
+    // 이전 세션이 다른 스트리머인 경우 정리
     if (state.isCollecting && state.streamerId && state.streamerId !== streamerId) {
-      console.log(`[숲토킹 Chat] 이전 세션 정리: ${state.streamerId} → ${streamerId}`);
       await stopCollecting();
     }
 
     // 선택 모드일 때 스트리머 확인
     if (!shouldCollect(streamerId)) {
-      console.log(`[숲토킹 Chat] 수집 대상이 아님: ${streamerId} (선택한 스트리머만 수집 모드)`);
       return;
     }
 
@@ -865,23 +829,13 @@
     // 4. 폴백: streamerId 사용
     if (!streamerNick) {
       streamerNick = streamerId;
-      console.log('[숲토킹 Chat] 닉네임을 찾을 수 없어 ID 사용:', streamerId);
     }
-
-    console.log(`[숲토킹 Chat] 자동 수집 시작 시도: ${streamerId} (${streamerNick})`);
 
     // 채팅창 로드 대기 후 수집 시작
-    const result = startCollecting(streamerId, streamerNick);
-    if (result.success) {
-      console.log(`[숲토킹 Chat] ✅ 자동 수집 시작됨: ${streamerId}`);
-    } else {
-      console.log(`[숲토킹 Chat] 자동 수집 시작 실패: ${result.reason}`);
-    }
+    startCollecting(streamerId, streamerNick);
   }
 
   // ===== 초기화 =====
-  console.log('[숲토킹 Chat] Collector v5.0.0 로드됨');
-
   // Background에 로드 알림
   if (isExtensionContextValid()) {
     chrome.runtime.sendMessage({

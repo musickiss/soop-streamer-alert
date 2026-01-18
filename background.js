@@ -384,14 +384,7 @@ async function injectContentScripts(tabId) {
 // ===== 녹화 관리 =====
 
 async function startRecording(tabId, streamerId, nickname, quality = 'high', splitSize = 500) {
-  // ⭐ v3.5.9.2: 상세 로깅
-  console.log('[숲토킹] ========== startRecording 함수 호출 ==========');
-  console.log(`[숲토킹]   - tabId: ${tabId}`);
-  console.log(`[숲토킹]   - streamerId: "${streamerId}"`);
-  console.log(`[숲토킹]   - nickname: "${nickname}"`);
-  console.log(`[숲토킹]   - quality: "${quality}" (타입: ${typeof quality})`);
-  console.log(`[숲토킹]   - splitSize: ${splitSize}MB`);
-  console.log('[숲토킹] ===============================================');
+  console.log(`[숲토킹] 녹화 시작 요청: ${streamerId} (${splitSize}MB 분할)`);
 
   // 보안: 입력 검증
   if (!tabId || typeof tabId !== 'number') {
@@ -406,9 +399,8 @@ async function startRecording(tabId, streamerId, nickname, quality = 'high', spl
   streamerId = sanitizedId;
   nickname = sanitizeFilename(nickname) || streamerId;
 
-  // ⭐ v3.5.17: 이미 녹화 중이면 성공으로 처리 (재시도 방지)
+  // 이미 녹화 중이면 성공으로 처리
   if (state.recordings.has(tabId)) {
-    console.log('[숲토킹] 이미 녹화 중 - 성공으로 처리:', tabId);
     return { success: true, alreadyRecording: true };
   }
 
@@ -420,7 +412,6 @@ async function startRecording(tabId, streamerId, nickname, quality = 'high', spl
     }
 
     // Content Script에 녹화 시작 명령 전송
-    console.log(`[숲토킹] Content Script로 전달: quality="${quality}", splitSize=${splitSize}MB`);
     const response = await chrome.tabs.sendMessage(tabId, {
       type: 'START_RECORDING',
       streamerId: streamerId,
@@ -464,7 +455,6 @@ async function startRecording(tabId, streamerId, nickname, quality = 'high', spl
 
       // 주입 후 재시도
       try {
-        console.log(`[숲토킹] 재시도 - Content Script로 전달: quality="${quality}", splitSize=${splitSize}MB`);
         const retryResponse = await chrome.tabs.sendMessage(tabId, {
           type: 'START_RECORDING',
           streamerId: streamerId,
@@ -501,8 +491,6 @@ async function startRecording(tabId, streamerId, nickname, quality = 'high', spl
 }
 
 async function stopRecording(tabId) {
-  console.log('[숲토킹] 녹화 중지 요청:', tabId);
-
   if (!state.recordings.has(tabId)) {
     return { success: false, error: '녹화 중인 세션이 없습니다.' };
   }
@@ -748,7 +736,6 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
 function startMonitoring() {
   // 중복 시작 방지
   if (state.isMonitoringStarting) {
-    console.log('[숲토킹] 모니터링 시작 중 - 중복 호출 무시');
     return;
   }
   state.isMonitoringStarting = true;
@@ -771,7 +758,6 @@ function startMonitoring() {
   state.slowIntervalId = setInterval(checkSlowStreamers, CHECK_INTERVAL_SLOW);
 
   state.isMonitoringStarting = false;
-  console.log('[숲토킹] 모니터링 시작 (5초/30초 분리)');
 
   // ⭐ v3.6.0: 모니터링 시작 이벤트
   Analytics.trackMonitoringToggle(true, state.favoriteStreamers.length);
@@ -790,42 +776,32 @@ function stopMonitoring() {
     state.slowIntervalId = null;
   }
 
-  console.log('[숲토킹] 모니터링 중지');
-
   // ⭐ v3.6.0: 모니터링 중지 이벤트
   Analytics.trackMonitoringToggle(false, state.favoriteStreamers.length);
 }
 
-async function checkFastStreamers() {
-  const fastStreamers = state.favoriteStreamers.filter(s => s.autoJoin);
-  if (fastStreamers.length === 0) return;
+// 스트리머 체크 (autoJoin 여부로 필터링)
+async function checkStreamers(filterFn) {
+  const streamers = state.favoriteStreamers.filter(filterFn);
+  if (streamers.length === 0) return;
 
-  for (const streamer of fastStreamers) {
+  for (const streamer of streamers) {
     await checkAndProcessStreamer(streamer);
     await new Promise(r => setTimeout(r, 200));
   }
 
-  // 상태 업데이트 브로드캐스트
   broadcastToSidepanel({
     type: 'BROADCAST_STATUS_UPDATED',
     data: state.broadcastStatus
   });
 }
 
-async function checkSlowStreamers() {
-  const slowStreamers = state.favoriteStreamers.filter(s => !s.autoJoin);
-  if (slowStreamers.length === 0) return;
+function checkFastStreamers() {
+  return checkStreamers(s => s.autoJoin);
+}
 
-  for (const streamer of slowStreamers) {
-    await checkAndProcessStreamer(streamer);
-    await new Promise(r => setTimeout(r, 200));
-  }
-
-  // 상태 업데이트 브로드캐스트
-  broadcastToSidepanel({
-    type: 'BROADCAST_STATUS_UPDATED',
-    data: state.broadcastStatus
-  });
+function checkSlowStreamers() {
+  return checkStreamers(s => !s.autoJoin);
 }
 
 // 탭 로드 완료 대기 함수
