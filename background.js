@@ -1,7 +1,11 @@
-// ===== 숲토킹 v4.0.2 - Background Service Worker =====
+// ===== 숲토킹 v5.4.8 - Background Service Worker =====
 
 // ⭐ v3.6.0: GA4 익명 통계 모듈 (ES6 Module)
 import * as Analytics from './analytics.js';
+
+// ⭐ v5.4.4: 피처 플래그 및 메시지 큐 모듈
+import { FEATURES } from './config.js';
+import { messageQueue } from './message-queue.js';
 
 // ===== 상수 =====
 const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
@@ -828,6 +832,12 @@ async function checkAndProcessStreamer(streamer) {
     const status = await checkStreamerStatus(streamer.id);
     const prevStatus = state.broadcastStatus[streamer.id];
 
+    // ⭐ v5.4.8: API 오류 시 (null) 이전 상태 유지
+    if (status === null) {
+      console.log('[숲토킹] API 응답 없음 - 이전 상태 유지:', streamer.id);
+      return;
+    }
+
     // 방송 시작 감지
     if (status.isLive && (!prevStatus || !prevStatus.isLive)) {
       console.log('[숲토킹] 방송 시작 감지:', streamer.nickname || streamer.id);
@@ -935,6 +945,24 @@ async function checkAndProcessStreamer(streamer) {
 
     // 방송 종료 감지
     if (!status.isLive && prevStatus?.isLive) {
+      // ⭐ v5.4.8: 탭이 열려있으면 실제 방송 종료 여부를 탭에서 검증
+      const openTabs = await chrome.tabs.query({ url: `*://play.sooplive.co.kr/${streamer.id}*` });
+
+      if (openTabs.length > 0) {
+        try {
+          const verifyResponse = await chrome.tabs.sendMessage(openTabs[0].id, { type: 'VERIFY_BROADCAST_LIVE' });
+          if (verifyResponse?.isLive === true) {
+            // 탭에서 아직 재생 중 → API 오탐, 이전 상태 유지
+            console.log('[숲토킹] API 오탐 감지 - 탭에서 아직 재생 중:', streamer.id);
+            return;
+          }
+          // verifyResponse.isLive === false: 탭에서도 종료 확인됨 → 종료 처리 진행
+        } catch (verifyError) {
+          // 탭 통신 실패 시 API 응답 신뢰 (종료 처리 진행)
+          console.log('[숲토킹] 탭 검증 실패 - API 응답 사용:', streamer.id, verifyError.message);
+        }
+      }
+
       console.log('[숲토킹] 방송 종료 감지:', streamer.nickname || streamer.id);
 
       // 방송 종료 알림
@@ -1011,15 +1039,19 @@ async function checkStreamerStatus(streamerId) {
 
     clearTimeout(timeoutId);
 
+    // ⭐ v5.4.8: HTTP 오류 시 null 반환 (상태 알 수 없음)
     if (!response.ok) {
-      return { isLive: false };
+      console.warn(`[숲토킹] API HTTP 오류 (${response.status}):`, streamerId);
+      return null;
     }
 
     const data = await response.json();
     const channel = data.CHANNEL;
 
+    // ⭐ v5.4.8: 응답 파싱 실패 시 null 반환
     if (!channel) {
-      return { isLive: false };
+      console.warn('[숲토킹] API 응답에 CHANNEL 없음:', streamerId);
+      return null;
     }
 
     return {
@@ -1030,7 +1062,9 @@ async function checkStreamerStatus(streamerId) {
     };
   } catch (error) {
     clearTimeout(timeoutId);
-    return { isLive: false };
+    // ⭐ v5.4.8: 네트워크 오류/타임아웃 시 null 반환
+    console.warn('[숲토킹] API 호출 실패:', streamerId, error.message);
+    return null;
   }
 }
 
@@ -1097,9 +1131,10 @@ async function addStreamer(streamerId) {
 
   const status = await checkStreamerStatus(streamerId);
 
+  // ⭐ v5.4.8: API 오류 시에도 스트리머 추가 허용 (닉네임은 ID 사용)
   const streamer = {
     id: streamerId,
-    nickname: status.nickname || streamerId,  // ★ v3.5.12: API에서 가져온 닉네임 사용
+    nickname: status?.nickname || streamerId,  // ★ v3.5.12: API에서 가져온 닉네임 사용
     autoJoin: false,
     autoRecord: false,
     autoClose: false,
@@ -1107,9 +1142,19 @@ async function addStreamer(streamerId) {
   };
 
   state.favoriteStreamers.push(streamer);
-  state.broadcastStatus[streamerId] = status;
+  // ⭐ v5.4.8: API 오류 시 초기 상태를 isLive: false로 설정
+  state.broadcastStatus[streamerId] = status || { isLive: false };
 
-  await saveSettings();
+  // ⭐ v5.4.4: 저장 실패 시 롤백
+  try {
+    await saveSettings();
+  } catch (e) {
+    // 상태 롤백
+    state.favoriteStreamers.pop();
+    delete state.broadcastStatus[streamerId];
+    console.error('[숲토킹] 스트리머 추가 저장 실패:', e.message);
+    return { success: false, error: '설정 저장 실패' };
+  }
 
   return { success: true, streamer };
 }
@@ -1120,10 +1165,25 @@ async function removeStreamer(streamerId) {
     return { success: false, error: '스트리머를 찾을 수 없습니다.' };
   }
 
+  // ⭐ v5.4.4: 롤백용 백업
+  const removedStreamer = state.favoriteStreamers[index];
+  const removedStatus = state.broadcastStatus[streamerId];
+
   state.favoriteStreamers.splice(index, 1);
   delete state.broadcastStatus[streamerId];
 
-  await saveSettings();
+  // ⭐ v5.4.4: 저장 실패 시 롤백
+  try {
+    await saveSettings();
+  } catch (e) {
+    // 롤백: 삭제한 항목 복원
+    state.favoriteStreamers.splice(index, 0, removedStreamer);
+    if (removedStatus) {
+      state.broadcastStatus[streamerId] = removedStatus;
+    }
+    console.error('[숲토킹] 스트리머 삭제 저장 실패:', e.message);
+    return { success: false, error: '설정 저장 실패' };
+  }
 
   return { success: true };
 }
@@ -1134,8 +1194,21 @@ async function updateStreamer(streamerId, updates) {
     return { success: false, error: '스트리머를 찾을 수 없습니다.' };
   }
 
+  // ⭐ v5.4.4: 롤백용 백업
+  const previousState = { ...streamer };
+
   Object.assign(streamer, updates);
-  await saveSettings();
+
+  // ⭐ v5.4.4: 저장 실패 시 롤백
+  try {
+    await saveSettings();
+  } catch (e) {
+    // 롤백: 이전 상태로 복원
+    Object.keys(streamer).forEach(key => delete streamer[key]);
+    Object.assign(streamer, previousState);
+    console.error('[숲토킹] 스트리머 업데이트 저장 실패:', e.message);
+    return { success: false, error: '설정 저장 실패' };
+  }
 
   return { success: true, streamer };
 }
@@ -1207,7 +1280,32 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
+// ⭐ v5.4.4: 메시지 큐 래퍼 함수
+// 피처 플래그(FEATURES.useMessageQueue)에 따라 큐 사용 여부 결정
+// 문제 발생 시 config.js에서 useMessageQueue를 false로 설정하여 즉시 비활성화
 async function handleMessage(message, sender, sendResponse) {
+  if (FEATURES.useMessageQueue) {
+    // 큐를 통한 순차 처리
+    try {
+      await messageQueue.enqueue(
+        message.type,
+        handleMessageInternal,
+        message,
+        sender,
+        sendResponse
+      );
+    } catch (error) {
+      console.error('[숲토킹] 메시지 큐 처리 오류:', error);
+      sendResponse({ success: false, error: error.message });
+    }
+  } else {
+    // 기존 방식 (즉시 처리)
+    await handleMessageInternal(message, sender, sendResponse);
+  }
+}
+
+// 실제 메시지 처리 로직 (기존 handleMessage 내용 그대로)
+async function handleMessageInternal(message, sender, sendResponse) {
   const tabId = sender.tab?.id;
 
   switch (message.type) {

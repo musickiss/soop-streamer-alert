@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "5.4.3",
+  "version": "5.4.8",
   "description": "__MSG_extDescription__",
   "default_locale": "ko",
 
@@ -58,7 +58,7 @@
     },
     {
       "matches": ["https://play.sooplive.co.kr/*"],
-      "js": ["chat-collector.js"],
+      "js": ["selectors-config.js", "chat-collector.js"],
       "run_at": "document_idle"
     }
   ],

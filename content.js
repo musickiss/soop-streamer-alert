@@ -1,4 +1,4 @@
-// ===== 숲토킹 v4.0.2 - Content Script (ISOLATED) =====
+// ===== 숲토킹 v5.4.8 - Content Script (ISOLATED) =====
 
 (function() {
   'use strict';
@@ -167,8 +167,8 @@
     // 보안: 같은 윈도우에서 온 메시지만 처리
     if (e.source !== window) return;
 
-    // 보안: origin 검증 (SOOP 도메인만)
-    if (!e.origin.includes('sooplive.co.kr')) return;
+    // ⭐ v5.4.6: origin 정확한 비교 (보안 강화)
+    if (e.origin !== 'https://play.sooplive.co.kr') return;
 
     const { type, ...data } = e.data;
 
@@ -270,6 +270,7 @@
 
       case 'SOOPTALKING_SAVE_SEGMENT':
         // ★ 분할 저장 메시지 처리
+        // ⭐ v5.4.5: 저장 실패 시 content-main.js에 알림하여 graceful 종료 유도
         console.log('[숲토킹 Content] 분할 저장 요청:', data.fileName);
         safeSendMessage({
           type: 'SAVE_RECORDING_SEGMENT',
@@ -278,8 +279,24 @@
           blobUrl: data.blobUrl,
           partNumber: data.partNumber,
           streamerId: data.streamerId
+        }).then((response) => {
+          // 저장 실패 시 content-main.js에 알림
+          if (!response?.success) {
+            console.error('[숲토킹 Content] 분할 저장 실패:', response?.error);
+            window.postMessage({
+              type: 'SOOPTALKING_SAVE_FAILED',
+              error: response?.error || '저장 실패',
+              partNumber: data.partNumber
+            }, '*');
+          }
         }).catch((error) => {
-          console.error('[숲토킹 Content] 분할 저장 전송 실패:', error);
+          // Extension context 무효화 등으로 메시지 전송 자체 실패
+          console.error('[숲토킹 Content] 분할 저장 전송 실패:', error.message);
+          window.postMessage({
+            type: 'SOOPTALKING_SAVE_FAILED',
+            error: error.message || 'Extension context invalidated',
+            partNumber: data.partNumber
+          }, '*');
         });
         break;
 
@@ -432,6 +449,54 @@
           command: 'GET_STATUS'
         }, '*');
         sendResponse({ success: true, message: '상태 조회 명령 전달됨' });
+        return true;
+
+      // ⭐ v5.4.8: 방송 실제 진행 여부 검증 (API 오탐 방지)
+      case 'VERIFY_BROADCAST_LIVE':
+        try {
+          // 1. VOD 페이지로 리다이렉트 되었는지 확인
+          const currentUrl = window.location.href;
+          if (currentUrl.includes('/player/') || currentUrl.includes('/vod/')) {
+            sendResponse({ isLive: false, reason: 'vod_redirect' });
+            return true;
+          }
+
+          // 2. 비디오 요소 재생 상태 확인
+          const videos = document.querySelectorAll('video');
+          let isPlaying = false;
+
+          for (const video of videos) {
+            // readyState >= 2: 데이터 충분, !paused: 재생 중, !ended: 끝나지 않음
+            if (video.readyState >= 2 && !video.paused && !video.ended && video.videoWidth > 0) {
+              isPlaying = true;
+              break;
+            }
+          }
+
+          if (isPlaying) {
+            sendResponse({ isLive: true, reason: 'video_playing' });
+            return true;
+          }
+
+          // 3. 방송 종료 메시지 DOM 확인 (SOOP 특정 선택자)
+          const endMessages = document.querySelectorAll('.broadcast_end, .player_end, [class*="end"], [class*="offline"]');
+          const hasEndMessage = Array.from(endMessages).some(el => {
+            const text = el.textContent || '';
+            return text.includes('종료') || text.includes('끝') || text.includes('offline');
+          });
+
+          if (hasEndMessage) {
+            sendResponse({ isLive: false, reason: 'end_message' });
+            return true;
+          }
+
+          // 4. 비디오가 없거나 재생 중이 아님 → 종료로 판단
+          sendResponse({ isLive: false, reason: 'no_video_playing' });
+        } catch (error) {
+          // 오류 시 종료로 판단 (안전)
+          console.warn('[숲토킹 Content] 방송 검증 오류:', error);
+          sendResponse({ isLive: false, reason: 'error', error: error.message });
+        }
         return true;
 
       default:
