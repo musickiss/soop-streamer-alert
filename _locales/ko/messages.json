@@ -121,6 +121,20 @@
       }
     }
   },
+  "notificationPasswordBroadcastTitle": {
+    "message": "🔒 $nickname$ 방송 시작!",
+    "description": "비밀번호 방송 시작 알림 제목",
+    "placeholders": {
+      "nickname": {
+        "content": "$1",
+        "example": "스트리머닉네임"
+      }
+    }
+  },
+  "passwordBroadcastTag": {
+    "message": "[비밀번호 방송]",
+    "description": "비밀번호 방송 태그"
+  },
   "notificationBroadcastStartMessage": {
     "message": "방송을 시작했습니다.",
     "description": "방송 시작 알림 메시지"

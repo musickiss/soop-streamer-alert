@@ -1,7 +1,22 @@
-// ===== 숲토킹 v5.4.3 - Content Script (MAIN) =====
+// ===== 숲토킹 v5.4.7 - Content Script (MAIN) =====
 // MAIN world Canvas 녹화 스크립트
 // v3.7.0 - requestAnimationFrame + captureStream(0) 기반 프레임 동기화 녹화
 //        - H.264 하드웨어 가속 코덱 우선 적용
+//
+// ┌─────────────────────────────────────────────────────────────────────┐
+// │  ⚠️ 중요: 이 파일은 "world": "MAIN"으로 실행됩니다 (manifest.json)   │
+// │                                                                     │
+// │  ❌ 사용 불가:                                                       │
+// │    - chrome.runtime.* (sendMessage, id, etc.)                       │
+// │    - chrome.storage.*                                               │
+// │    - 모든 Chrome Extension API                                      │
+// │                                                                     │
+// │  ✅ 사용 가능:                                                       │
+// │    - window.postMessage() → content.js(ISOLATED)와 통신             │
+// │    - 표준 Web API (DOM, Canvas, MediaRecorder, AudioContext 등)     │
+// │                                                                     │
+// │  Extension context 검사가 필요하면 content.js(ISOLATED)에서 처리     │
+// └─────────────────────────────────────────────────────────────────────┘
 
 (function() {
   'use strict';
@@ -15,23 +30,24 @@
   // ===== 설정 =====
   // SOOP 원본 스트리밍: 1080p, 8Mbps, 60fps
   // ⭐ v3.7.1: 단일 품질 (6Mbps) - 백그라운드 30fps에서도 양호한 화질 유지
+  // 동기화: constants.js - RECORDING 객체
   const CONFIG = {
     // 녹화 품질 설정 (단일)
-    VIDEO_BITRATE: 6000000,       // 6 Mbps (v3.7.1: 4→6Mbps)
-    AUDIO_BITRATE: 128000,        // 128 kbps
-    TARGET_FPS: 60,               // 60fps 유지
-    CODEC_PRIORITY: ['avc1.640028', 'avc1.4d0028', 'vp9', 'vp8'],  // H.264 High 우선
+    VIDEO_BITRATE: 6000000,       // RECORDING.VIDEO_BITRATE
+    AUDIO_BITRATE: 128000,        // RECORDING.AUDIO_BITRATE
+    TARGET_FPS: 60,               // RECORDING.TARGET_FPS
+    CODEC_PRIORITY: ['avc1.640028', 'avc1.4d0028', 'vp9', 'vp8'],  // RECORDING.CODEC_PRIORITY
     // 공통 설정
-    TIMESLICE: 2000,
-    REQUEST_DATA_INTERVAL: 5000,  // ⭐ v3.6.2: 5초마다 requestData 호출
-    MAX_FILE_SIZE: 500 * 1024 * 1024,  // 500MB 유지
-    PROGRESS_INTERVAL: 5000,
-    CANVAS_DRAW_INTERVAL: 8,
-    MIN_RECORD_TIME: 2000,
-    MAX_VIDEO_UNAVAILABLE: 750,  // 60 → 750 (약 6초로 확장)
-    MAX_STOP_RETRIES: 10,
-    MAX_SPLIT_WAIT: 20,           // ⭐ 분할 대기 최대 횟수 (10초)
-    SPLIT_TRANSITION_DELAY: 300,
+    TIMESLICE: 2000,              // RECORDING.TIMESLICE
+    REQUEST_DATA_INTERVAL: 5000,  // RECORDING.REQUEST_DATA_INTERVAL
+    MAX_FILE_SIZE: 500 * 1024 * 1024,  // RECORDING.DEFAULT_SPLIT_SIZE_MB * 1024 * 1024
+    PROGRESS_INTERVAL: 5000,      // RECORDING.PROGRESS_INTERVAL
+    CANVAS_DRAW_INTERVAL: 8,      // RECORDING.CANVAS_DRAW_INTERVAL
+    MIN_RECORD_TIME: 2000,        // RECORDING.MIN_RECORD_TIME
+    MAX_VIDEO_UNAVAILABLE: 750,   // RECORDING.MAX_VIDEO_UNAVAILABLE
+    MAX_STOP_RETRIES: 10,         // RECORDING.MAX_STOP_RETRIES
+    MAX_SPLIT_WAIT: 20,           // RECORDING.MAX_SPLIT_WAIT
+    SPLIT_TRANSITION_DELAY: 300,  // RECORDING.SPLIT_TRANSITION_DELAY
   };
 
   // ===== 상태 변수 =====
@@ -72,6 +88,8 @@
   let splitWaitCount = 0;  // ⭐ 분할 대기 카운터
 
   // ===== 유틸리티 함수 =====
+  // 참고: content-main.js는 MAIN world에서 실행되므로 chrome.runtime API 사용 불가
+  // Extension context 검사는 ISOLATED world의 content.js 또는 chat-collector.js에서 처리
 
   function logMemoryUsage(context) {
     if (typeof performance !== 'undefined' && performance.memory) {
@@ -587,6 +605,27 @@
       recordingCtx = null;
     }
 
+    // ⭐ v5.4.7: 오디오 리소스 정리 (원본 방송 재생 유지)
+    // audioSource.disconnect()는 모든 연결을 끊으므로, 녹화용(audioDest) 연결만 선택적으로 끊음
+    // audioSource → audioCtx.destination 연결은 유지하여 원본 방송 소리 계속 재생
+    if (audioSource && audioDest) {
+      try {
+        audioSource.disconnect(audioDest);
+      } catch(e) {
+        // audioDest가 이미 연결 해제된 경우 무시
+      }
+    }
+
+    if (audioDest) {
+      try {
+        audioDest.stream.getTracks().forEach(track => track.stop());
+      } catch(e) {}
+      audioDest = null;
+    }
+
+    // audioSource, audioCtx는 유지 (스피커 출력 계속, 다음 녹화 시 재사용)
+    // connectedVideo도 유지 (같은 비디오에서 다시 녹화 가능)
+
     sourceVideo = null;
     videoUnavailableCount = 0;
   }
@@ -903,6 +942,9 @@
   }
 
   function handleDataAvailable(event) {
+    // 참고: content-main.js는 MAIN world에서 실행되므로 chrome.runtime API 사용 불가
+    // Extension context 검사는 ISOLATED world의 content.js에서 처리됨
+
     if (event.data && event.data.size > 0) {
       recordedChunks.push(event.data);
       totalRecordedBytes += event.data.size;
@@ -1255,8 +1297,8 @@
 
   window.addEventListener('message', async (event) => {
     if (event.source !== window) return;
-    // v3.5.20: origin 검증 추가 (보안 강화)
-    if (!event.origin.includes('sooplive.co.kr')) return;
+    // ⭐ v5.4.6: origin 정확한 비교 (보안 강화)
+    if (event.origin !== 'https://play.sooplive.co.kr') return;
     if (!event.data || event.data.type !== 'SOOPTALKING_RECORDER_COMMAND') return;
 
     const { command, params } = event.data;
@@ -1310,6 +1352,40 @@
       command: command,
       result: result
     }, '*');
+  });
+
+  // ⭐ v5.4.5: 저장 실패 시 graceful 종료 핸들러
+  // content.js(ISOLATED)에서 저장 실패 감지 시 전송됨
+  window.addEventListener('message', (event) => {
+    if (event.source !== window) return;
+    // ⭐ v5.4.6: origin 정확한 비교 (보안 강화)
+    if (event.origin !== 'https://play.sooplive.co.kr') return;
+    if (!event.data || event.data.type !== 'SOOPTALKING_SAVE_FAILED') return;
+
+    const { error, partNumber } = event.data;
+    // ⭐ v5.4.6: error 필드 검증 (보안 강화)
+    const sanitizedError = typeof error === 'string' ? error.slice(0, 100) : 'Unknown error';
+    console.warn(`[숲토킹 Recorder] 저장 실패 알림 수신 (파트 ${partNumber}):`, sanitizedError);
+
+    // 녹화 중일 때만 graceful 종료
+    if (isRecording) {
+      console.warn('[숲토킹 Recorder] Extension context 무효화 감지, graceful 종료 시작');
+
+      // 녹화 중지 및 리소스 정리
+      try {
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+      } catch (e) {
+        console.log('[숲토킹 Recorder] MediaRecorder 중지 중 오류 (무시):', e.message);
+      }
+
+      cleanupCanvas();
+      isRecording = false;
+
+      // 사용자에게 알림 (페이지 콘솔)
+      console.error('[숲토킹 Recorder] ⚠️ 녹화가 저장 실패로 인해 중지되었습니다. 확장 프로그램을 확인해주세요.');
+    }
   });
 
 })();

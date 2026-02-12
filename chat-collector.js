@@ -9,6 +9,7 @@
   window.__soopChatCollectorInstalled = true;
 
   // ===== 수집 모드 상수 =====
+  // 동기화: constants.js - COLLECT_MODE
   const COLLECT_MODE = {
     OFF: 'off',           // 수집하지 않음
     ALL: 'all',           // 모든 채팅방 수집
@@ -16,46 +17,32 @@
   };
 
   // ===== 설정 =====
-  const CONFIG = {
-    BUFFER_SIZE: 100,           // 버퍼 최대 크기 (실시간성 개선)
-    FLUSH_INTERVAL: 5000,       // 5초마다 강제 flush (ms) - 실시간성 개선
-    ADAPTIVE_FLUSH_MIN: 2000,   // 어댑티브: 최소 flush 간격 (ms)
-    ADAPTIVE_FLUSH_MAX: 10000,  // 어댑티브: 최대 flush 간격 (ms)
-    RETRY_INTERVAL: 5000,       // 채팅창 탐색 재시도 간격 (ms)
-    MAX_RETRY: 12,              // 최대 재시도 횟수 (1분간)
+  // ⭐ v5.4.4: 하드코딩된 기본 선택자 (폴백용)
+  // 동기화: constants.js - DEFAULT_SELECTORS
+  const DEFAULT_SELECTORS = {
+    chatContainer: ['#chat_area', '.chat_area'],
+    chatItem: ['.chatting-list-item'],
+    nickname: ['.author', '.username button[user_nick]', '[user_nick]'],
+    message: ['.msg', '.message-text p.msg', '.message-text'],
+    userIdAttrs: ['user_id', 'user_nick']
+  };
 
-    // SOOP 채팅창 선택자 (실제 DOM 기반 - 2025.01)
-    SELECTORS: {
-      // 채팅 리스트 컨테이너
-      chatContainer: [
-        '#chat_area',
-        '.chat_area'
-      ],
-      // 개별 채팅 아이템
-      chatItem: [
-        '.chatting-list-item'
-      ],
-      // 닉네임 요소 (button 내부의 .author)
-      nickname: [
-        '.author',
-        '.username button[user_nick]',
-        '[user_nick]'
-      ],
-      // 메시지 내용
-      message: [
-        '.msg',
-        '.message-text p.msg',
-        '.message-text'
-      ],
-      // 유저 ID 속성 (button에서 추출)
-      userIdAttrs: [
-        'user_id',
-        'user_nick'
-      ]
-    }
+  // 동기화: constants.js - LIMITS, INTERVALS
+  const CONFIG = {
+    BUFFER_SIZE: 100,           // LIMITS.CHAT_BUFFER_SIZE
+    FLUSH_INTERVAL: 5000,       // INTERVALS.CHAT_FLUSH
+    ADAPTIVE_FLUSH_MIN: 2000,   // INTERVALS.CHAT_FLUSH_MIN
+    ADAPTIVE_FLUSH_MAX: 10000,  // INTERVALS.CHAT_FLUSH_MAX
+    RETRY_INTERVAL: 5000,       // INTERVALS.CHAT_RETRY
+    MAX_RETRY: 12,              // LIMITS.CHAT_MAX_RETRY
+
+    // ⭐ v5.4.4: 외부 설정(selectors-config.js) 우선, 없으면 기본값 폴백
+    // SOOP UI 변경 시 selectors-config.js만 수정하면 됩니다.
+    SELECTORS: window.SOOP_SELECTORS || DEFAULT_SELECTORS
   };
 
   // ⭐ v5.4.3: 정규식 모듈 레벨 호이스팅 (js-hoist-regexp)
+  // 동기화: constants.js - PATTERNS.TITLE_PATTERNS, PATTERNS.URL_STREAMER
   const TITLE_PATTERNS = [
     /^(.+?)(?:\s*[-|]|의\s*방송)/,
     /^(.+?)\s*-\s*SOOP/,

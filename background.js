@@ -1,4 +1,4 @@
-// ===== 숲토킹 v5.4.8 - Background Service Worker =====
+// ===== 숲토킹 v5.5.0 - Background Service Worker =====
 
 // ⭐ v3.6.0: GA4 익명 통계 모듈 (ES6 Module)
 import * as Analytics from './analytics.js';
@@ -7,13 +7,24 @@ import * as Analytics from './analytics.js';
 import { FEATURES } from './config.js';
 import { messageQueue } from './message-queue.js';
 
-// ===== 상수 =====
-const CHECK_INTERVAL_FAST = 5000;   // 자동참여 ON 스트리머 (5초)
-const CHECK_INTERVAL_SLOW = 30000;  // 자동참여 OFF 스트리머 (30초)
-const API_URL = 'https://live.sooplive.co.kr/afreeca/player_live_api.php';
-const RECORDING_SAVE_TIMEOUT = 30000;  // 녹화 저장 최대 대기 시간 (30초)
-const STORAGE_KEY_RECORDINGS = 'activeRecordings';  // v3.5.14: Storage 키
-const MAX_CONCURRENT_RECORDINGS = 4;  // ⭐ v3.7.2: SOOP 최대 동시 스트림 제한
+// ⭐ v5.4.8: 통합 상수 모듈
+import {
+  STORAGE_KEYS,
+  INTERVALS,
+  TIMEOUTS,
+  LIMITS,
+  API_URLS,
+  DATABASE,
+  PATTERNS
+} from './constants.js';
+
+// ===== 상수 (constants.js에서 import) =====
+const CHECK_INTERVAL_FAST = INTERVALS.MONITORING_FAST;
+const CHECK_INTERVAL_SLOW = INTERVALS.MONITORING_SLOW;
+const API_URL = API_URLS.BROADCAST_STATUS;
+const RECORDING_SAVE_TIMEOUT = TIMEOUTS.RECORDING_SAVE;
+const STORAGE_KEY_RECORDINGS = STORAGE_KEYS.RECORDINGS;
+const MAX_CONCURRENT_RECORDINGS = LIMITS.MAX_CONCURRENT_RECORDINGS;
 
 // ===== 보안 유틸리티 =====
 
@@ -56,8 +67,8 @@ function formatDuration(seconds) {
 }
 
 // ===== v5.0.0: 채팅 IndexedDB 직접 저장 헬퍼 =====
-const CHAT_DB_NAME = 'sooptalkingChat';
-const CHAT_DB_VERSION = 1;
+const CHAT_DB_NAME = DATABASE.CHAT_DB_NAME;
+const CHAT_DB_VERSION = DATABASE.CHAT_DB_VERSION;
 let chatDB = null;
 
 // 날짜 포맷 헬퍼 (채팅용)
@@ -848,7 +859,10 @@ async function checkAndProcessStreamer(streamer) {
       }
 
       // 자동 참여
-      if (streamer.autoJoin) {
+      // ⭐ v5.5.0: 비밀번호 방송은 자동 참여 제외
+      if (streamer.autoJoin && status.isPasswordProtected) {
+        console.log('[숲토킹] 비밀번호 방송 - 자동 참여 건너뜀:', streamer.nickname || streamer.id);
+      } else if (streamer.autoJoin) {
         const tab = await openStreamerTab(streamer.id);
 
         // ⭐ v3.6.0: 자동 참여 이벤트
@@ -1054,8 +1068,12 @@ async function checkStreamerStatus(streamerId) {
       return null;
     }
 
+    // ⭐ v5.5.0: 비밀번호 방송 여부 추가 (BPWD: "Y"이면 비밀번호 방송)
+    const isPasswordProtected = channel.BPWD === 'Y';
+
     return {
       isLive: channel && channel.RESULT === 1,
+      isPasswordProtected,
       broadNo: channel.BNO,
       title: channel.TITLE || '',
       nickname: channel.BJNICK || streamerId
@@ -1069,11 +1087,22 @@ async function checkStreamerStatus(streamerId) {
 }
 
 function showNotification(streamer, status) {
+  // ⭐ v5.5.0: 비밀번호 방송 여부 표시 (i18n 지원)
+  const nickname = streamer.nickname || streamer.id;
+  const title = status.isPasswordProtected
+    ? chrome.i18n.getMessage('notificationPasswordBroadcastTitle', [nickname]) || `🔒 ${nickname} 방송 시작!`
+    : chrome.i18n.getMessage('notificationBroadcastStartTitle', [nickname]) || `${nickname} 방송 시작!`;
+  const passwordTag = chrome.i18n.getMessage('passwordBroadcastTag') || '[비밀번호 방송]';
+  const defaultMessage = chrome.i18n.getMessage('notificationBroadcastStartMessage') || '방송이 시작되었습니다.';
+  const message = status.isPasswordProtected
+    ? `${passwordTag} ${status.title || defaultMessage}`
+    : status.title || defaultMessage;
+
   chrome.notifications.create(`live_${streamer.id}`, {
     type: 'basic',
     iconUrl: 'icons/icon128.png',
-    title: `${streamer.nickname || streamer.id} 방송 시작!`,
-    message: status.title || '방송이 시작되었습니다.',
+    title,
+    message,
     requireInteraction: true,
     buttons: [{ title: '시청하기' }]
   });

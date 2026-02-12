@@ -28,9 +28,11 @@
   }
 
   // ===== v3.5.14: Storage 기반 녹화 상태 관리 =====
+  // 동기화: constants.js - STORAGE_KEYS.RECORDINGS
   const STORAGE_KEY_RECORDINGS = 'activeRecordings';
 
   // ⭐ v3.5.15: Progress 쓰로틀링 (15초)
+  // 동기화: constants.js - INTERVALS.PROGRESS_SAVE
   const PROGRESS_SAVE_INTERVAL = 15000;
   let lastProgressSaveTime = 0;
 

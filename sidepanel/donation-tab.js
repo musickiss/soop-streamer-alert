@@ -17,16 +17,18 @@ const DonationTab = (function() {
 
   // ============================================
   // 상수
+  // 동기화: constants.js - STORAGE_KEYS, INTERVALS, API_URLS, LIMITS, UI
   // ============================================
-  const STORAGE_KEY = 'myDonation';
-  const SYNC_INTERVAL_MS = 30 * 60 * 1000; // 30분
-  const DATA_URL = 'https://point.sooplive.co.kr/Report/AfreecaBalloonList.asp';
+  const STORAGE_KEY = 'myDonation';  // STORAGE_KEYS.MY_DONATION
+  const SYNC_INTERVAL_MS = 30 * 60 * 1000;  // INTERVALS.DONATION_SYNC
+  const DATA_URL = 'https://point.sooplive.co.kr/Report/AfreecaBalloonList.asp';  // API_URLS.DONATION_DATA
 
   // 전체 동기화 설정
-  const FULL_SYNC_START_YEAR = 2020; // 전체 동기화 시작 연도
-  const REQUEST_DELAY_MS = 300; // 요청 간 딜레이 (서버 부하 방지)
+  const FULL_SYNC_START_YEAR = 2020;  // LIMITS.DONATION_SYNC_START_YEAR
+  const REQUEST_DELAY_MS = 300;  // INTERVALS.DONATION_REQUEST_DELAY
 
   // 차트 색상 (다크 테마에서 잘 보이는 밝은 색상)
+  // 동기화: constants.js - UI.CHART_COLORS
   const CHART_COLORS = [
     '#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4',
     '#FFEAA7', '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE'

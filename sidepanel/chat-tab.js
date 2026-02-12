@@ -27,6 +27,7 @@ const ChatTab = (function() {
   };
 
   // ===== 수집 모드 상수 =====
+  // 동기화: constants.js - COLLECT_MODE
   const COLLECT_MODE = {
     OFF: 'off',           // 수집하지 않음
     ALL: 'all',           // 모든 채팅방 수집

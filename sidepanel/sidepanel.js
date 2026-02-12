@@ -58,6 +58,7 @@
   }
 
   // ===== v3.5.14: Storage 기반 녹화 상태 =====
+  // 동기화: constants.js - STORAGE_KEYS.RECORDINGS
   const STORAGE_KEY_RECORDINGS = 'activeRecordings';
 
   // ===== 상태 =====

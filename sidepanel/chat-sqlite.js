@@ -5,8 +5,9 @@ const ChatSQLite = (function() {
   'use strict';
 
   // ===== 상수 =====
-  const DB_NAME = 'sooptalking_chat';
-  const STORAGE_KEY = 'sqlite_db_data';
+  // 동기화: constants.js - DATABASE, STORAGE_KEYS
+  const DB_NAME = 'sooptalking_chat';  // DATABASE.CHAT_DB_NAME 유사
+  const STORAGE_KEY = 'sqlite_db_data';  // STORAGE_KEYS.SQLITE_DB_DATA
 
   // ===== 상태 =====
   let db = null;

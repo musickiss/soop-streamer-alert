@@ -1159,7 +1159,7 @@
   },
   "unlimited": {
     "message": "Unlimited",
-    "gouDescription": "Unlimited"
+    "description": "Unlimited"
   },
   "selectStartDate": {
     "message": "Select start date",
