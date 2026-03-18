@@ -255,6 +255,22 @@
         if (track) return track;
       }
 
+      // ⭐ v5.4.9: createMediaElementSource 실패 시 captureStream 폴백
+      // SOOP 플레이어가 이미 video에 MediaElementSource를 연결한 경우 대응
+      try {
+        const captureMethod = video.captureStream || video.mozCaptureStream;
+        if (captureMethod) {
+          const capturedStream = captureMethod.call(video);
+          const capturedAudioTrack = capturedStream.getAudioTracks()[0];
+          if (capturedAudioTrack && capturedAudioTrack.readyState === 'live') {
+            console.log('[숲토킹 Recorder] captureStream 폴백으로 오디오 확보 성공');
+            return capturedAudioTrack;
+          }
+        }
+      } catch (fallbackError) {
+        console.log('[숲토킹 Recorder] captureStream 폴백도 실패:', fallbackError.message);
+      }
+
       return null;
     }
   }

@@ -201,6 +201,9 @@ const state = {
   // ⭐ v3.5.10: 탭 종료 대기 상태 (녹화 저장 완료 대기)
   pendingTabClose: new Map(),  // tabId -> { resolve, timeoutId }
 
+  // ⭐ v5.4.9: 탭-스트리머 매핑 (VOD 리다이렉트 후에도 스트리머 식별용)
+  tabStreamerMap: new Map(),  // tabId -> streamerId
+
   // 모니터링 인터벌 ID
   fastIntervalId: null,
   slowIntervalId: null,
@@ -535,8 +538,18 @@ async function safeCloseBroadcastTab(streamerId, tabId = null) {
       if (tabs.length > 0) {
         tabId = tabs[0].id;
       } else {
-        console.log(`[숲토킹] ${streamerId} 탭을 찾을 수 없음`);
-        return;
+        // ⭐ v5.4.9: VOD 리다이렉트 후에도 tabStreamerMap으로 탭 찾기
+        for (const [mappedTabId, mappedStreamerId] of state.tabStreamerMap) {
+          if (mappedStreamerId === streamerId) {
+            tabId = mappedTabId;
+            console.log(`[숲토킹] ${streamerId} tabStreamerMap으로 탭 발견: ${tabId}`);
+            break;
+          }
+        }
+        if (!tabId) {
+          console.log(`[숲토킹] ${streamerId} 탭을 찾을 수 없음`);
+          return;
+        }
       }
     } catch (error) {
       console.log(`[숲토킹] ${streamerId} 탭 검색 실패:`, error);
@@ -585,6 +598,7 @@ async function safeCloseBroadcastTab(streamerId, tabId = null) {
   } finally {
     state.recordings.delete(tabId);
     state.pendingTabClose.delete(tabId);
+    state.tabStreamerMap.delete(tabId);  // ⭐ v5.4.9
     updateBadge();
   }
 }
@@ -1130,6 +1144,8 @@ async function openStreamerTab(streamerId) {
     const existingTabs = await chrome.tabs.query({ url: `*://play.sooplive.co.kr/${streamerId}*` });
     if (existingTabs.length > 0) {
       console.log('[숲토킹] 이미 열린 탭 재사용:', streamerId, 'tabId:', existingTabs[0].id);
+      // ⭐ v5.4.9: 기존 탭도 매핑 등록
+      state.tabStreamerMap.set(existingTabs[0].id, streamerId);
       // 탭 활성화
       await chrome.tabs.update(existingTabs[0].id, { active: true });
       return existingTabs[0];
@@ -1140,6 +1156,10 @@ async function openStreamerTab(streamerId) {
 
   const tab = await chrome.tabs.create({ url });
   console.log('[숲토킹] 새 탭 생성:', streamerId, 'tabId:', tab.id);
+
+  // ⭐ v5.4.9: 탭-스트리머 매핑 등록 (VOD 리다이렉트 후에도 스트리머 식별용)
+  state.tabStreamerMap.set(tab.id, streamerId);
+
   return tab;
 }
 
@@ -2067,6 +2087,9 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
     } catch (e) {}
   }
 
+  // ⭐ v5.4.9: 탭-스트리머 매핑 정리
+  state.tabStreamerMap.delete(tabId);
+
   // ⭐ v3.5.10: 대기 중인 탭 종료 해제
   if (state.pendingTabClose.has(tabId)) {
     const pending = state.pendingTabClose.get(tabId);
@@ -2169,23 +2192,43 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
     state.pendingRecordingCleanup.set(tabId, timeoutId);
   }
 
-  // URL 변경 감지 (기존 VOD 리다이렉트 로직 유지)
+  // URL 변경 감지
   if (changeInfo.url) {
     const url = changeInfo.url;
+
+    // ⭐ v5.4.9: play.sooplive.co.kr 탭 자동 매핑 (사용자가 직접 방송 탭을 연 경우 대응)
+    const playMatch = url.match(/play\.sooplive\.co\.kr\/([^/?#]+)/);
+    if (playMatch) {
+      const detectedStreamerId = playMatch[1];
+      if (!state.tabStreamerMap.has(tabId) || state.tabStreamerMap.get(tabId) !== detectedStreamerId) {
+        state.tabStreamerMap.set(tabId, detectedStreamerId);
+        console.log(`[숲토킹] 탭 자동 매핑 등록: tabId=${tabId}, streamerId=${detectedStreamerId}`);
+      }
+    }
 
     // VOD 페이지로 리다이렉트 감지 (vod.sooplive.co.kr)
     if (url.includes('vod.sooplive.co.kr')) {
       console.log('[숲토킹] VOD 리다이렉트 감지:', tabId);
 
-      // 녹화 중인 탭인지 확인
+      // ⭐ v5.4.9: 녹화 여부와 무관하게 탭-스트리머 매핑으로 autoClose 처리
+      let streamerId = null;
+
+      // 녹화 중인 탭이면 녹화 정보에서 스트리머 ID 가져오기
       if (state.recordings.has(tabId)) {
-        const rec = state.recordings.get(tabId);
-        const streamer = state.favoriteStreamers.find(s => s.id === rec.streamerId);
+        streamerId = state.recordings.get(tabId).streamerId;
+      }
+      // 녹화 중이 아니어도 tabStreamerMap에서 스트리머 ID 조회
+      if (!streamerId && state.tabStreamerMap.has(tabId)) {
+        streamerId = state.tabStreamerMap.get(tabId);
+      }
+
+      if (streamerId) {
+        const streamer = state.favoriteStreamers.find(s => s.id === streamerId);
 
         // 스트리머별 자동 종료 활성화 확인
         if (streamer?.autoClose) {
-          console.log('[숲토킹] VOD 리다이렉트 - 자동 종료 실행:', rec.streamerId);
-          await safeCloseTab(tabId, rec.streamerId);
+          console.log('[숲토킹] VOD 리다이렉트 - 자동 종료 실행:', streamerId);
+          await safeCloseBroadcastTab(streamerId, tabId);
         }
       }
     }

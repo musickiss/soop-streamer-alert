@@ -1827,8 +1827,8 @@ const DonationTab = (function() {
       case '1y': months = 12; break;
     }
 
-    const cutoff = new Date(now.getFullYear(), now.getMonth() - months, 1);
-    const cutoffStr = cutoff.toISOString().substring(0, 7); // YYYY-MM 형식
+    const cutoff = new Date(now.getFullYear(), now.getMonth() - months + 1, 1);
+    const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}`;
 
     return data.filter(item => {
       const dateStr = item[dateField] || '';
