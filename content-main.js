@@ -1356,7 +1356,7 @@
         break;
 
       case 'PING':
-        result = { success: true, pong: true, version: '5.5.4' };
+        result = { success: true, pong: true, version: '5.5.5' };
         break;
 
       default:
