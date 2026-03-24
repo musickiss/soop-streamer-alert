@@ -879,35 +879,6 @@ async function checkAndProcessStreamer(streamer) {
       } else if (streamer.autoJoin) {
         const tab = await openStreamerTab(streamer.id);
 
-        // ⭐ v5.5.2: 자동참여 시 비디오 자동재생 시도 (브라우저 autoplay 정책 우회)
-        if (tab?.id) {
-          chrome.tabs.onUpdated.addListener(function autoplayListener(tabId, info) {
-            if (tabId === tab.id && info.status === 'complete') {
-              chrome.tabs.onUpdated.removeListener(autoplayListener);
-              chrome.scripting.executeScript({
-                target: { tabId: tab.id },
-                func: () => {
-                  const tryPlay = setInterval(() => {
-                    const video = document.querySelector('video');
-                    if (video && video.paused && video.readyState >= 2) {
-                      video.play().catch(() => {
-                        // 소리 있는 재생 실패 시 muted로 재생
-                        video.muted = true;
-                        video.play().then(() => {
-                          video.muted = false;
-                        }).catch(() => {});
-                      });
-                    }
-                    if (video && !video.paused) clearInterval(tryPlay);
-                  }, 1000);
-                  setTimeout(() => clearInterval(tryPlay), 15000);
-                },
-                world: 'MAIN'
-              }).catch(e => console.warn('[숲토킹] autoplay 스크립트 주입 실패:', e.message));
-            }
-          });
-        }
-
         // ⭐ v3.6.0: 자동 참여 이벤트
         Analytics.trackAutoJoin();
 
