@@ -231,6 +231,6 @@ export const DEFAULT_SELECTORS = {
 
 // ===== 버전 정보 =====
 // manifest.json과 동기화 필요
-export const VERSION = '5.5.1';
+export const VERSION = '5.5.4';
 
 console.log('[숲토킹] 통합 상수 로드됨 (constants.js)');

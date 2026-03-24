@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "__MSG_extName__",
-  "version": "5.5.3",
+  "version": "5.5.4",
   "description": "__MSG_extDescription__",
   "default_locale": "ko",
 
@@ -17,11 +17,13 @@
     "sidePanel",
     "downloads",
     "scripting",
-    "alarms"
+    "alarms",
+    "contentSettings"
   ],
 
   "host_permissions": [
     "*://*.sooplive.co.kr/*",
+    "*://*.sooplive.com/*",
     "*://*.afreecatv.com/*",
     "https://point.sooplive.co.kr/*",
     "https://www.google-analytics.com/*"
@@ -46,18 +48,18 @@
 
   "content_scripts": [
     {
-      "matches": ["https://play.sooplive.co.kr/*"],
+      "matches": ["https://play.sooplive.co.kr/*", "https://play.sooplive.com/*"],
       "js": ["content.js"],
       "run_at": "document_start"
     },
     {
-      "matches": ["https://play.sooplive.co.kr/*"],
+      "matches": ["https://play.sooplive.co.kr/*", "https://play.sooplive.com/*"],
       "js": ["content-main.js"],
       "run_at": "document_start",
       "world": "MAIN"
     },
     {
-      "matches": ["https://play.sooplive.co.kr/*"],
+      "matches": ["https://play.sooplive.co.kr/*", "https://play.sooplive.com/*"],
       "js": ["selectors-config.js", "chat-collector.js"],
       "run_at": "document_idle"
     }
@@ -72,7 +74,7 @@
   "web_accessible_resources": [
     {
       "resources": ["lib/sql-wasm.wasm"],
-      "matches": ["<all_urls>"]
+      "matches": ["https://play.sooplive.co.kr/*", "https://play.sooplive.com/*"]
     }
   ]
 }

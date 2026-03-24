@@ -170,7 +170,7 @@
     if (e.source !== window) return;
 
     // ⭐ v5.4.6: origin 정확한 비교 (보안 강화)
-    if (e.origin !== 'https://play.sooplive.co.kr') return;
+    if (e.origin !== 'https://play.sooplive.co.kr' && e.origin !== 'https://play.sooplive.com') return;
 
     const { type, ...data } = e.data;
 

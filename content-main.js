@@ -1314,7 +1314,7 @@
   window.addEventListener('message', async (event) => {
     if (event.source !== window) return;
     // ⭐ v5.4.6: origin 정확한 비교 (보안 강화)
-    if (event.origin !== 'https://play.sooplive.co.kr') return;
+    if (event.origin !== 'https://play.sooplive.co.kr' && event.origin !== 'https://play.sooplive.com') return;
     if (!event.data || event.data.type !== 'SOOPTALKING_RECORDER_COMMAND') return;
 
     const { command, params } = event.data;
@@ -1356,7 +1356,7 @@
         break;
 
       case 'PING':
-        result = { success: true, pong: true, version: '3.7.0' };
+        result = { success: true, pong: true, version: '5.5.4' };
         break;
 
       default:
@@ -1375,7 +1375,7 @@
   window.addEventListener('message', (event) => {
     if (event.source !== window) return;
     // ⭐ v5.4.6: origin 정확한 비교 (보안 강화)
-    if (event.origin !== 'https://play.sooplive.co.kr') return;
+    if (event.origin !== 'https://play.sooplive.co.kr' && event.origin !== 'https://play.sooplive.com') return;
     if (!event.data || event.data.type !== 'SOOPTALKING_SAVE_FAILED') return;
 
     const { error, partNumber } = event.data;

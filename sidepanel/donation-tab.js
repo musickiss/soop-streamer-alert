@@ -363,7 +363,7 @@ const DonationTab = (function() {
 
     // 로그인 버튼
     if (target.id === 'donationLoginBtn') {
-      window.open('https://www.sooplive.co.kr/', '_blank');
+      window.open('https://www.sooplive.com/', '_blank');
       return;
     }
 
@@ -659,7 +659,7 @@ const DonationTab = (function() {
       });
 
       // 리다이렉트 체크 (로그인 필요)
-      if (response.url.includes('login.sooplive.co.kr') || response.url.includes('login.afreecatv.com')) {
+      if (response.url.includes('login.sooplive.co.kr') || response.url.includes('login.sooplive.com') || response.url.includes('login.afreecatv.com')) {
         return { success: false, loginRequired: true };
       }
 
@@ -670,7 +670,7 @@ const DonationTab = (function() {
       const html = await response.text();
 
       // 로그인 페이지 체크 (HTML 내용으로)
-      if (html.includes('login.sooplive.co.kr') || html.includes('로그인이 필요')) {
+      if (html.includes('login.sooplive.co.kr') || html.includes('login.sooplive.com') || html.includes('로그인이 필요')) {
         return { success: false, loginRequired: true };
       }
 
@@ -2295,7 +2295,7 @@ const DonationTab = (function() {
   async function processGift(id, nick) {
     giftState.isProcessing = true;
 
-    const giftUrl = `https://st.sooplive.co.kr/app/gift_starballoon.php?szBjId=${id}&szWork=BJ_STATION&sys_type=web&location=station`;
+    const giftUrl = `https://st.sooplive.com/app/gift_starballoon.php?szBjId=${id}&szWork=BJ_STATION&sys_type=web&location=station`;
     window.open(giftUrl, `gift_${Date.now()}`, 'width=450,height=550');
 
     const openedMsg = (i18n('donationGiftOpened') || '$name$님 후원 창이 열렸습니다')

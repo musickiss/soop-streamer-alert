@@ -398,11 +398,15 @@
     const activeTabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const activeTab = activeTabs[0];
 
-    if (activeTab?.url?.includes('play.sooplive.co.kr')) {
+    if (activeTab?.url?.includes('play.sooplive.co.kr') || activeTab?.url?.includes('play.sooplive.com')) {
       return activeTab;
     }
 
-    const soopTabs = await chrome.tabs.query({ url: '*://play.sooplive.co.kr/*' });
+    const soopTabResults = await Promise.all([
+      chrome.tabs.query({ url: '*://play.sooplive.co.kr/*' }),
+      chrome.tabs.query({ url: '*://play.sooplive.com/*' })
+    ]);
+    const soopTabs = soopTabResults.flat();
     return soopTabs.length > 0 ? soopTabs[0] : null;
   }
 
@@ -420,7 +424,7 @@
 
       state.currentSoopTabId = soopTab.id;
 
-      const match = soopTab.url.match(/play\.sooplive\.co\.kr\/([^\/]+)/);
+      const match = soopTab.url.match(/play\.sooplive\.(?:co\.kr|com)\/([^\/]+)/);
       if (!match) {
         showNotWatching();
         updateRecordingButton();
@@ -658,7 +662,7 @@
         const tabId = parseInt(tabIdStr);
         try {
           const tab = await chrome.tabs.get(tabId);
-          if (tab && tab.url?.includes('play.sooplive.co.kr')) {
+          if (tab && (tab.url?.includes('play.sooplive.co.kr') || tab.url?.includes('play.sooplive.com'))) {
             validRecordings.push({
               ...rec,
               tabId: tabId
@@ -1086,7 +1090,7 @@
         e.stopPropagation();  // 카드 확장/축소 방지
         const streamerId = avatar.dataset.stationId;
         if (streamerId) {
-          const stationUrl = `https://www.sooplive.co.kr/station/${streamerId}`;
+          const stationUrl = `https://www.sooplive.com/station/${streamerId}`;
           chrome.tabs.create({ url: stationUrl });
         }
       });

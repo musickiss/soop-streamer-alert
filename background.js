@@ -26,6 +26,36 @@ const RECORDING_SAVE_TIMEOUT = TIMEOUTS.RECORDING_SAVE;
 const STORAGE_KEY_RECORDINGS = STORAGE_KEYS.RECORDINGS;
 const MAX_CONCURRENT_RECORDINGS = LIMITS.MAX_CONCURRENT_RECORDINGS;
 
+// ===== SOOP 도메인 헬퍼 =====
+// sooplive.co.kr → sooplive.com 도메인 마이그레이션 대응 (.com 우선)
+const SOOP_PLAY_DOMAINS = ['play.sooplive.com', 'play.sooplive.co.kr'];
+const SOOP_PLAY_URL_PATTERNS = ['*://play.sooplive.com/*', '*://play.sooplive.co.kr/*'];
+
+function isSoopPlayUrl(url) {
+  return SOOP_PLAY_DOMAINS.some(domain => url?.includes(domain));
+}
+
+function isSoopStreamerUrl(url, streamerId) {
+  return SOOP_PLAY_DOMAINS.some(domain => url?.includes(`${domain}/${streamerId}`));
+}
+
+function extractStreamerFromSoopUrl(url) {
+  for (const domain of SOOP_PLAY_DOMAINS) {
+    const match = url?.match(new RegExp(`${domain.replace(/\./g, '\\.')}\\/([^/?#]+)`));
+    if (match) return match[1];
+  }
+  return null;
+}
+
+// 양쪽 도메인에서 SOOP 탭 검색 (streamer ID 필터 선택)
+async function querySoopTabs(streamerId = null) {
+  const pattern = streamerId
+    ? SOOP_PLAY_DOMAINS.map(d => `*://${d}/${streamerId}*`)
+    : SOOP_PLAY_DOMAINS.map(d => `*://${d}/*`);
+  const results = await Promise.all(pattern.map(p => chrome.tabs.query({ url: p })));
+  return results.flat();
+}
+
 // ===== 보안 유틸리티 =====
 
 function isValidStreamerId(streamerId) {
@@ -241,6 +271,21 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     Analytics.trackUpdate(details.previousVersion, manifest.version);
   }
 
+  // ⭐ v5.5.3: SOOP 도메인 소리 자동재생 허용 설정 (설치/업데이트 시 1회)
+  try {
+    chrome.contentSettings.sound.set({
+      primaryPattern: 'https://play.sooplive.co.kr/*',
+      setting: 'allow'
+    });
+    chrome.contentSettings.sound.set({
+      primaryPattern: 'https://play.sooplive.com/*',
+      setting: 'allow'
+    });
+    console.log('[숲토킹] SOOP 소리 허용 설정 완료');
+  } catch (e) {
+    console.warn('[숲토킹] SOOP 소리 허용 설정 실패:', e.message);
+  }
+
   // ⭐ v5.3.0: 자동 백업 알람 설정
   await setupBackupAlarm();
 });
@@ -425,7 +470,7 @@ async function startRecording(tabId, streamerId, nickname, quality = 'high', spl
   try {
     // 탭 확인
     const tab = await chrome.tabs.get(tabId);
-    if (!tab.url?.includes('play.sooplive.co.kr')) {
+    if (!isSoopPlayUrl(tab.url)) {
       return { success: false, error: 'SOOP 방송 페이지가 아닙니다.' };
     }
 
@@ -534,9 +579,9 @@ async function safeCloseBroadcastTab(streamerId, tabId = null) {
   // tabId가 없으면 스트리머 URL로 탭 검색
   if (!tabId) {
     try {
-      const tabs = await chrome.tabs.query({ url: `*://play.sooplive.co.kr/${streamerId}*` });
-      if (tabs.length > 0) {
-        tabId = tabs[0].id;
+      const soopTabs = await querySoopTabs(streamerId);
+      if (soopTabs.length > 0) {
+        tabId = soopTabs[0].id;
       } else {
         // ⭐ v5.4.9: VOD 리다이렉트 후에도 tabStreamerMap으로 탭 찾기
         for (const [mappedTabId, mappedStreamerId] of state.tabStreamerMap) {
@@ -661,7 +706,7 @@ async function loadRecordingsFromStorage() {
       // 탭 존재 확인
       try {
         const tab = await chrome.tabs.get(tabId);
-        if (tab && tab.url && tab.url.includes('play.sooplive.co.kr')) {
+        if (tab && tab.url && isSoopPlayUrl(tab.url)) {
           // 마지막 업데이트가 2분 이내인 경우만 유효
           if (now - (rec.lastUpdate || 0) < 120000) {
             validRecordings[tabIdStr] = rec;
@@ -916,7 +961,7 @@ async function checkAndProcessStreamer(streamer) {
           // 탭 유효성 재확인 (탭이 닫혔거나 URL이 변경되었을 수 있음)
           try {
             const currentTab = await chrome.tabs.get(tab.id);
-            if (!currentTab || !currentTab.url?.includes(`play.sooplive.co.kr/${streamer.id}`)) {
+            if (!currentTab || !isSoopStreamerUrl(currentTab.url, streamer.id)) {
               console.log('[숲토킹] 자동 녹화 취소 - 탭이 유효하지 않음:', streamer.id);
               return;
             }
@@ -941,7 +986,7 @@ async function checkAndProcessStreamer(streamer) {
             // 재시도 전 탭 유효성 재확인
             try {
               const currentTab = await chrome.tabs.get(tab.id);
-              if (!currentTab || !currentTab.url?.includes(`play.sooplive.co.kr/${streamer.id}`)) {
+              if (!currentTab || !isSoopStreamerUrl(currentTab.url, streamer.id)) {
                 console.log('[숲토킹] 자동 녹화 재시도 취소 - 탭 무효');
                 return { success: false, error: '탭이 유효하지 않음' };
               }
@@ -974,7 +1019,7 @@ async function checkAndProcessStreamer(streamer) {
     // 방송 종료 감지
     if (!status.isLive && prevStatus?.isLive) {
       // ⭐ v5.4.8: 탭이 열려있으면 실제 방송 종료 여부를 탭에서 검증
-      const openTabs = await chrome.tabs.query({ url: `*://play.sooplive.co.kr/${streamer.id}*` });
+      const openTabs = await querySoopTabs(streamer.id);
 
       if (openTabs.length > 0) {
         try {
@@ -1011,7 +1056,7 @@ async function checkAndProcessStreamer(streamer) {
       } else {
         // 자동 종료가 비활성화되어 있어도, 녹화 중이면 녹화는 안전 저장
         try {
-          const tabs = await chrome.tabs.query({ url: `*://play.sooplive.co.kr/${streamer.id}*` });
+          const tabs = await querySoopTabs(streamer.id);
           for (const tab of tabs) {
             if (state.recordings.has(tab.id)) {
               console.log('[숲토킹] 방송 종료 - 녹화 안전 저장 (탭 유지):', streamer.id);
@@ -1049,55 +1094,79 @@ async function checkAndProcessStreamer(streamer) {
 }
 
 async function checkStreamerStatus(streamerId) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  // ⭐ v5.5.5: 양쪽 도메인 Origin 폴백 (.com 우선 → .co.kr 재시도)
+  const origins = SOOP_PLAY_DOMAINS.map(d => `https://${d}`);
 
-  try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        'Origin': 'https://play.sooplive.co.kr',
-        'Referer': 'https://play.sooplive.co.kr/'
-      },
-      body: `bid=${encodeURIComponent(streamerId)}`,
-      signal: controller.signal
-    });
+  for (let i = 0; i < origins.length; i++) {
+    const origin = origins[i];
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    clearTimeout(timeoutId);
+    try {
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Origin': origin,
+          'Referer': `${origin}/`
+        },
+        body: `bid=${encodeURIComponent(streamerId)}`,
+        signal: controller.signal
+      });
 
-    // ⭐ v5.4.8: HTTP 오류 시 null 반환 (상태 알 수 없음)
-    if (!response.ok) {
-      console.warn(`[숲토킹] API HTTP 오류 (${response.status}):`, streamerId);
+      clearTimeout(timeoutId);
+
+      // Origin 거부(403) 시 다음 도메인으로 재시도
+      if (response.status === 403 && i < origins.length - 1) {
+        console.warn(`[숲토킹] API Origin 거부 (${origin}), 다른 도메인으로 재시도`);
+        continue;
+      }
+
+      // ⭐ v5.4.8: HTTP 오류 시 null 반환 (상태 알 수 없음)
+      if (!response.ok) {
+        console.warn(`[숲토킹] API HTTP 오류 (${response.status}):`, streamerId);
+        return null;
+      }
+
+      const data = await response.json();
+      const channel = data.CHANNEL;
+
+      // ⭐ v5.4.8: 응답 파싱 실패 시 null 반환
+      if (!channel) {
+        console.warn('[숲토킹] API 응답에 CHANNEL 없음:', streamerId);
+        return null;
+      }
+
+      // ⭐ v5.5.0: 비밀번호 방송 여부 추가 (BPWD: "Y"이면 비밀번호 방송)
+      const isPasswordProtected = channel.BPWD === 'Y';
+
+      // ⭐ v5.5.4: RESULT 값 기준 방송 상태 판정
+      //   1: 일반 방송, -6: 19+ 성인 방송, 기타 음수: 제한 방송
+      //   TITLE이 있고 RESULT가 0이 아니면 방송 중으로 판정
+      const isLive = channel.RESULT === 1 || (channel.RESULT < 0 && !!channel.TITLE);
+
+      return {
+        isLive,
+        isPasswordProtected,
+        isAdult: channel.RESULT === -6,
+        broadNo: channel.BNO,
+        title: channel.TITLE || '',
+        nickname: channel.BJNICK || streamerId
+      };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      // ⭐ v5.4.8: 네트워크 오류/타임아웃 시 null 반환 (마지막 도메인이면 반환, 아니면 재시도)
+      if (i < origins.length - 1) {
+        console.warn(`[숲토킹] API 호출 실패 (${origin}), 다른 도메인으로 재시도:`, error.message);
+        continue;
+      }
+      console.warn('[숲토킹] API 호출 실패:', streamerId, error.message);
       return null;
     }
-
-    const data = await response.json();
-    const channel = data.CHANNEL;
-
-    // ⭐ v5.4.8: 응답 파싱 실패 시 null 반환
-    if (!channel) {
-      console.warn('[숲토킹] API 응답에 CHANNEL 없음:', streamerId);
-      return null;
-    }
-
-    // ⭐ v5.5.0: 비밀번호 방송 여부 추가 (BPWD: "Y"이면 비밀번호 방송)
-    const isPasswordProtected = channel.BPWD === 'Y';
-
-    return {
-      isLive: channel && channel.RESULT === 1,
-      isPasswordProtected,
-      broadNo: channel.BNO,
-      title: channel.TITLE || '',
-      nickname: channel.BJNICK || streamerId
-    };
-  } catch (error) {
-    clearTimeout(timeoutId);
-    // ⭐ v5.4.8: 네트워크 오류/타임아웃 시 null 반환
-    console.warn('[숲토킹] API 호출 실패:', streamerId, error.message);
-    return null;
   }
+
+  return null;
 }
 
 function showNotification(streamer, status) {
@@ -1137,11 +1206,23 @@ chrome.notifications.onClicked.addListener((notificationId) => {
 });
 
 async function openStreamerTab(streamerId) {
-  const url = `https://play.sooplive.co.kr/${streamerId}`;
+  const url = `https://play.sooplive.com/${streamerId}`;
+
+  // ⭐ v5.5.4: 탭 열기 전 소리 허용 설정 (사용자가 사이트 설정 초기화해도 자동 복구)
+  try {
+    for (const domain of SOOP_PLAY_DOMAINS) {
+      chrome.contentSettings.sound.set({
+        primaryPattern: `https://${domain}/*`,
+        setting: 'allow'
+      });
+    }
+  } catch (e) {
+    console.warn('[숲토킹] 소리 허용 설정 실패:', e.message);
+  }
 
   // 이미 열린 탭이 있는지 확인 (중복 열림 방지)
   try {
-    const existingTabs = await chrome.tabs.query({ url: `*://play.sooplive.co.kr/${streamerId}*` });
+    const existingTabs = await querySoopTabs(streamerId);
     if (existingTabs.length > 0) {
       console.log('[숲토킹] 이미 열린 탭 재사용:', streamerId, 'tabId:', existingTabs[0].id);
       // ⭐ v5.4.9: 기존 탭도 매핑 등록
@@ -1394,7 +1475,7 @@ async function handleMessageInternal(message, sender, sendResponse) {
         for (const [tabIdStr, rec] of Object.entries(recordings)) {
           try {
             const tab = await chrome.tabs.get(parseInt(tabIdStr));
-            if (tab && tab.url?.includes('play.sooplive.co.kr')) {
+            if (tab && isSoopPlayUrl(tab.url)) {
               validRecordings.push({ ...rec, tabId: parseInt(tabIdStr) });
             } else {
               invalidTabIds.push(tabIdStr);
@@ -1896,7 +1977,7 @@ async function handleMessageInternal(message, sender, sendResponse) {
         });
 
         // 모든 SOOP 탭에 설정 변경 알림
-        const soopTabsForSettings = await chrome.tabs.query({ url: '*://play.sooplive.co.kr/*' });
+        const soopTabsForSettings = await querySoopTabs();
         for (const tab of soopTabsForSettings) {
           try {
             await chrome.tabs.sendMessage(tab.id, {
@@ -1917,7 +1998,7 @@ async function handleMessageInternal(message, sender, sendResponse) {
     case 'GET_CHAT_COLLECTION_STATUS_FROM_TABS':
       // Side Panel에서 요청 - 탭에서 수집 상태 조회
       try {
-        const soopTabsForStatus = await chrome.tabs.query({ url: '*://play.sooplive.co.kr/*' });
+        const soopTabsForStatus = await querySoopTabs();
         let chatStatus = null;
 
         for (const tab of soopTabsForStatus) {
@@ -1948,7 +2029,7 @@ async function handleMessageInternal(message, sender, sendResponse) {
         await chrome.storage.local.set({ chatCollectionEnabled: message.enabled });
 
         // 모든 SOOP 탭에 상태 변경 알림
-        const soopTabs = await chrome.tabs.query({ url: '*://play.sooplive.co.kr/*' });
+        const soopTabs = await querySoopTabs();
         for (const tab of soopTabs) {
           try {
             await chrome.tabs.sendMessage(tab.id, {
@@ -2162,7 +2243,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
       // content script에 PING으로 연결 상태 확인
       try {
         const tab = await chrome.tabs.get(tabId);
-        if (!tab || !tab.url?.includes('play.sooplive.co.kr')) {
+        if (!tab || !isSoopPlayUrl(tab.url)) {
           // 탭이 없거나 URL이 변경됨 → 실제 이동/새로고침
           await cleanupRecordingState(tabId, streamerId, '페이지 이동');
           return;
@@ -2196,8 +2277,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
   if (changeInfo.url) {
     const url = changeInfo.url;
 
-    // ⭐ v5.4.9: play.sooplive.co.kr 탭 자동 매핑 (사용자가 직접 방송 탭을 연 경우 대응)
-    const playMatch = url.match(/play\.sooplive\.co\.kr\/([^/?#]+)/);
+    // ⭐ v5.4.9: play.sooplive 탭 자동 매핑 (사용자가 직접 방송 탭을 연 경우 대응)
+    const playMatch = url.match(/play\.sooplive\.(?:co\.kr|com)\/([^/?#]+)/);
     if (playMatch) {
       const detectedStreamerId = playMatch[1];
       if (!state.tabStreamerMap.has(tabId) || state.tabStreamerMap.get(tabId) !== detectedStreamerId) {
@@ -2206,8 +2287,8 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
       }
     }
 
-    // VOD 페이지로 리다이렉트 감지 (vod.sooplive.co.kr)
-    if (url.includes('vod.sooplive.co.kr')) {
+    // VOD 페이지로 리다이렉트 감지 (vod.sooplive.co.kr / vod.sooplive.com)
+    if (url.includes('vod.sooplive.co.kr') || url.includes('vod.sooplive.com')) {
       console.log('[숲토킹] VOD 리다이렉트 감지:', tabId);
 
       // ⭐ v5.4.9: 녹화 여부와 무관하게 탭-스트리머 매핑으로 autoClose 처리
