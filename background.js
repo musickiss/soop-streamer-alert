@@ -271,21 +271,6 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     Analytics.trackUpdate(details.previousVersion, manifest.version);
   }
 
-  // ⭐ v5.5.3: SOOP 도메인 소리 자동재생 허용 설정 (설치/업데이트 시 1회)
-  try {
-    chrome.contentSettings.sound.set({
-      primaryPattern: 'https://play.sooplive.co.kr/*',
-      setting: 'allow'
-    });
-    chrome.contentSettings.sound.set({
-      primaryPattern: 'https://play.sooplive.com/*',
-      setting: 'allow'
-    });
-    console.log('[숲토킹] SOOP 소리 허용 설정 완료');
-  } catch (e) {
-    console.warn('[숲토킹] SOOP 소리 허용 설정 실패:', e.message);
-  }
-
   // ⭐ v5.3.0: 자동 백업 알람 설정
   await setupBackupAlarm();
 });
@@ -1207,18 +1192,6 @@ chrome.notifications.onClicked.addListener((notificationId) => {
 
 async function openStreamerTab(streamerId) {
   const url = `https://play.sooplive.com/${streamerId}`;
-
-  // ⭐ v5.5.4: 탭 열기 전 소리 허용 설정 (사용자가 사이트 설정 초기화해도 자동 복구)
-  try {
-    for (const domain of SOOP_PLAY_DOMAINS) {
-      chrome.contentSettings.sound.set({
-        primaryPattern: `https://${domain}/*`,
-        setting: 'allow'
-      });
-    }
-  } catch (e) {
-    console.warn('[숲토킹] 소리 허용 설정 실패:', e.message);
-  }
 
   // 이미 열린 탭이 있는지 확인 (중복 열림 방지)
   try {
