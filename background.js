@@ -239,16 +239,6 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     Analytics.trackInstall(manifest.version);
   } else if (details.reason === 'update') {
     Analytics.trackUpdate(details.previousVersion, manifest.version);
-
-    // ⭐ v5.5.2: 이전 버전에서 설정된 contentSettings.sound 초기화 (1회성)
-    // v5.5.2 초기 배포에서 contentSettings.sound.set()이 다른 탭에 영향을 주는 부작용 발생
-    // 이후 버전에서 contentSettings 권한과 함께 제거 예정
-    try {
-      chrome.contentSettings.sound.clear({});
-      console.log('[숲토킹] contentSettings.sound 초기화 완료');
-    } catch (e) {
-      console.warn('[숲토킹] contentSettings.sound 초기화 실패:', e.message);
-    }
   }
 
   // ⭐ v5.3.0: 자동 백업 알람 설정
