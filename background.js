@@ -877,6 +877,15 @@ async function checkAndProcessStreamer(streamer) {
       if (streamer.autoJoin && status.isPasswordProtected) {
         console.log('[숲토킹] 비밀번호 방송 - 자동 참여 건너뜀:', streamer.nickname || streamer.id);
       } else if (streamer.autoJoin) {
+        // ⭐ v5.5.2: 자동참여 시 소리 자동재생 허용 설정 (브라우저 autoplay 정책 우회)
+        try {
+          chrome.contentSettings.sound.set({
+            primaryPattern: 'https://play.sooplive.co.kr/*',
+            setting: 'allow'
+          });
+        } catch (e) {
+          console.warn('[숲토킹] contentSettings.sound 설정 실패:', e.message);
+        }
         const tab = await openStreamerTab(streamer.id);
 
         // ⭐ v3.6.0: 자동 참여 이벤트
