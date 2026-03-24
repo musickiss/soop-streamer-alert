@@ -17,7 +17,8 @@
     "sidePanel",
     "downloads",
     "scripting",
-    "alarms"
+    "alarms",
+    "contentSettings"
   ],
 
   "host_permissions": [
