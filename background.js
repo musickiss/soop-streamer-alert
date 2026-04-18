@@ -225,6 +225,12 @@ const state = {
   favoriteStreamers: [],  // [{id, nickname, autoJoin, autoRecord}]
   broadcastStatus: {},    // streamerId -> {isLive, title, ...}
 
+  // ⭐ v5.5.6: SW 재시작 후 최초 체크를 완료한 스트리머 ID 집합
+  // broadcastStatus가 메모리 전용이라 SW 재시작마다 비워지므로,
+  // 첫 폴링은 상태만 저장하고 side effect(알림/자동참여 등)는 건너뛰어
+  // "기존 탭 재활성화" 같은 의도치 않은 재트리거를 방지
+  seededStreamers: new Set(),
+
   // 녹화 세션 (tabId 기반)
   recordings: new Map(),  // tabId -> {streamerId, nickname, startTime, totalBytes}
 
@@ -893,6 +899,20 @@ async function checkAndProcessStreamer(streamer) {
       return;
     }
 
+    // ⭐ v5.5.6: SW 재시작 후 최초 체크는 상태만 저장하고 side effect 건너뛰기
+    // broadcastStatus가 메모리 전용이라 SW 재시작마다 prevStatus=undefined가 되어
+    // "방송 시작 감지" 조건이 재발동 → 기존 탭이 자동 활성화되는 문제 방지
+    if (prevStatus === undefined && !state.seededStreamers.has(streamer.id)) {
+      state.broadcastStatus[streamer.id] = status;
+      state.seededStreamers.add(streamer.id);
+      broadcastToSidepanel({
+        type: 'BROADCAST_STATUS_UPDATED',
+        data: state.broadcastStatus
+      });
+      console.log('[숲토킹] 최초 체크 시딩 - 알림/자동참여 건너뜀:', streamer.id, 'isLive:', status.isLive);
+      return;
+    }
+
     // 방송 시작 감지
     if (status.isLive && (!prevStatus || !prevStatus.isLive)) {
       console.log('[숲토킹] 방송 시작 감지:', streamer.nickname || streamer.id);
@@ -1179,29 +1199,35 @@ function showNotification(streamer, status) {
 chrome.notifications.onButtonClicked.addListener((notificationId, buttonIndex) => {
   if (notificationId.startsWith('live_') && buttonIndex === 0) {
     const streamerId = notificationId.replace('live_', '');
-    openStreamerTab(streamerId);
+    openStreamerTab(streamerId, true);
   }
 });
 
 chrome.notifications.onClicked.addListener((notificationId) => {
   if (notificationId.startsWith('live_')) {
     const streamerId = notificationId.replace('live_', '');
-    openStreamerTab(streamerId);
+    openStreamerTab(streamerId, true);
   }
 });
 
-async function openStreamerTab(streamerId) {
+// ⭐ v5.5.6: userInitiated=true일 때만 기존 탭을 강제 활성화
+// - 알림 클릭/버튼 클릭: 사용자 명시적 액션 → 탭 포커스 이동 (userInitiated=true)
+// - 자동 참여(autoJoin) 폴링 경로: 기존 탭 재활성화 금지 (userInitiated=false, 기본값)
+//   이용자가 음소거해두고 다른 방송을 보는데 해당 탭이 돌발 포커스되는 문제 방지
+async function openStreamerTab(streamerId, userInitiated = false) {
   const url = `https://play.sooplive.com/${streamerId}`;
 
   // 이미 열린 탭이 있는지 확인 (중복 열림 방지)
   try {
     const existingTabs = await querySoopTabs(streamerId);
     if (existingTabs.length > 0) {
-      console.log('[숲토킹] 이미 열린 탭 재사용:', streamerId, 'tabId:', existingTabs[0].id);
+      console.log('[숲토킹] 이미 열린 탭 재사용:', streamerId, 'tabId:', existingTabs[0].id, 'userInitiated:', userInitiated);
       // ⭐ v5.4.9: 기존 탭도 매핑 등록
       state.tabStreamerMap.set(existingTabs[0].id, streamerId);
-      // 탭 활성화
-      await chrome.tabs.update(existingTabs[0].id, { active: true });
+      // ⭐ v5.5.6: 사용자 명시적 액션일 때만 탭 활성화
+      if (userInitiated) {
+        await chrome.tabs.update(existingTabs[0].id, { active: true });
+      }
       return existingTabs[0];
     }
   } catch (error) {
@@ -1247,6 +1273,8 @@ async function addStreamer(streamerId) {
   state.favoriteStreamers.push(streamer);
   // ⭐ v5.4.8: API 오류 시 초기 상태를 isLive: false로 설정
   state.broadcastStatus[streamerId] = status || { isLive: false };
+  // ⭐ v5.5.6: 추가 시점에 상태를 이미 확정했으므로 시딩 완료 처리 (다음 폴링에서 정상 감지)
+  state.seededStreamers.add(streamerId);
 
   // ⭐ v5.4.4: 저장 실패 시 롤백
   try {
@@ -1255,6 +1283,7 @@ async function addStreamer(streamerId) {
     // 상태 롤백
     state.favoriteStreamers.pop();
     delete state.broadcastStatus[streamerId];
+    state.seededStreamers.delete(streamerId);
     console.error('[숲토킹] 스트리머 추가 저장 실패:', e.message);
     return { success: false, error: '설정 저장 실패' };
   }
@@ -1274,6 +1303,9 @@ async function removeStreamer(streamerId) {
 
   state.favoriteStreamers.splice(index, 1);
   delete state.broadcastStatus[streamerId];
+  // ⭐ v5.5.6: 재등록 대비 시딩 플래그도 정리
+  const wasSeeded = state.seededStreamers.has(streamerId);
+  state.seededStreamers.delete(streamerId);
 
   // ⭐ v5.4.4: 저장 실패 시 롤백
   try {
@@ -1283,6 +1315,9 @@ async function removeStreamer(streamerId) {
     state.favoriteStreamers.splice(index, 0, removedStreamer);
     if (removedStatus) {
       state.broadcastStatus[streamerId] = removedStatus;
+    }
+    if (wasSeeded) {
+      state.seededStreamers.add(streamerId);
     }
     console.error('[숲토킹] 스트리머 삭제 저장 실패:', e.message);
     return { success: false, error: '설정 저장 실패' };
